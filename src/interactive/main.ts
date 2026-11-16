@@ -1,6 +1,7 @@
 import { registerCommands } from "../command/register";
 import { CommandDispatcher } from "../engine/dispatcher";
 import { CommandRegistry } from "../engine/registry";
+import type { MathlexAstNode } from "../engine/mathlex";
 import type { OutputKind, TerminalContext } from "../engine/types";
 import { bindAstCopyTargets, getAstCopyValue, renderAst } from "./ast-renderer";
 import { CommandHistory } from "./command-history";
@@ -22,7 +23,7 @@ function print(content: string, kind: OutputKind = "normal"): void {
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
-function printAst(ast: unknown): void {
+function printAst(ast: MathlexAstNode): void {
   const line = document.createElement("div");
   line.className = "output-line output-line--ast";
   line.innerHTML = renderAst(ast);
@@ -105,11 +106,9 @@ const dispatcher = new CommandDispatcher(registry, context);
 const history = new CommandHistory();
 const copyButtonTimers = new WeakMap<HTMLButtonElement, number>();
 
-// Commands execute serially so asynchronous initialization or evaluation cannot
-// let a later command print its output before an earlier command has completed.
 let dispatchQueue: Promise<void> = Promise.resolve();
 
-print("Welcome to Jabr CLI v0.1.0.", "success");
+print(`Welcome to Jabr CLI v${__APP_VERSION__}.`, "success");
 print('Type "help" to see available commands.', "muted");
 print("");
 

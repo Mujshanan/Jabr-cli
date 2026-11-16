@@ -4,6 +4,7 @@ import {
   parseLatexExpression,
   parseMathExpression,
 } from "../engine/mathlex";
+import type { Command } from "../engine/types";
 import type { CommandRegistry } from "../engine/registry";
 
 function getRawExpression(rawArgs: string): string {
@@ -18,15 +19,69 @@ function getRawExpression(rawArgs: string): string {
   return expression;
 }
 
+type ExpressionMode = "math" | "latex";
+type ExpressionOutput = "render" | "ast";
+
+function createExpressionCommand(
+  name: string,
+  description: string,
+  usage: string,
+  mode: ExpressionMode,
+  output: ExpressionOutput,
+): Command {
+  return {
+    name,
+    description,
+    usage,
+    rawArguments: true,
+    execute: async (_args, context, rawArgs) => {
+      const expression = getRawExpression(rawArgs);
+      if (!expression) {
+        context.print(`Usage: ${usage}`, "error");
+        return;
+      }
+
+      if (output === "ast") {
+        const ast = mode === "math"
+          ? await parseMathExpression(expression)
+          : await parseLatexExpression(expression);
+        context.print(`Mathlex AST (${mode === "math" ? "plain text" : "LaTeX"}): ${expression}`, "success");
+        context.printAst(ast);
+        return;
+      }
+
+      const latex = mode === "math"
+        ? await mathExpressionToLatex(expression)
+        : await latexExpressionToLatex(expression);
+      context.printMath(latex, expression);
+    },
+  };
+}
+
 export function registerCommands(registry: CommandRegistry): void {
   registry.register({
     name: "help",
-    description: "List available commands.",
-    execute: (_args, context) => {
+    description: "List available commands or show details for one command.",
+    usage: "help [command]",
+    execute: (args, context) => {
+      const requested = args[0]?.toLowerCase();
+      if (requested) {
+        const command = registry.get(requested);
+        if (!command) {
+          context.print(`Unknown command: ${requested}`, "error");
+          return;
+        }
+        context.print(command.name, "success");
+        context.print(command.description);
+        if (command.usage) context.print(`Usage: ${command.usage}`, "muted");
+        return;
+      }
+
       context.print("Available commands:", "success");
       for (const command of registry.list()) {
         context.print("  " + command.name.padEnd(12) + " " + command.description);
       }
+      context.print('Use "help <command>" for command usage.', "muted");
     },
   });
 
@@ -37,71 +92,34 @@ export function registerCommands(registry: CommandRegistry): void {
     execute: (args, context) => context.print(args.join(" ")),
   });
 
-  registry.register({
-    name: "math",
-    description: "Parse a plain-text expression and render it as formatted mathematics.",
-    usage: 'math 2*x + sin(y)^2',
-    rawArguments: true,
-    execute: async (_args, context, rawArgs) => {
-      const expression = getRawExpression(rawArgs);
-      if (!expression) {
-        context.print("Usage: math expression", "error");
-        return;
-      }
-      const latex = await mathExpressionToLatex(expression);
-      context.printMath(latex, expression);
-    },
-  });
-
-  registry.register({
-    name: "math-latex",
-    description: "Parse LaTeX input and render it as formatted mathematics.",
-    usage: "math-latex \\frac{1}{2}",
-    rawArguments: true,
-    execute: async (_args, context, rawArgs) => {
-      const expression = getRawExpression(rawArgs);
-      if (!expression) {
-        context.print("Usage: math-latex LaTeX-expression", "error");
-        return;
-      }
-      const latex = await latexExpressionToLatex(expression);
-      context.printMath(latex, expression);
-    },
-  });
-
-  registry.register({
-    name: "ast",
-    description: "Parse a plain-text mathematical expression and display its AST.",
-    usage: "ast 2*x + sin(y)^2",
-    rawArguments: true,
-    execute: async (_args, context, rawArgs) => {
-      const expression = getRawExpression(rawArgs);
-      if (!expression) {
-        context.print("Usage: ast expression", "error");
-        return;
-      }
-      const ast = await parseMathExpression(expression);
-      context.print("Mathlex AST (plain text): " + expression, "success");
-      context.printAst(ast);
-    },
-  });
-
-  registry.register({
-    name: "ast-latex",
-    description: "Parse a LaTeX mathematical expression and display its AST.",
-    usage: "ast-latex \\frac{1}{2}",
-    rawArguments: true,
-    execute: async (_args, context, rawArgs) => {
-      const expression = getRawExpression(rawArgs);
-      if (!expression) {
-        context.print("Usage: ast-latex LaTeX-expression", "error");
-        return;
-      }
-      const ast = await parseLatexExpression(expression);
-      context.print("Mathlex AST (LaTeX): " + expression, "success");
-      context.printAst(ast);
-    },
-  });
+  registry.register(createExpressionCommand(
+    "math",
+    "Parse a plain-text expression and render it as formatted mathematics.",
+    "math 2*x + sin(y)^2",
+    "math",
+    "render",
+  ));
+  registry.register(createExpressionCommand(
+    "math-latex",
+    "Parse LaTeX input and render it as formatted mathematics.",
+    "math-latex \\frac{1}{2}",
+    "latex",
+    "render",
+  ));
+  registry.register(createExpressionCommand(
+    "ast",
+    "Parse a plain-text mathematical expression and display its AST.",
+    "ast 2*x + sin(y)^2",
+    "math",
+    "ast",
+  ));
+  registry.register(createExpressionCommand(
+    "ast-latex",
+    "Parse a LaTeX mathematical expression and display its AST.",
+    "ast-latex \\frac{1}{2}",
+    "latex",
+    "ast",
+  ));
 
   registry.register({
     name: "clear",
@@ -112,7 +130,7 @@ export function registerCommands(registry: CommandRegistry): void {
   registry.register({
     name: "version",
     description: "Show the Jabr CLI version.",
-    execute: (_args, context) => context.print("Jabr CLI v0.1.0", "success"),
+    execute: (_args, context) => context.print(`Jabr CLI v${__APP_VERSION__}`, "success"),
   });
 
   registry.register({
