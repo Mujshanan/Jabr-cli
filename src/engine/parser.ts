@@ -36,7 +36,9 @@ export function parseCommand(input: string, rawArguments = false): ParsedCommand
       continue;
     }
 
-    if (character === "'" || character === '"') {
+    // A single quote embedded in a word is ordinary text (e.g. don't, f'(x)).
+    // It opens a quoted token only at the beginning of that token.
+    if (character === '"' || (character === "'" && !tokenStarted)) {
       quote = character;
       tokenStarted = true;
       continue;
