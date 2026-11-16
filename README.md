@@ -2,7 +2,7 @@
 
 Jabr is a lightweight browser-based application terminal built with Vanilla HTML, CSS, TypeScript and Vite. The repository contains the original Mathlex expression-parser terminal and a separate minimal test page for the CivilKit Rust calculation engine.
 
-Jabr is an **engine laboratory** for evaluating CivilKit/Calcpad before its eventual integration into a separate notes application through a custom calculation block. It is not the notes application and its terminal UI is not intended to be embedded in that application.
+Jabr is an **engine laboratory** for developing a locally maintained Calcpad Rust engine fork before its eventual integration into a separate notes application through a custom calculation block. The current branch still contains the pinned CivilKit submodule; replacing it with copied, locally buildable Calcpad core source is a planned development milestone, not yet completed. It is not the notes application and its terminal UI is not intended to be embedded in that application.
 
 Jabr CLI is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
 
@@ -19,7 +19,7 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 
 - Vanilla HTML and CSS
 - TypeScript and Vite (no React or frontend framework)
-- CivilKit Calcs Rust calculation engine, pinned as a Git submodule
+- Calcpad Rust core, currently accessed through a pinned CivilKit submodule (planned: vendor required source directly into Jabr)
 - CivilKit's native worksheet CLI for native build/smoke testing
 - CivilKit WebAssembly engine via wasm-pack/wasm-bindgen
 - CivilKit tokenizer/highlighter WebAssembly package (upstream `calcpad-highlighter-wasm`)
@@ -46,7 +46,7 @@ Install the pinned wasm-pack release:
 cargo install wasm-pack --version 0.15.1 --locked
 ```
 
-The CivilKit source is pinned to commit `97f4bb698cea3bd6a9a4fae46dbc28b0d3ca5ffc` in `vendor/civilkit-calcs`. After cloning this repository, initialize it:
+The current baseline uses CivilKit source pinned to commit `97f4bb698cea3bd6a9a4fae46dbc28b0d3ca5ffc` in `vendor/civilkit-calcs`. This is transitional: the development plan now requires copying the required Calcpad Rust core and supporting crates into Jabr so the final build does not require a submodule or external CivilKit API. Until that migration is implemented, initialize the current submodule with:
 
 ```bash
 git submodule update --init --recursive
@@ -116,7 +116,7 @@ The initial standard-library test suite checks scalar arithmetic, variable evalu
 
 ## Windows build
 
-After installing the requirements and initializing the submodule, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. For npm:
+After installing the requirements and initializing the current submodule, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. For npm:
 
 ```powershell
 ./build.ps1 -PackageManager npm
