@@ -69,6 +69,11 @@ function preview(value: unknown): string {
   return String(value);
 }
 
+function copyButton(value: unknown, label: string): string {
+  const copyData = escapeHtml(JSON.stringify(value));
+  return `<button class="ast-copy" type="button" data-ast-action="copy" data-copy="${copyData}" title="Copy this node as JSON" aria-label="Copy ${escapeHtml(label)} node">⧉</button>`;
+}
+
 function renderEntry(key: string, value: unknown, depth: number): string {
   const label = readableLabel(key);
 
@@ -78,7 +83,7 @@ function renderEntry(key: string, value: unknown, depth: number): string {
 
   if (Array.isArray(value)) {
     const children = value.map((item, index) => renderEntry(String(index), item, depth + 1)).join("");
-    return `<li class="ast-node"><details class="ast-details"><summary class="ast-summary"><span class="ast-icon ast-icon--collection">▦</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-preview">${value.length} items</span></summary><ul class="ast-children">${children}</ul></details></li>`;
+    return `<li class="ast-node"><details class="ast-details"><summary class="ast-summary"><span class="ast-icon ast-icon--collection">▦</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-preview">${value.length} items</span>${copyButton(value, label)}</summary><ul class="ast-children">${children}</ul></details></li>`;
   }
 
   if (isRecord(value)) {
@@ -94,8 +99,7 @@ function renderEntry(key: string, value: unknown, depth: number): string {
       .map(([childKey, childValue]) => renderEntry(childKey, childValue, depth + 1))
       .join("");
     const kindTag = kind ? `<span class="ast-kind">${escapeHtml(kind)}</span>` : "";
-    const copyData = escapeHtml(JSON.stringify(value));
-    const summary = `<span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(title)}</span>${kindTag}<span class="ast-preview">${escapeHtml(valuePreview)}</span><button class="ast-copy" type="button" data-ast-action="copy" data-copy="${copyData}" title="Copy this node as JSON" aria-label="Copy ${escapeHtml(title)} node">⧉</button>`;
+    const summary = `<span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(title)}</span>${kindTag}<span class="ast-preview">${escapeHtml(valuePreview)}</span>${copyButton(value, title)}`;
 
     if (children.length === 0) {
       return `<li class="ast-node ast-node--leaf"><div class="ast-summary ast-summary--leaf">${summary}</div></li>`;
@@ -105,7 +109,7 @@ function renderEntry(key: string, value: unknown, depth: number): string {
   }
 
   const icon = iconFor(key);
-  return `<li class="ast-node ast-node--leaf"><div class="ast-summary ast-summary--leaf"><span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-value">${escapeHtml(preview(value))}</span></div></li>`;
+  return `<li class="ast-node ast-node--leaf"><div class="ast-summary ast-summary--leaf"><span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-value">${escapeHtml(preview(value))}</span>${copyButton(value, label)}</div></li>`;
 }
 
 /** Render an AST as a readable, collapsible tree with an optional raw JSON view. */
