@@ -85,7 +85,7 @@ jobs:
         run: npm test
       - name: Build native CLI, WebAssembly engines and Vite pages with Bun
         if: matrix.manager == 'bun'
-        run: bun run build
+        run: bun run build:bun
       - name: Build native CLI, WebAssembly engines and Vite pages with npm
         if: matrix.manager == 'npm'
         run: npm run build
