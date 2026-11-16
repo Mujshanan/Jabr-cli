@@ -46,7 +46,7 @@ Jabr
 | Vendored Calcpad Rust core | Parsing, calculation semantics, units, evaluation; source is maintained inside Jabr | Jabr UI state |
 | Jabr adapter | Stable API, normalization, version/capability contract | Reimplementing parser semantics |
 | Highlighter | Tokens, lexical metadata, source formatting | AST structure or evaluation |
-| AST inspector | Tree/ATS, JSON presentation, source navigation | Inventing AST nodes |
+| AST inspector | Tree/AST, JSON presentation, source navigation | Inventing AST nodes |
 | Terminal | Registered application commands | Arbitrary OS shell execution |
 | Python tests | Independent expected values and black-box checks | Runtime calculation engine |
 
@@ -112,7 +112,7 @@ The vendored highlighter package provides tokenization. The local WASM conversio
 
 The document model has three explicit node types: **Text**, **Code**, and **Math**. Text owns headings, paragraphs, and inline content; Code owns executable source (JavaScript and/or Calcpad programming syntax, with language identity explicit); Math owns Calcpad mathematical expressions and functions. A node's declared type selects its parser—plain prose must never be sent to the math parser, and an invalid math expression must not be silently reclassified as text. Import/paste may offer classification suggestions, but must not silently change an explicitly selected node type.\n\nThe first AST implementation targets the actual Calcpad math parser/compiler. Calcpad's existing worksheet parser is line-oriented and handles text, headings, expressions, directives, and control flow; its internal `Expr` compiler representation also includes program constructs. Do not claim that the upstream parser already exposes three separate ASTs. The Jabr document model is a layer above that source language.\n\nThe planned inspector has four coordinated views:
 
-- **Tree / ATS:** expandable human-readable AST hierarchy.
+- **Tree / AST:** expandable human-readable AST hierarchy.
 - **JSON:** complete schema output and selected subtree.
 - **Source:** original input with source span highlighting.
 - **LaTeX:** mathematical rendering generated from supported AST nodes.
@@ -129,13 +129,13 @@ Jabr's local Calcpad parser and AST inspection API
 Versioned Rust DTO
     ↓
 Jabr TypeScript adapter
-    ├── ATS tree formatter
+    ├── AST tree formatter
     ├── JSON view
     ├── source-span mapper
     └── AST-to-LaTeX formatter
 ```
 
-The AST inspector should be a reusable frontend module, not coupled to terminal commands. The adapter must preserve Calcpad engine semantics and source locations. The new `engine/calcpad-core/src/ast.rs` defines the first versioned Jabr DTO scaffold (`schemaVersion: 1`), document-node discriminator, stable node identity/kind, ordered children, kind-specific attributes, diagnostics, partial-result marker, and explicit UTF-8 byte spans. The DTO is not yet populated by the parser; that wiring is the next implementation task. Convert UTF-8 byte offsets to JavaScript UTF-16 positions before editor highlighting.
+The AST inspector should be a reusable frontend module, not coupled to terminal commands. The adapter must preserve Calcpad engine semantics and source locations. The initial DOM-based AST explorer is implemented in `src/interactive/ast-renderer.ts` and currently renders the Mathlex AST used by the terminal commands. It includes a tree, JSON/details panes, and a source panel. The source panel supports optional zero-based UTF-16 spans with end-exclusive offsets: selecting a tree node highlights its source range, and selecting highlighted source text selects the narrowest covering node. The current Mathlex AST does not include source positions, so live Mathlex results display source text without navigation. Do not infer AST spans from highlighter tokens. The future Rust DTO should retain UTF-8 byte offsets and the TypeScript adapter must convert them to UTF-16 before calling the explorer.
 
 Do not copy AST Explorer application code; use its source/tree synchronization as an interaction reference. Keep the current frontend stack and review licenses before adding any tree or JSON-view dependency.
 
@@ -198,7 +198,7 @@ Current high-level sequence:
 5. Establish native/WASM parity.
 6. Stabilize the engine adapter contract.
 7. Hand off the adapter for integration into the separate notes application.
-8. Implement the AST inspector UI on top of the real AST API.
+8. Continue the AST inspector UI prototype against Mathlex, then connect it to the real Calcpad AST API when source spans are available.
 
 Do not mark planned work complete until its acceptance criteria and tests are satisfied.
 
