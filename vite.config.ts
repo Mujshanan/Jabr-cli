@@ -1,9 +1,6 @@
-import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 
-const packageJson = JSON.parse(
-  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
-) as { version: string };
+import packageJson from "./package.json";
 
 const environment = (globalThis as typeof globalThis & {
   process?: { env?: Record<string, string | undefined> };
@@ -13,7 +10,7 @@ export default defineConfig({
   plugins: [{
     name: "inject-package-version",
     transformIndexHtml(html) {
-      return html.replaceAll("%APP_VERSION%", packageJson.version);
+      return html.replace(/%APP_VERSION%/g, packageJson.version);
     },
   }],
   define: {
