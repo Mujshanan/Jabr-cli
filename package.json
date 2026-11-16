@@ -3,14 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.22.0",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "dev": "npm run wasm:build && vite",
+    "dev": "pnpm run wasm:build && vite",
     "wasm:build": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex",
-    "typecheck": "npm run wasm:build && tsc --noEmit",
-    "build": "npm run typecheck && vite build",
+    "typecheck": "pnpm run wasm:build && tsc --noEmit",
+    "build": "pnpm run typecheck && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
