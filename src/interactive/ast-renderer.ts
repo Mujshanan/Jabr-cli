@@ -56,6 +56,10 @@ function iconFor(kind: string): { glyph: string; category: string } {
   return match ? { glyph: match[1], category: match[2] } : { glyph: "◇", category: "generic" };
 }
 
+function pathSegment(value: string): string {
+  return "/" + value.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
 function preview(value: unknown): string {
   if (typeof value === "string") return JSON.stringify(value);
   if (value === null) return "null";
@@ -86,7 +90,7 @@ export function buildAstTreeModel(value: unknown): AstTreeNode {
         kind: "Array",
         preview: current.length + " items",
         value: current,
-        children: current.map((item, index) => visit(String(index), item, id + "[" + index + "]", depth + 1)),
+        children: current.map((item, index) => visit(String(index), item, id + pathSegment(String(index)), depth + 1)),
       };
     }
 
@@ -94,7 +98,7 @@ export function buildAstTreeModel(value: unknown): AstTreeNode {
       const kind = typeof current.kind === "string" ? current.kind : "Object";
       const entries = Object.entries(current).filter(([childKey]) => childKey !== "kind");
       const children = entries.map(([childKey, childValue]) =>
-        visit(childKey, childValue, id + "." + childKey, depth + 1));
+        visit(childKey, childValue, id + pathSegment(childKey), depth + 1));
       const scalar = current.value;
       const summary = scalar !== undefined && !isRecord(scalar) && !Array.isArray(scalar)
         ? preview(scalar)
