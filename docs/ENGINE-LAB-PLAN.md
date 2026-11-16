@@ -117,6 +117,12 @@ The AST and LaTeX work must begin with an API audit of the pinned source. Prefer
 
 **Exit criteria:** the notes application can embed a calculation block while Jabr remains independently buildable and testable.
 
+## Initial audit result
+
+The source-level audit is recorded in [CIVILKIT-API-AUDIT.md](CIVILKIT-API-AUDIT.md). The important finding is that `MathParser` has public parse/evaluate/value APIs, but the internal RPN and the methods that compile it into the public `compiler::Expr` tree are crate-private. The existing WASM conversion endpoint exposes Calcpad HTML and diagnostics, not a standalone AST or LaTeX response. The separate highlighter crate does expose source prettification and tokenization.
+
+This means the next technical step is a small, controlled upstream API extension or a maintained patch exposing a versioned AST inspection DTO. Do not duplicate the private parser implementation in Jabr and do not reverse-engineer AST or LaTeX from HTML.
+
 ## Immediate implementation scope
 
-Start with Phase 0: add a Python-driven native CLI regression check and document the output/API investigation. Do not attempt to fabricate an AST or LaTeX endpoint from the existing HTML report. The next implementation task after the baseline is a source-level Rust API audit for AST and equation formatting.
+Phase 0 now includes the Python black-box regression runner and the first source-level API audit. CI has been configured to run the Python checks after building the native CLI. The AST DTO and standalone LaTeX formatter remain the next implementation milestone, after the CI baseline is green.
