@@ -137,9 +137,9 @@ Vite listens on all interfaces so its development server can be opened from GitH
 ```text
 help
 math 2*x + sin(y)^2
-math-latex \\frac{1}{2}
+math-latex \frac{1}{2}
 ast 2*x + sin(y)^2
-ast-latex \\frac{1}{2}
+ast-latex \frac{1}{2}
 echo hello
 version
 about
