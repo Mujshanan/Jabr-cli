@@ -16,7 +16,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -29,29 +29,21 @@ jobs:
           tar -xzf /tmp/wasm-pack.tar.gz -C /tmp
           sudo install /tmp/wasm-pack-v0.15.1-x86_64-unknown-linux-musl/wasm-pack /usr/local/bin/wasm-pack
           wasm-pack --version
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22.12.0
-      - uses: pnpm/action-setup@v4
+          node-version: 24
+      - uses: pnpm/action-setup@v6.1.1
         with:
           version: 10.34.5
           run_install: false
       - name: Install JavaScript dependencies
         run: |
-          if [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile
-          else
-            pnpm install --no-frozen-lockfile
-          fi
+          pnpm install --frozen-lockfile
       - name: Run JavaScript dependency audit
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=low
       - name: Run Rust tests
         run: |
-          if [ -f rust/mathlex-bridge/Cargo.lock ]; then
-            cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
-          else
-            cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
-          fi
+          cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
       - name: Install Rust dependency auditor
         run: cargo install cargo-audit --locked
       - name: Run Rust dependency audit
