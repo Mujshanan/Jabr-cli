@@ -1,6 +1,8 @@
 # Jabr CLI
 
-Jabr is a lightweight browser-based application terminal built with Vanilla HTML, CSS, TypeScript and Vite. The repository currently contains the original Mathlex expression-parser terminal and a separate minimal test page for the CivilKit Rust calculation engine.
+Jabr is a lightweight browser-based application terminal built with Vanilla HTML, CSS, TypeScript and Vite. The repository contains the original Mathlex expression-parser terminal and a separate minimal test page for the CivilKit Rust calculation engine.
+
+Jabr is an **engine laboratory** for evaluating CivilKit/Calcpad before its eventual integration into a separate notes application through a custom calculation block. It is not the notes application and its terminal UI is not intended to be embedded in that application.
 
 Jabr CLI is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
 
@@ -9,11 +11,12 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 - Vanilla HTML and CSS
 - TypeScript and Vite (no React or frontend framework)
 - CivilKit Calcs Rust calculation engine, pinned as a Git submodule
-- CivilKit's native worksheet CLI for the native build/smoke test
+- CivilKit's native worksheet CLI for native build/smoke testing
 - CivilKit WebAssembly engine via wasm-pack/wasm-bindgen
 - Existing Mathlex parser bridge retained temporarily for the original terminal commands
 - KaTeX and MathJax for the original terminal's mathematical typesetting
 - Vitest and Cargo tests
+- Python standard-library black-box regression checks
 - Bun (preferred) or npm for JavaScript dependencies
 
 ## Requirements
@@ -23,6 +26,7 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 - Rust toolchain (rustup and Cargo)
 - wasm-pack **0.15.1**
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
+- Python 3.10+ for the independent CLI regression checks
 
 Install Bun using https://bun.sh/docs/installation. For npm, install Node.js from https://nodejs.org/.
 
@@ -32,7 +36,7 @@ Install the pinned wasm-pack release:
 cargo install wasm-pack --version 0.15.1 --locked
 ```
 
-The CivilKit source is pinned to commit `97f4bb698cea3bd6a9a4fae46dbc28b0d3ca5ffc` in `vendor/civilkit-calcs`. After cloning the repository, initialize it:
+The CivilKit source is pinned to commit `97f4bb698cea3bd6a9a4fae46dbc28b0d3ca5ffc` in `vendor/civilkit-calcs`. After cloning this repository, initialize it:
 
 ```bash
 git submodule update --init --recursive
@@ -74,13 +78,33 @@ http://localhost:5173/engine-test.html
 
 The page has only a worksheet editor, Run button, engine status/version, rendered report and calculation messages. It calls CivilKit's existing `convert` API through WebAssembly. The generated report is displayed in a sandboxed iframe; scripts in worksheet output are not enabled.
 
-The existing terminal remains at `/`. It continues to use the Mathlex parser bridge while the CivilKit engine is evaluated separately. This is intentional: the current test harness validates CivilKit before the terminal's parser/execution architecture is migrated.
+The existing terminal remains at `/`. It continues to use the Mathlex parser bridge while the CivilKit engine is evaluated separately. This is intentional: the test harness validates CivilKit before the terminal's parser/execution architecture is migrated.
 
 ## Native CLI smoke test
 
 The native build uses CivilKit's own CLI and a tiny fixture. With Bun, run `bun run engine:native:bun`; with npm, run `npm run engine:native`.
 
 The script builds `vendor/civilkit-calcs/calcpad-cli`, runs it against `tests/fixtures/civilkit-smoke.cpd`, and checks that the generated HTML contains the expected result.
+
+## Independent Python checks
+
+Python is used as an **external test oracle**, not as part of the browser application or Rust engine runtime.
+
+After building the native CLI, run:
+
+```bash
+python tests/python/run_civilkit_checks.py
+```
+
+Or use the package script:
+
+```bash
+npm run test:python
+```
+
+The initial standard-library test suite checks scalar arithmetic, variable evaluation, operator precedence, and report generation. It computes expected values independently in Python and checks the native Calcpad report. SymPy and NumPy are deliberately deferred until the engine's value/unit/AST output contract is exposed.
+
+See [the engine-lab development plan](docs/ENGINE-LAB-PLAN.md) and [Python test notes](tests/python/README.md).
 
 ## Windows build
 
@@ -114,7 +138,7 @@ about
 clear
 ```
 
-The Mathlex bridge parses expressions and serializes its AST to LaTeX. It does not evaluate worksheets. The CivilKit test page is the first integration of a full calculation engine.
+The Mathlex bridge parses expressions and serializes its AST to LaTeX. It does not evaluate worksheets. The CivilKit test page is the first integration of a full calculation engine. The Mathlex AST/LaTeX commands are not yet evidence that CivilKit exposes the same outputs.
 
 ## Tests
 
@@ -124,6 +148,7 @@ Bun:
 bun run test
 bun run typecheck:bun
 bun run build:bun
+python tests/python/run_civilkit_checks.py
 ```
 
 npm:
@@ -132,6 +157,7 @@ npm:
 npm test
 npm run typecheck
 npm run build
+npm run test:python
 npm audit --audit-level=low
 ```
 
@@ -142,12 +168,14 @@ cargo test --locked --manifest-path vendor/civilkit-calcs/Cargo.toml -p civilkit
 cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
 ```
 
-CI builds the native CLI on Windows, tests the Rust engines, and builds the WebAssembly/Vite application with both Bun and npm.
+CI builds the native CLI on Windows, runs independent Python CLI checks, tests the Rust engine, and builds the WebAssembly/Vite application with both Bun and npm.
 
 ## Project structure
 
 ```text
 .
+├── docs/
+│   └── ENGINE-LAB-PLAN.md    # Engine lab scope, API plan and phases
 ├── vendor/
 │   └── civilkit-calcs/       # Pinned CivilKit source submodule
 ├── rust/
@@ -159,8 +187,9 @@ CI builds the native CLI on Windows, tests the Rust engines, and builds the WebA
 │   ├── engine/               # Terminal engine and generated WASM bindings
 │   ├── command/              # Built-in terminal commands
 │   └── interactive/          # Terminal UI and minimal engine test UI
-├── tests/fixtures/
-│   └── civilkit-smoke.cpd
+├── tests/
+│   ├── fixtures/             # CivilKit worksheet fixtures
+│   └── python/               # Independent Python CLI checks
 ├── index.html                # Existing terminal
 └── engine-test.html          # Minimal CivilKit calculation test page
 ```
