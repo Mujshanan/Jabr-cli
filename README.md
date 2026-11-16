@@ -1,15 +1,16 @@
 # Jabr CLI
 
-A lightweight, browser-based command interface for an application, built with Vanilla HTML, CSS, and TypeScript.
+A lightweight, browser-based command interface for an application, built with Vanilla HTML, CSS, TypeScript and a Rust/WebAssembly math parser.
 
 Jabr CLI is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
 
 ## Stack
 
 - Vanilla HTML and CSS
-- TypeScript
-- Vite for local development and production builds
-- Vitest for unit tests
+- TypeScript and Vite
+- Rust with the [Mathlex](https://github.com/ChrisGVE/mathlex) expression parser
+- WebAssembly via wasm-bindgen and wasm-pack
+- Vitest and Cargo tests
 
 No React or frontend framework is used.
 
@@ -17,6 +18,11 @@ No React or frontend framework is used.
 
 - Node.js 20.19+ or 22.12+
 - npm
+- Rust toolchain (rustup and Cargo)
+- wasm-pack
+- WebAssembly target: `rustup target add wasm32-unknown-unknown`
+
+Install wasm-pack using its [official instructions](https://rustwasm.github.io/wasm-pack/installer/).
 
 ## Getting started
 
@@ -25,54 +31,53 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite.
+The development server and production build generate the WebAssembly package first. To generate it manually:
 
-## Available commands
+```bash
+npm run wasm:build
+```
+
+## Commands
 
 | Command | Description |
 | --- | --- |
-| `help` | List registered commands |
+| `help` | List available commands |
+| `ast "2*x + sin(y)^2"` | Parse a mathematical expression and display its AST |
 | `echo <text>` | Print text |
 | `clear` | Clear terminal output |
 | `version` | Show the Jabr CLI version |
 | `about` | Explain what Jabr CLI is |
 
-## Scripts
+## Tests and builds
 
 ```bash
-npm run dev        # Start the Vite development server
-npm run typecheck  # Check TypeScript types
-npm test           # Run unit tests once
-npm run test:watch # Run tests in watch mode
-npm run build      # Type-check and create the production build
-npm run preview    # Preview the production build
+npm test
+npm run typecheck
+npm run build
+cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
 ```
 
 ## Project structure
 
 ```text
 .
+├── rust/
+│   └── mathlex-bridge/  # Rust Mathlex parser exposed to JavaScript through WASM
+├── src/
+│   ├── engine/          # Command parsing, Mathlex bridge and shared types
+│   ├── command/         # Built-in application commands
+│   └── interactive/     # Terminal UI and safe HTML AST tree renderer
 ├── index.html
 ├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── vitest.config.ts
-└── src/
-    ├── engine/       # Parsing, command registry, dispatch and shared types
-    ├── command/      # Built-in and application command definitions
-    └── interactive/  # Terminal UI, DOM event handling and styles
-        ├── main.ts
-        └── style.css
+└── vite.config.ts
 ```
 
-## Architecture
+## AST rendering
 
-- **Engine:** Parses command input, stores registered commands, dispatches execution and defines shared interfaces. It is independent of the DOM.
-- **Command:** Defines application actions independently of the terminal UI.
-- **Interactive:** Handles the terminal display, DOM events, input history and styling.
+The `ast` command sends a plain-text mathematical expression to the Rust Mathlex parser. Rust serializes the resulting AST to JSON; TypeScript renders that structure as a nested HTML tree. The renderer escapes AST keys and values before inserting the generated markup.
 
-Commands receive a small `TerminalContext` for writing output or clearing the terminal. This keeps command logic separate from DOM rendering and makes it possible to connect application services later.
+Mathlex parses expressions only. It does not evaluate them or implement Jabr's worksheet language, variables, units or execution model.
 
 ## Safety boundary
 
-Jabr CLI is an application command interface, not a system shell. Input is dispatched only to registered commands. It does not use `eval()` and does not run operating-system processes.
+Jabr CLI is an application command interface, not a system shell. Input is dispatched only to registered commands. It does not use `eval()` or run operating-system processes.
