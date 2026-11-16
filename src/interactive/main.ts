@@ -32,6 +32,49 @@ function printAst(ast: unknown): void {
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
+
+terminalOutput.addEventListener("click", async (event) => {
+  if (!(event.target instanceof Element)) return;
+  const button = event.target.closest<HTMLButtonElement>("button[data-ast-action]");
+  if (!button) return;
+
+  const astView = button.closest<HTMLElement>(".ast-view");
+  if (!astView) return;
+
+  const action = button.dataset.astAction;
+  if (action === "expand" || action === "collapse") {
+    const expanded = action === "expand";
+    astView.querySelectorAll<HTMLDetailsElement>("details.ast-details").forEach((details) => {
+      details.open = expanded;
+    });
+    return;
+  }
+
+  if (action === "raw") {
+    const raw = astView.querySelector<HTMLElement>(".ast-raw");
+    if (!raw) return;
+    raw.hidden = !raw.hidden;
+    button.textContent = raw.hidden ? "Raw JSON" : "Hide JSON";
+    return;
+  }
+
+  if (action === "copy") {
+    event.preventDefault();
+    event.stopPropagation();
+    const data = button.dataset.copy;
+    if (!data) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(JSON.parse(data), null, 2));
+      const original = button.textContent;
+      button.textContent = "✓";
+      window.setTimeout(() => { button.textContent = original; }, 1200);
+    } catch {
+      button.textContent = "!";
+      button.title = "Clipboard access unavailable";
+    }
+  }
+});
+
 function clear(): void {
   terminalOutput.replaceChildren();
 }
