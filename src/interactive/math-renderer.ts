@@ -61,6 +61,8 @@ export function createMathOutput(latex: string, source: string): HTMLElement {
   return block;
 }
 
+const renderTokens = new WeakMap<HTMLElement, number>();
+
 export async function renderMathOutput(
   block: HTMLElement,
   renderer: MathRenderer,
@@ -68,6 +70,10 @@ export async function renderMathOutput(
   const target = block.querySelector<HTMLElement>(".math-output__rendered");
   const latex = block.dataset.latex;
   if (!target || !latex) return;
+
+  const token = (renderTokens.get(block) ?? 0) + 1;
+  renderTokens.set(block, token);
+  const isCurrentRender = () => renderTokens.get(block) === token;
 
   block.querySelectorAll<HTMLButtonElement>("[data-math-renderer]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.mathRenderer === renderer));
@@ -91,9 +97,19 @@ export async function renderMathOutput(
     if (!window.MathJax?.typesetPromise) {
       throw new Error("MathJax did not load. Check your internet connection and reload Jabr.");
     }
-    target.textContent = "\\[" + latex + "\\]";
-    await window.MathJax.typesetPromise([target]);
+
+    // Typeset off-DOM so a slow MathJax operation cannot overwrite a newer
+    // KaTeX/MathJax selection in the visible target.
+    const staging = document.createElement("div");
+    staging.textContent = "\\\\[" + latex + "\\\\]";
+    await window.MathJax.typesetPromise([staging]);
+    if (!isCurrentRender()) {
+      window.MathJax.typesetClear?.([staging]);
+      return;
+    }
+    target.replaceChildren(...Array.from(staging.childNodes));
   } catch (error) {
+    if (!isCurrentRender()) return;
     target.replaceChildren();
     const message = document.createElement("div");
     message.className = "math-output__error";
