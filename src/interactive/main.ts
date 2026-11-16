@@ -23,7 +23,8 @@ function print(content: string, kind: OutputKind = "normal"): void {
 function printAst(ast: unknown): void {
   const line = document.createElement("div");
   line.className = "output-line output-line--ast";
-  line.append(renderAst(ast));
+  // renderAst escapes all AST keys and values before producing this HTML.
+  line.innerHTML = renderAst(ast);
   output.append(line);
   output.scrollTop = output.scrollHeight;
 }
