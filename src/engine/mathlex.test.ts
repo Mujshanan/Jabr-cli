@@ -17,8 +17,8 @@ describe("renderAst", () => {
     expect(html).toContain("Add");
     expect(html).toContain("Integer");
     expect(html).toContain("x");
-    expect(html).toContain("data-ast-action=\\"expand\\"");
-    expect(html).toContain("data-ast-action=\\"raw\\"");
+    expect(html).toContain('data-ast-action="expand"');
+    expect(html).toContain('data-ast-action="raw"');
     expect(html).toContain("<details");
     expect(html).toContain("ast-icon");
   });
