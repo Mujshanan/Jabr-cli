@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { renderAst } from "../interactive/ast-renderer";
 
 describe("renderAst", () => {
-  it("renders nested AST data as text nodes", () => {
-    const tree = renderAst({
+  it("renders nested AST data as an HTML tree", () => {
+    const html = renderAst({
       kind: "Binary",
       value: {
         op: { kind: "Add" },
@@ -12,15 +12,16 @@ describe("renderAst", () => {
       },
     });
 
-    expect(tree.textContent).toContain("Binary");
-    expect(tree.textContent).toContain("Add");
-    expect(tree.textContent).toContain("Integer");
-    expect(tree.textContent).toContain("x");
+    expect(html).toContain('class="ast-tree"');
+    expect(html).toContain("Binary");
+    expect(html).toContain("Add");
+    expect(html).toContain("Integer");
+    expect(html).toContain("x");
   });
 
-  it("does not interpret HTML-like values as markup", () => {
-    const tree = renderAst({ kind: "Variable", value: "<img src=x onerror=alert(1)>" });
-    expect(tree.querySelector("img")).toBeNull();
-    expect(tree.textContent).toContain("<img src=x");
+  it("escapes HTML-like values", () => {
+    const html = renderAst({ kind: "Variable", value: "<img src=x onerror=alert(1)>" });
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img");
   });
 });
