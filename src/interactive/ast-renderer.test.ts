@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderAst } from "../interactive/ast-renderer";
+import { renderAst } from "./ast-renderer";
 
 describe("renderAst", () => {
   it("renders nested AST data as an HTML tree", () => {
