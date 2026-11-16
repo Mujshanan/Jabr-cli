@@ -18,16 +18,16 @@ No React or frontend framework is used.
 ## Requirements
 
 - Node.js 20.19+ or 22.12+
-- pnpm 10.22+
+- pnpm 10.34.5
 - Rust toolchain (rustup and Cargo)
-- wasm-pack
+- wasm-pack 0.13.1
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
 
 Install pnpm using [Corepack](https://pnpm.io/installation#using-corepack):
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.22.0 --activate
+corepack prepare pnpm@10.34.5 --activate
 ```
 
 Install wasm-pack using its [official instructions](https://rustwasm.github.io/wasm-pack/installer/).
@@ -39,7 +39,7 @@ pnpm install
 pnpm dev
 ```
 
-Vite listens on all interfaces so its preview can be opened from GitHub Codespaces.
+Vite listens on all interfaces so its preview can be opened from GitHub Codespaces. Use the patched Vite version in the lockfile whenever exposing this development server to a network.
 
 The development server and production build generate the WebAssembly package first. To generate it manually:
 
@@ -47,10 +47,11 @@ The development server and production build generate the WebAssembly package fir
 pnpm wasm:build
 ```
 
-## Try the AST command
+## Try the AST commands
 
 ```text
 ast "2*x + sin(y)^2"
+ast-latex "\\frac{1}{2}"
 ```
 
 ## Commands
@@ -58,7 +59,8 @@ ast "2*x + sin(y)^2"
 | Command | Description |
 | --- | --- |
 | `help` | List available commands |
-| `ast "2*x + sin(y)^2"` | Parse a mathematical expression and display its AST |
+| `ast "2*x + sin(y)^2"` | Parse a plain-text expression and display its AST |
+| `ast-latex "\\frac{1}{2}"` | Parse a LaTeX expression and display its AST |
 | `echo <text>` | Print text |
 | `clear` | Clear terminal output |
 | `version` | Show the Jabr CLI version |
@@ -70,8 +72,12 @@ ast "2*x + sin(y)^2"
 pnpm test
 pnpm typecheck
 pnpm build
-cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
+cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
+pnpm audit --audit-level=high
+cargo audit --file rust/mathlex-bridge/Cargo.lock
 ```
+
+Commit both `pnpm-lock.yaml` and `rust/mathlex-bridge/Cargo.lock`. CI uses frozen/locked dependency resolution once those lockfiles are present.
 
 ## Project structure
 
@@ -88,11 +94,19 @@ cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
 └── vite.config.ts
 ```
 
-## AST rendering
+## Mathlex API boundary
 
-The `ast` command sends a plain-text mathematical expression to the Rust Mathlex parser. Rust serializes the resulting AST to JSON; TypeScript renders that structure as a nested HTML tree. The renderer escapes AST keys and values before inserting the generated markup.
+The Rust bridge exposes two independent parser functions:
 
-Mathlex parses expressions only. It does not evaluate them or implement Jabr's worksheet language, variables, units or execution model.
+- `parse_math(input)` parses plain-text mathematical notation.
+- `parse_latex(input)` parses LaTeX notation.
+
+Both return JSON using Mathlex's documented AST wire format: a node has a string `kind`, a `value` payload, and optional `annotations`. The TypeScript API validates the root node before returning it:
+
+- `parseMathExpression(input)`
+- `parseLatexExpression(input)`
+
+The `ast` and `ast-latex` terminal commands exercise those respective APIs. Mathlex parses expressions only. It does not evaluate them or implement Jabr's worksheet language, variables, units or execution model.
 
 ## Safety boundary
 
