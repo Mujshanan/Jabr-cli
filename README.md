@@ -104,7 +104,7 @@ npm run test:python
 
 The initial standard-library test suite checks scalar arithmetic, variable evaluation, operator precedence, and report generation. It computes expected values independently in Python and checks the native Calcpad report. SymPy and NumPy are deliberately deferred until the engine's value/unit/AST output contract is exposed.
 
-See [the engine-lab development plan](docs/ENGINE-LAB-PLAN.md) and [Python test notes](tests/python/README.md).
+See [the engine-lab development plan](docs/ENGINE-LAB-PLAN.md), [CivilKit API audit](docs/CIVILKIT-API-AUDIT.md), and [Python test notes](tests/python/README.md).
 
 ## Windows build
 
