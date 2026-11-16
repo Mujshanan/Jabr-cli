@@ -1,4 +1,9 @@
-import init, { parse_latex, parse_math } from "./wasm/jabr_mathlex";
+import init, {
+  latex_to_latex,
+  math_to_latex,
+  parse_latex,
+  parse_math,
+} from "./wasm/jabr_mathlex";
 
 export interface MathlexAstNode {
   readonly kind: string;
@@ -7,6 +12,7 @@ export interface MathlexAstNode {
 }
 
 type MathlexParser = (input: string) => string;
+type MathlexLatexSerializer = (input: string) => string;
 
 let initialization: Promise<unknown> | undefined;
 
@@ -62,6 +68,27 @@ async function parse(input: string, parser: MathlexParser): Promise<MathlexAstNo
   }
 }
 
+async function serializeLatex(
+  input: string,
+  serializer: MathlexLatexSerializer,
+): Promise<string> {
+  if (typeof input !== "string" || input.trim().length === 0) {
+    throw new TypeError("A non-empty mathematical expression is required.");
+  }
+
+  try {
+    await ensureInitialized();
+    const latex = serializer(input);
+    if (typeof latex !== "string" || latex.trim().length === 0) {
+      throw new Error("Mathlex returned an empty LaTeX expression.");
+    }
+    return latex;
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error(String(error));
+  }
+}
+
 /** Parse plain-text notation using Mathlex and return its JSON AST. */
 export function parseMathExpression(input: string): Promise<MathlexAstNode> {
   return parse(input, parse_math);
@@ -70,4 +97,14 @@ export function parseMathExpression(input: string): Promise<MathlexAstNode> {
 /** Parse LaTeX notation using Mathlex and return its JSON AST. */
 export function parseLatexExpression(input: string): Promise<MathlexAstNode> {
   return parse(input, parse_latex);
+}
+
+/** Parse plain-text notation and serialize its Mathlex AST to LaTeX. */
+export function mathExpressionToLatex(input: string): Promise<string> {
+  return serializeLatex(input, math_to_latex);
+}
+
+/** Parse LaTeX notation and serialize its Mathlex AST to normalized LaTeX. */
+export function latexExpressionToLatex(input: string): Promise<string> {
+  return serializeLatex(input, latex_to_latex);
 }

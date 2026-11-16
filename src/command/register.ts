@@ -1,4 +1,9 @@
-import { parseLatexExpression, parseMathExpression } from "../engine/mathlex";
+import {
+  latexExpressionToLatex,
+  mathExpressionToLatex,
+  parseLatexExpression,
+  parseMathExpression,
+} from "../engine/mathlex";
 import type { CommandRegistry } from "../engine/registry";
 
 export function registerCommands(registry: CommandRegistry): void {
@@ -8,7 +13,7 @@ export function registerCommands(registry: CommandRegistry): void {
     execute: (_args, context) => {
       context.print("Available commands:", "success");
       for (const command of registry.list()) {
-        context.print(`  ${command.name.padEnd(10)} ${command.description}`);
+        context.print("  " + command.name.padEnd(12) + " " + command.description);
       }
     },
   });
@@ -21,6 +26,36 @@ export function registerCommands(registry: CommandRegistry): void {
   });
 
   registry.register({
+    name: "math",
+    description: "Parse a plain-text expression and render it as formatted mathematics.",
+    usage: 'math "2*x + sin(y)^2"',
+    execute: async (args, context) => {
+      const expression = args.join(" ").trim();
+      if (!expression) {
+        context.print('Usage: math "mathematical expression"', "error");
+        return;
+      }
+      const latex = await mathExpressionToLatex(expression);
+      context.printMath(latex, expression);
+    },
+  });
+
+  registry.register({
+    name: "math-latex",
+    description: "Parse LaTeX input and render it as formatted mathematics.",
+    usage: 'math-latex "LaTeX expression"',
+    execute: async (args, context) => {
+      const expression = args.join(" ").trim();
+      if (!expression) {
+        context.print('Usage: math-latex "LaTeX expression"', "error");
+        return;
+      }
+      const latex = await latexExpressionToLatex(expression);
+      context.printMath(latex, expression);
+    },
+  });
+
+  registry.register({
     name: "ast",
     description: "Parse a plain-text mathematical expression and display its AST.",
     usage: 'ast "2*x + sin(y)^2"',
@@ -30,9 +65,8 @@ export function registerCommands(registry: CommandRegistry): void {
         context.print('Usage: ast "mathematical expression"', "error");
         return;
       }
-
       const ast = await parseMathExpression(expression);
-      context.print(`Mathlex AST (plain text): ${expression}`, "success");
+      context.print("Mathlex AST (plain text): " + expression, "success");
       context.printAst(ast);
     },
   });
@@ -40,16 +74,15 @@ export function registerCommands(registry: CommandRegistry): void {
   registry.register({
     name: "ast-latex",
     description: "Parse a LaTeX mathematical expression and display its AST.",
-    usage: String.raw`ast-latex "\frac{1}{2}"`,
+    usage: 'ast-latex "LaTeX expression"',
     execute: async (args, context) => {
       const expression = args.join(" ").trim();
       if (!expression) {
-        context.print(String.raw`Usage: ast-latex "\frac{1}{2}"`, "error");
+        context.print('Usage: ast-latex "LaTeX expression"', "error");
         return;
       }
-
       const ast = await parseLatexExpression(expression);
-      context.print(`Mathlex AST (LaTeX): ${expression}`, "success");
+      context.print("Mathlex AST (LaTeX): " + expression, "success");
       context.printAst(ast);
     },
   });
