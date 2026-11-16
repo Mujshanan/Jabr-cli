@@ -10,6 +10,12 @@ const environment = (globalThis as typeof globalThis & {
 }).process?.env;
 
 export default defineConfig({
+  plugins: [{
+    name: "inject-package-version",
+    transformIndexHtml(html) {
+      return html.replaceAll("%APP_VERSION%", packageJson.version);
+    },
+  }],
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
