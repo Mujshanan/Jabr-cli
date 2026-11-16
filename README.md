@@ -13,6 +13,7 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 - CivilKit Calcs Rust calculation engine, pinned as a Git submodule
 - CivilKit's native worksheet CLI for native build/smoke testing
 - CivilKit WebAssembly engine via wasm-pack/wasm-bindgen
+- CivilKit tokenizer/highlighter WebAssembly package (upstream `calcpad-highlighter-wasm`)
 - Existing Mathlex parser bridge retained temporarily for the original terminal commands
 - KaTeX and MathJax for the original terminal's mathematical typesetting
 - Vitest and Cargo tests
@@ -47,7 +48,7 @@ git submodule update --init --recursive
 The full build deliberately follows this order:
 
 1. **Native CLI:** compile CivilKit's native `Cli` binary and run a small worksheet smoke test.
-2. **WebAssembly:** compile CivilKit's `calcpad-wasm` crate for `wasm32-unknown-unknown` and generate browser bindings; then build the existing Mathlex compatibility bridge.
+2. **WebAssembly:** compile CivilKit's `calcpad-wasm` and `calcpad-highlighter-wasm` crates for `wasm32-unknown-unknown` and generate browser bindings; then build the existing Mathlex compatibility bridge.
 3. **Vite:** type-check TypeScript and build both browser pages.
 
 Bun (Bun runtime and package manager):
@@ -76,7 +77,7 @@ Start the development server and open:
 http://localhost:5173/engine-test.html
 ```
 
-The page has only a worksheet editor, Run button, engine status/version, rendered report and calculation messages. It calls CivilKit's existing `convert` API through WebAssembly. The generated report is displayed in a sandboxed iframe; scripts in worksheet output are not enabled.
+The page has a worksheet editor, Run button, tokenizer inspection (upstream token type/text/source positions), an AST status panel, engine status/version, rendered report and calculation messages. Tokenization uses CivilKit's separate highlighter WASM package. It calls CivilKit's existing `convert` API through WebAssembly. The generated report is displayed in a sandboxed iframe; scripts in worksheet output are not enabled.
 
 The existing terminal remains at `/`. It continues to use the Mathlex parser bridge while the CivilKit engine is evaluated separately. This is intentional: the test harness validates CivilKit before the terminal's parser/execution architecture is migrated.
 
@@ -104,7 +105,7 @@ npm run test:python
 
 The initial standard-library test suite checks scalar arithmetic, variable evaluation, operator precedence, and report generation. It computes expected values independently in Python and checks the native Calcpad report. SymPy and NumPy are deliberately deferred until the engine's value/unit/AST output contract is exposed.
 
-See [the engine-lab development plan](docs/ENGINE-LAB-PLAN.md), [CivilKit API audit](docs/CIVILKIT-API-AUDIT.md), and [Python test notes](tests/python/README.md).
+See [the engine-lab development plan](docs/ENGINE-LAB-PLAN.md), [CivilKit API audit](docs/CIVILKIT-API-AUDIT.md), [tokenizer and AST design](docs/TOKENIZER-AST-DESIGN.md), and [Python test notes](tests/python/README.md).
 
 ## Windows build
 
