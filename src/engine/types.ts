@@ -11,10 +11,13 @@ export interface Command {
   name: string;
   description: string;
   usage?: string;
-  execute: (args: string[], context: TerminalContext) => void | Promise<void>;
+  /** Pass the untouched text after the command name instead of shell-like tokenized arguments. */
+  rawArguments?: boolean;
+  execute: (args: string[], context: TerminalContext, rawArgs: string) => void | Promise<void>;
 }
 
 export interface ParsedCommand {
   name: string;
   args: string[];
+  rawArgs: string;
 }

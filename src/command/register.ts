@@ -6,6 +6,18 @@ import {
 } from "../engine/mathlex";
 import type { CommandRegistry } from "../engine/registry";
 
+function getRawExpression(rawArgs: string): string {
+  const expression = rawArgs.trim();
+  if (expression.length >= 2) {
+    const first = expression[0];
+    const last = expression[expression.length - 1];
+    if ((first === '"' || first === "'") && last === first) {
+      return expression.slice(1, -1);
+    }
+  }
+  return expression;
+}
+
 export function registerCommands(registry: CommandRegistry): void {
   registry.register({
     name: "help",
@@ -28,11 +40,12 @@ export function registerCommands(registry: CommandRegistry): void {
   registry.register({
     name: "math",
     description: "Parse a plain-text expression and render it as formatted mathematics.",
-    usage: 'math "2*x + sin(y)^2"',
-    execute: async (args, context) => {
-      const expression = args.join(" ").trim();
+    usage: 'math 2*x + sin(y)^2',
+    rawArguments: true,
+    execute: async (_args, context, rawArgs) => {
+      const expression = getRawExpression(rawArgs);
       if (!expression) {
-        context.print('Usage: math "mathematical expression"', "error");
+        context.print("Usage: math expression", "error");
         return;
       }
       const latex = await mathExpressionToLatex(expression);
@@ -43,11 +56,12 @@ export function registerCommands(registry: CommandRegistry): void {
   registry.register({
     name: "math-latex",
     description: "Parse LaTeX input and render it as formatted mathematics.",
-    usage: 'math-latex "LaTeX expression"',
-    execute: async (args, context) => {
-      const expression = args.join(" ").trim();
+    usage: "math-latex \\frac{1}{2}",
+    rawArguments: true,
+    execute: async (_args, context, rawArgs) => {
+      const expression = getRawExpression(rawArgs);
       if (!expression) {
-        context.print('Usage: math-latex "LaTeX expression"', "error");
+        context.print("Usage: math-latex LaTeX-expression", "error");
         return;
       }
       const latex = await latexExpressionToLatex(expression);
@@ -58,11 +72,12 @@ export function registerCommands(registry: CommandRegistry): void {
   registry.register({
     name: "ast",
     description: "Parse a plain-text mathematical expression and display its AST.",
-    usage: 'ast "2*x + sin(y)^2"',
-    execute: async (args, context) => {
-      const expression = args.join(" ").trim();
+    usage: "ast 2*x + sin(y)^2",
+    rawArguments: true,
+    execute: async (_args, context, rawArgs) => {
+      const expression = getRawExpression(rawArgs);
       if (!expression) {
-        context.print('Usage: ast "mathematical expression"', "error");
+        context.print("Usage: ast expression", "error");
         return;
       }
       const ast = await parseMathExpression(expression);
@@ -74,11 +89,12 @@ export function registerCommands(registry: CommandRegistry): void {
   registry.register({
     name: "ast-latex",
     description: "Parse a LaTeX mathematical expression and display its AST.",
-    usage: 'ast-latex "LaTeX expression"',
-    execute: async (args, context) => {
-      const expression = args.join(" ").trim();
+    usage: "ast-latex \\frac{1}{2}",
+    rawArguments: true,
+    execute: async (_args, context, rawArgs) => {
+      const expression = getRawExpression(rawArgs);
       if (!expression) {
-        context.print('Usage: ast-latex "LaTeX expression"', "error");
+        context.print("Usage: ast-latex LaTeX-expression", "error");
         return;
       }
       const ast = await parseLatexExpression(expression);

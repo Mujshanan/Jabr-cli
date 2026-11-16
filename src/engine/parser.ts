@@ -1,13 +1,22 @@
 import type { ParsedCommand } from "./types";
 
-export function parseCommand(input: string): ParsedCommand {
+export function parseCommand(input: string, rawArguments = false): ParsedCommand {
+  const source = input.trimStart();
+  const separator = source.search(/\s/);
+  const rawName = separator === -1 ? source : source.slice(0, separator);
+  const rawArgs = separator === -1 ? "" : source.slice(separator).trimStart();
+
+  if (rawArguments) {
+    return { name: rawName.toLowerCase(), args: [], rawArgs };
+  }
+
   const tokens: string[] = [];
   let token = "";
   let tokenStarted = false;
   let quote: "'" | '"' | null = null;
   let escaping = false;
 
-  for (const character of input.trim()) {
+  for (const character of source.trim()) {
     if (escaping) {
       token += character;
       tokenStarted = true;
@@ -51,5 +60,5 @@ export function parseCommand(input: string): ParsedCommand {
   if (tokenStarted) tokens.push(token);
 
   const [name = "", ...args] = tokens;
-  return { name: name.toLowerCase(), args };
+  return { name: name.toLowerCase(), args, rawArgs };
 }
