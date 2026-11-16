@@ -17,11 +17,16 @@ describe("renderAst", () => {
     expect(html).toContain("Add");
     expect(html).toContain("Integer");
     expect(html).toContain("x");
+    expect(html).toContain("data-ast-action=\\"expand\\"");
+    expect(html).toContain("data-ast-action=\\"raw\\"");
+    expect(html).toContain("<details");
+    expect(html).toContain("ast-icon");
   });
 
   it("escapes HTML-like values", () => {
     const html = renderAst({ kind: "Variable", value: "<img src=x onerror=alert(1)>" });
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img");
+    expect(html).not.toContain("onerror=alert(1)");
   });
 });
