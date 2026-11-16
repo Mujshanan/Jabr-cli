@@ -131,7 +131,7 @@ The AST inspector is a first-class developer tool inside Jabr's existing TypeScr
 
 The inspector should provide four coordinated views over the same selected AST node:
 
-- **Tree / ATS:** expandable, human-readable hierarchy with descriptive node labels. This is the default view.
+- **Tree / AST:** expandable, human-readable hierarchy with descriptive node labels. This is the default view.
 - **JSON:** complete serialized AST and selected-node subtree, with copyable structured output.
 - **Source:** original worksheet source with the selected node's source span highlighted.
 - **LaTeX:** rendered mathematical representation of the selected expression where supported. LaTeX is a formatter output, not a substitute for the AST.
