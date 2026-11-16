@@ -28,21 +28,53 @@ interface HighlightResponse {
   error?: string;
 }
 
-const editorHost = document.querySelector<HTMLElement>("#worksheet-editor");
-const runButton = document.querySelector<HTMLButtonElement>("#run-worksheet");
-const tokenizeButton = document.querySelector<HTMLButtonElement>("#inspect-tokens");
-const status = document.querySelector<HTMLOutputElement>("#engine-status");
-const versionLabel = document.querySelector<HTMLElement>("#engine-version");
-const report = document.querySelector<HTMLIFrameElement>("#engine-report");
-const errorsPanel = document.querySelector<HTMLElement>("#engine-errors");
-const errorsText = errorsPanel?.querySelector("pre");
-const tokenOutput = document.querySelector<HTMLElement>("#token-output");
-const tokenCount = document.querySelector<HTMLElement>("#token-count");
-
-if (!editorHost || !runButton || !tokenizeButton || !status || !versionLabel || !report ||
-    !errorsPanel || !errorsText || !tokenOutput || !tokenCount) {
-  throw new Error("Calcpad engine test page is missing required elements.");
+function requireElement<T>(element: T | null | undefined, selector: string): T {
+  if (element == null) {
+    throw new Error("Calcpad engine test page is missing required element: " + selector);
+  }
+  return element;
 }
+
+const editorHost = requireElement(
+  document.querySelector<HTMLElement>("#worksheet-editor"),
+  "#worksheet-editor",
+);
+const runButton = requireElement(
+  document.querySelector<HTMLButtonElement>("#run-worksheet"),
+  "#run-worksheet",
+);
+const tokenizeButton = requireElement(
+  document.querySelector<HTMLButtonElement>("#inspect-tokens"),
+  "#inspect-tokens",
+);
+const status = requireElement(
+  document.querySelector<HTMLOutputElement>("#engine-status"),
+  "#engine-status",
+);
+const versionLabel = requireElement(
+  document.querySelector<HTMLElement>("#engine-version"),
+  "#engine-version",
+);
+const report = requireElement(
+  document.querySelector<HTMLIFrameElement>("#engine-report"),
+  "#engine-report",
+);
+const errorsPanel = requireElement(
+  document.querySelector<HTMLElement>("#engine-errors"),
+  "#engine-errors",
+);
+const errorsText = requireElement(
+  errorsPanel.querySelector<HTMLPreElement>("pre"),
+  "#engine-errors pre",
+);
+const tokenOutput = requireElement(
+  document.querySelector<HTMLElement>("#token-output"),
+  "#token-output",
+);
+const tokenCount = requireElement(
+  document.querySelector<HTMLElement>("#token-count"),
+  "#token-count",
+);
 
 const INITIAL_WORKSHEET = "a = 6\nb = 7\nanswer = a*b";
 let editor: WorksheetEditor | null = null;
