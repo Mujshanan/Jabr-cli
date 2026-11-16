@@ -4,3 +4,4 @@ coverage/
 *.local
 src/engine/wasm/
 src/engine/civilkit-wasm/
+src/engine/civilkit-highlighter-wasm/
