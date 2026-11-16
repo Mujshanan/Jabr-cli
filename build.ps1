@@ -31,8 +31,8 @@ foreach ($tool in $requiredTools) {
     }
 }
 
-if (-not (Test-Path "vendor/civilkit-calcs/Cargo.toml")) {
-    throw "CivilKit submodule is missing. Run: git submodule update --init --recursive"
+if (-not (Test-Path "engine/calcpad-core/Cargo.toml")) {
+    throw "Vendored Jabr Calcpad core is missing from engine/calcpad-core."
 }
 
 if ($PackageManager -eq "bun") {
@@ -47,6 +47,6 @@ if ($PackageManager -eq "bun") {
 
 Write-Host "Installing the WebAssembly Rust target..."
 Invoke-Checked "rustup" @("target", "add", "wasm32-unknown-unknown")
-Write-Host "Building native CivilKit CLI, CivilKit WebAssembly, Mathlex compatibility bridge, and Vite UI..."
+Write-Host "Building the vendored Jabr Calcpad core, its WebAssembly bridge, Mathlex compatibility bridge, and Vite UI..."
 Invoke-Checked $runner @("run", $buildScript)
 Write-Host "Build completed successfully. Production files are in dist/."
