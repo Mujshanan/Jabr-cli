@@ -3,15 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.34.5",
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
-  },
+  "engines": { "node": "^20.19.0 || >=22.12.0" },
   "scripts": {
-    "dev": "pnpm run wasm:build && vite",
+    "dev": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex && vite",
     "wasm:build": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex",
-    "typecheck": "pnpm run wasm:build && tsc --noEmit",
-    "build": "pnpm run typecheck && vite build",
+    "typecheck": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex && tsc --noEmit",
+    "build": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -21,9 +18,5 @@
     "vite": "7.3.8",
     "vitest": "4.1.12"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  }
+  "trustedDependencies": ["esbuild"]
 }
