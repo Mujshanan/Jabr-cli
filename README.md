@@ -29,8 +29,8 @@ Install wasm-pack using its [official instructions](https://rustwasm.github.io/w
 ## Getting started
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 The development server and production build generate the WebAssembly package first. To generate it manually:
@@ -53,9 +53,9 @@ npm run wasm:build
 ## Tests and builds
 
 ```bash
-npm test
-npm run typecheck
-npm run build
+pnpm test
+pnpm typecheck
+pnpm build
 cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
 ```
 
