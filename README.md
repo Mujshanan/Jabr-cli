@@ -21,6 +21,7 @@ No React or frontend framework is used.
 - pnpm 10.34.5
 - Rust toolchain (rustup and Cargo)
 - wasm-pack 0.13.1
+- cargo-audit (for Rust dependency security checks)
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
 
 Install pnpm using [Corepack](https://pnpm.io/installation#using-corepack):
