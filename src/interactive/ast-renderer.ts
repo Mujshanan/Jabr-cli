@@ -1,9 +1,17 @@
+export interface AstSourceSpan {
+  /** Zero-based UTF-16 code-unit offsets; end is exclusive. */
+  readonly start: number;
+  readonly end: number;
+  readonly unit: "utf16";
+}
+
 export interface AstTreeNode {
   readonly id: string;
   readonly label: string;
   readonly kind: string;
   readonly preview: string;
   readonly value: unknown;
+  readonly span?: AstSourceSpan;
   readonly children: readonly AstTreeNode[];
 }
 
@@ -60,6 +68,13 @@ function pathSegment(value: string): string {
   return "/" + value.replace(/~/g, "~0").replace(/\//g, "~1");
 }
 
+function readSourceSpan(value: unknown): AstSourceSpan | undefined {
+  if (!isRecord(value) || !Number.isInteger(value.start) || !Number.isInteger(value.end) || value.unit !== "utf16") return undefined;
+  const start = value.start as number;
+  const end = value.end as number;
+  return start >= 0 && end >= start ? { start, end, unit: "utf16" } : undefined;
+}
+
 function preview(value: unknown): string {
   if (typeof value === "string") return JSON.stringify(value);
   if (value === null) return "null";
@@ -96,7 +111,7 @@ export function buildAstTreeModel(value: unknown): AstTreeNode {
 
     if (isRecord(current)) {
       const kind = typeof current.kind === "string" ? current.kind : "Object";
-      const entries = Object.entries(current).filter(([childKey]) => childKey !== "kind");
+      const entries = Object.entries(current).filter(([childKey]) => childKey !== "kind" && childKey !== "span");
       const children = entries.map(([childKey, childValue]) =>
         visit(childKey, childValue, id + pathSegment(childKey), depth + 1));
       const scalar = current.value;
@@ -109,6 +124,7 @@ export function buildAstTreeModel(value: unknown): AstTreeNode {
         kind,
         preview: summary,
         value: current,
+        span: readSourceSpan(current.span),
         children,
       };
     }
@@ -154,7 +170,7 @@ function serialize(value: unknown): string {
  * The tree uses stable path IDs, and selection/details state is kept separately
  * from expansion state. No parser-specific source ranges are assumed.
  */
-export function createAstExplorer(ast: unknown): HTMLElement {
+export function createAstExplorer(ast: unknown, source?: string): HTMLElement {
   const model = buildAstTreeModel(ast);
   const root = element("section", "ast-view");
   root.setAttribute("aria-label", "Abstract syntax tree explorer");
@@ -169,6 +185,44 @@ export function createAstExplorer(ast: unknown): HTMLElement {
   const rawToggle = button("Full JSON", "raw");
   const copyRoot = button("Copy AST", "copy-root");
   toolbar.append(expandAll, collapseAll, rawToggle, copyRoot);
+
+  const sourcePanel = element("div", "ast-source-panel");
+  const sourceHeading = element("div", "ast-panel-heading", "Source");
+  const sourceCode = element("pre", "ast-source-code");
+  const sourceStatus = element("p", "ast-source-note");
+  const hasSource = typeof source === "string";
+  const sourceNodes: Array<{ node: AstTreeNode; start: number; end: number }> = [];
+  function collectSourceNodes(node: AstTreeNode): void {
+    if (node.span && hasSource && node.span.end <= source!.length) {
+      sourceNodes.push({ node, start: node.span.start, end: node.span.end });
+    }
+    for (const child of node.children) collectSourceNodes(child);
+  }
+  collectSourceNodes(model);
+  if (hasSource && sourceNodes.length > 0) {
+    const boundaries = [...new Set([0, source!.length, ...sourceNodes.flatMap((item) => [item.start, item.end])])].sort((a, b) => a - b);
+    for (let index = 0; index < boundaries.length - 1; index += 1) {
+      const start = boundaries[index]!;
+      const end = boundaries[index + 1]!;
+      if (end <= start) continue;
+      const covering = sourceNodes.filter((item) => item.start <= start && item.end >= end).sort((a, b) => (a.end - a.start) - (b.end - b.start));
+      const owner = covering[0];
+      if (!owner) sourceCode.append(document.createTextNode(source!.slice(start, end)));
+      else {
+        const segment = element("span", "ast-source-segment", source!.slice(start, end));
+        segment.dataset.sourceNode = owner.node.id;
+        segment.title = owner.node.kind + " · " + owner.node.id;
+        sourceCode.append(segment);
+      }
+    }
+    sourceStatus.textContent = "Select a highlighted source segment to inspect its AST node. Selecting a tree node highlights its source range.";
+  } else if (hasSource) {
+    sourceCode.textContent = source!;
+    sourceStatus.textContent = "This parser AST does not provide source spans. Source is shown for reference; node-to-source navigation is unavailable until the parser emits spans.";
+  } else {
+    sourcePanel.hidden = true;
+  }
+  sourcePanel.append(sourceHeading, sourceCode, sourceStatus);
 
   const workspace = element("div", "ast-workspace");
   const treePanel = element("div", "ast-tree-panel");
@@ -191,7 +245,7 @@ export function createAstExplorer(ast: unknown): HTMLElement {
 
   const fullJson = element("pre", "ast-raw", serialize(ast));
   fullJson.hidden = true;
-  root.append(toolbar, workspace, fullJson);
+  root.append(toolbar, sourcePanel, workspace, fullJson);
 
   const rows = new Map<string, HTMLElement>();
   const childLists = new Map<string, HTMLUListElement>();
