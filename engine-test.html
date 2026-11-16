@@ -24,9 +24,20 @@
           <textarea id="worksheet-source" spellcheck="false" autocapitalize="off">a = 6
 b = 7
 answer = a*b</textarea>
-          <button id="run-worksheet" type="button" disabled>Run worksheet</button>
+          <div class="engine-test__actions">
+            <button id="run-worksheet" type="button" disabled>Run worksheet</button>
+            <button id="inspect-tokens" type="button" disabled>Tokenize source</button>
+          </div>
         </div>
         <div class="engine-test__result">
+          <section class="engine-inspector" aria-label="Tokenizer output">
+            <div class="engine-inspector__heading"><h2>Tokenizer</h2><span id="token-count">Not inspected</span></div>
+            <pre id="token-output">Token output will appear here.</pre>
+          </section>
+          <section class="engine-inspector" aria-label="AST output">
+            <div class="engine-inspector__heading"><h2>AST</h2><span class="engine-inspector__status">Pending Rust API extension</span></div>
+            <pre id="ast-output">CivilKit has an internal Expr tree, but its RPN-to-AST methods are crate-private. A versioned inspection API is the next Rust milestone.</pre>
+          </section>
           <div class="engine-test__result-heading">
             <label for="engine-report">Calculation report</label>
             <span id="engine-version"></span>
