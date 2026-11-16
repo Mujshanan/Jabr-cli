@@ -4,73 +4,55 @@ function isRecord(value: unknown): value is AstRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function describe(value: unknown): string {
-  if (value === null) return "null";
-  if (typeof value === "string") return JSON.stringify(value);
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  return "";
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character] ?? character;
+  });
 }
 
-function appendValue(parent: HTMLElement, value: unknown, depth: number): void {
+function leaf(value: unknown): string {
+  if (typeof value === "string") return escapeHtml(JSON.stringify(value));
+  if (value === null) return "null";
+  return escapeHtml(String(value));
+}
+
+function renderEntry(key: string, value: unknown, depth: number): string {
+  const label = `<span class="ast-key">${escapeHtml(key)}</span>`;
+
   if (depth > 80) {
-    const limit = document.createElement("span");
-    limit.className = "ast-value";
-    limit.textContent = "Maximum display depth reached";
-    parent.append(limit);
-    return;
+    return `<li class="ast-node">${label}<span class="ast-value">Maximum display depth reached</span></li>`;
   }
 
   if (Array.isArray(value)) {
-    value.forEach((item, index) => {
-      appendEntry(parent, String(index), item, depth + 1);
-    });
-    return;
+    const children = value.map((item, index) => renderEntry(String(index), item, depth + 1)).join("");
+    return `<li class="ast-node">${label}<ul class="ast-children">${children}</ul></li>`;
   }
 
   if (isRecord(value)) {
-    Object.entries(value).forEach(([key, child]) => {
-      appendEntry(parent, key, child, depth + 1);
-    });
-    return;
+    const children = Object.entries(value)
+      .map(([childKey, childValue]) => renderEntry(childKey, childValue, depth + 1))
+      .join("");
+    return `<li class="ast-node">${label}<ul class="ast-children">${children}</ul></li>`;
   }
 
-  const leaf = document.createElement("span");
-  leaf.className = "ast-value";
-  leaf.textContent = describe(value);
-  parent.append(leaf);
+  return `<li class="ast-node">${label}<span class="ast-value">${leaf(value)}</span></li>`;
 }
 
-function appendEntry(parent: HTMLElement, key: string, value: unknown, depth: number): void {
-  const item = document.createElement("li");
-  item.className = "ast-node";
-
-  const label = document.createElement("span");
-  label.className = "ast-key";
-  label.textContent = key;
-  item.append(label);
-
-  if (Array.isArray(value) || isRecord(value)) {
-    const children = document.createElement("ul");
-    children.className = "ast-children";
-    appendValue(children, value, depth);
-    item.append(children);
-  } else {
-    const leaf = document.createElement("span");
-    leaf.className = "ast-value";
-    leaf.textContent = describe(value);
-    item.append(leaf);
+/** Render Mathlex's JSON AST as an escaped, nested HTML tree. */
+export function renderAst(ast: unknown): string {
+  if (isRecord(ast)) {
+    const entries = Object.entries(ast)
+      .map(([key, value]) => renderEntry(key, value, 0))
+      .join("");
+    return `<div class="ast-tree"><ul class="ast-children ast-children--root">${entries}</ul></div>`;
   }
 
-  parent.append(item);
-}
-
-/** Render Mathlex's JSON AST as safe, inspectable HTML (no innerHTML or eval). */
-export function renderAst(ast: unknown): HTMLElement {
-  const tree = document.createElement("div");
-  tree.className = "ast-tree";
-  const list = document.createElement("ul");
-  list.className = "ast-children ast-children--root";
-  appendValue(list, ast, 0);
-  tree.append(list);
-  return tree;
+  return `<div class="ast-tree"><ul class="ast-children ast-children--root">${renderEntry("root", ast, 0)}</ul></div>`;
 }
