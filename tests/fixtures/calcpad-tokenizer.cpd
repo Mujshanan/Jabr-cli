@@ -1,0 +1,8 @@
+' Tokenizer coverage fixture for Jabr / CivilKit.
+length = 6 m
+width = 300 mm
+area = length * width
+factor = 2 + 3*4
+angle = sin(30 deg)
+α = 12
+# This is a Calcpad comment.
