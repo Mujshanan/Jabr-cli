@@ -19,13 +19,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+          run_install: false
       - name: Run Rust tests
         run: cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
       - name: Install JavaScript dependencies
-        run: |
-          npm cache clean --force
-          npm install --no-audit --no-fund
+        run: pnpm install --no-frozen-lockfile
       - name: Run TypeScript tests
-        run: npm test
+        run: pnpm test
       - name: Build browser application
-        run: npm run build
+        run: pnpm build
