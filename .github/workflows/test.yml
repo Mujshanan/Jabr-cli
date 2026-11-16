@@ -104,9 +104,15 @@ jobs:
       - name: Run TypeScript tests with Bun
         if: matrix.manager == 'bun'
         run: bun run test
+      - name: Run real Mathlex WASM integration tests with Bun
+        if: matrix.manager == 'bun'
+        run: bun run test:wasm
       - name: Run TypeScript tests with npm
         if: matrix.manager == 'npm'
         run: npm test
+      - name: Run real Mathlex WASM integration tests with npm
+        if: matrix.manager == 'npm'
+        run: npm run test:wasm
 
   rust-audit:
     runs-on: ubuntu-latest

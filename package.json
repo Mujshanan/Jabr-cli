@@ -18,6 +18,7 @@
     "build:bun": "bun scripts/build-native.mjs && bun scripts/build-wasm.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:wasm": "vitest run src/engine/mathlex.wasm.integration.test.ts",
     "test:watch": "vitest",
     "test:python": "python tests/python/run_civilkit_checks.py"
   },

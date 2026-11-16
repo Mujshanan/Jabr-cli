@@ -1,5 +1,6 @@
 import { registerCommands } from "../command/register";
 import { CommandDispatcher } from "../engine/dispatcher";
+import { createDispatchQueue } from "../engine/dispatch-queue";
 import { CommandRegistry } from "../engine/registry";
 import type { MathlexAstNode } from "../engine/mathlex";
 import type { OutputKind, TerminalContext } from "../engine/types";
@@ -106,7 +107,7 @@ const dispatcher = new CommandDispatcher(registry, context);
 const history = new CommandHistory();
 const copyButtonTimers = new WeakMap<HTMLButtonElement, number>();
 
-let dispatchQueue: Promise<void> = Promise.resolve();
+const enqueueDispatch = createDispatchQueue();
 
 print(`Welcome to Jabr CLI v${__APP_VERSION__}.`, "success");
 print('Type "help" to see available commands.', "muted");
@@ -121,11 +122,9 @@ form.addEventListener("submit", (event) => {
   history.resetNavigation();
   input.value = "";
 
-  dispatchQueue = dispatchQueue
-    .then(() => dispatcher.dispatch(value))
-    .catch((error: unknown) => {
-      print(error instanceof Error ? error.message : "Command failed unexpectedly.", "error");
-    });
+  void enqueueDispatch(() => dispatcher.dispatch(value)).catch((error: unknown) => {
+    print(error instanceof Error ? error.message : "Command failed unexpectedly.", "error");
+  });
   input.focus();
 });
 
