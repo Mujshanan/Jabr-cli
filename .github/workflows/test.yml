@@ -78,18 +78,18 @@ jobs:
       - name: Run npm dependency audit
         if: matrix.manager == 'npm'
         run: npm audit --audit-level=low
-      - name: Run TypeScript tests with Bun
-        if: matrix.manager == 'bun'
-        run: bun run test
-      - name: Run TypeScript tests with npm
-        if: matrix.manager == 'npm'
-        run: npm test
       - name: Build native runner, local WASM engines and Vite with Bun
         if: matrix.manager == 'bun'
         run: bun run build:bun
       - name: Build native runner, local WASM engines and Vite with npm
         if: matrix.manager == 'npm'
         run: npm run build
+      - name: Run TypeScript tests with Bun
+        if: matrix.manager == 'bun'
+        run: bun run test
+      - name: Run TypeScript tests with npm
+        if: matrix.manager == 'npm'
+        run: npm test
 
   rust-audit:
     runs-on: ubuntu-latest
