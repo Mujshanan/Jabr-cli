@@ -6,14 +6,40 @@ interface KatexApi {
   }): void;
 }
 interface MathJaxApi {
-  typesetPromise(elements?: HTMLElement[]): Promise<void>;
+  typesetPromise?: (elements?: HTMLElement[]) => Promise<void>;
   typesetClear?: (elements?: HTMLElement[]) => void;
+  startup?: { typeset?: boolean };
+  tex?: { inlineMath?: string[][]; displayMath?: string[][] };
+  options?: { skipHtmlTags?: string[] };
 }
 declare global {
   interface Window {
     katex?: KatexApi;
     MathJax?: MathJaxApi;
   }
+}
+
+let mathJaxInitialization: Promise<MathJaxApi> | undefined;
+function loadMathJax(): Promise<MathJaxApi> {
+  if (window.MathJax?.typesetPromise) return Promise.resolve(window.MathJax);
+  if (!mathJaxInitialization) {
+    window.MathJax = {
+      startup: { typeset: false },
+      tex: { inlineMath: [["\\\\(", "\\\\)"]], displayMath: [["\\\\[", "\\\\]"]] },
+      options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] },
+    };
+    mathJaxInitialization = new Promise<MathJaxApi>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/mathjax@4.0.0/tex-chtml.js";
+      script.crossOrigin = "anonymous";
+      script.onload = () => window.MathJax?.typesetPromise
+        ? resolve(window.MathJax)
+        : reject(new Error("MathJax loaded without its typesetting API."));
+      script.onerror = () => { script.remove(); reject(new Error("MathJax did not load. Check your internet connection and reload Jabr.")); };
+      document.head.append(script);
+    }).catch((error: unknown) => { mathJaxInitialization = undefined; throw error; });
+  }
+  return mathJaxInitialization;
 }
 
 export function createMathOutput(latex: string, source: string): HTMLElement {
@@ -94,19 +120,13 @@ export async function renderMathOutput(
       return;
     }
 
-    if (!window.MathJax?.typesetPromise) {
-      throw new Error("MathJax did not load. Check your internet connection and reload Jabr.");
-    }
-
-    // Typeset off-DOM so a slow MathJax operation cannot overwrite a newer
-    // KaTeX/MathJax selection in the visible target.
+    const mathJax = await loadMathJax();
+    if (!isCurrentRender()) return;
+    // Typeset off-DOM so a slow MathJax operation cannot overwrite a newer renderer selection.
     const staging = document.createElement("div");
     staging.textContent = "\\\\[" + latex + "\\\\]";
-    await window.MathJax.typesetPromise([staging]);
-    if (!isCurrentRender()) {
-      window.MathJax.typesetClear?.([staging]);
-      return;
-    }
+    await mathJax.typesetPromise?.([staging]);
+    if (!isCurrentRender()) { mathJax.typesetClear?.([staging]); return; }
     target.replaceChildren(...Array.from(staging.childNodes));
   } catch (error) {
     if (!isCurrentRender()) return;

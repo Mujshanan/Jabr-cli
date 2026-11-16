@@ -69,9 +69,9 @@ function preview(value: unknown): string {
   return String(value);
 }
 
-function copyButton(value: unknown, label: string): string {
-  const copyData = escapeHtml(JSON.stringify(value) ?? "undefined");
-  return `<button class="ast-copy" type="button" data-ast-action="copy" data-copy="${copyData}" title="Copy this node as JSON" aria-label="Copy ${escapeHtml(label)} node">⧉</button>`;
+const copyValues = new WeakMap<Element, unknown>();
+function copyButton(label: string): string {
+  return `<button class="ast-copy" type="button" data-ast-action="copy" title="Copy this node as JSON" aria-label="Copy ${escapeHtml(label)} node">⧉</button>`;
 }
 
 function renderEntry(key: string, value: unknown, depth: number): string {
@@ -83,7 +83,7 @@ function renderEntry(key: string, value: unknown, depth: number): string {
 
   if (Array.isArray(value)) {
     const children = value.map((item, index) => renderEntry(String(index), item, depth + 1)).join("");
-    return `<li class="ast-node"><details class="ast-details"><summary class="ast-summary"><span class="ast-icon ast-icon--collection">▦</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-preview">${value.length} items</span>${copyButton(value, label)}</summary><ul class="ast-children">${children}</ul></details></li>`;
+    return `<li class="ast-node"><details class="ast-details"><summary class="ast-summary"><span class="ast-icon ast-icon--collection">▦</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-preview">${value.length} items</span>${copyButton(label)}</summary><ul class="ast-children">${children}</ul></details></li>`;
   }
 
   if (isRecord(value)) {
@@ -99,7 +99,7 @@ function renderEntry(key: string, value: unknown, depth: number): string {
       .map(([childKey, childValue]) => renderEntry(childKey, childValue, depth + 1))
       .join("");
     const kindTag = kind ? `<span class="ast-kind">${escapeHtml(kind)}</span>` : "";
-    const summary = `<span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(title)}</span>${kindTag}<span class="ast-preview">${escapeHtml(valuePreview)}</span>${copyButton(value, title)}`;
+    const summary = `<span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(title)}</span>${kindTag}<span class="ast-preview">${escapeHtml(valuePreview)}</span>${copyButton(title)}`;
 
     if (children.length === 0) {
       return `<li class="ast-node ast-node--leaf"><div class="ast-summary ast-summary--leaf">${summary}</div></li>`;
@@ -109,7 +109,7 @@ function renderEntry(key: string, value: unknown, depth: number): string {
   }
 
   const icon = iconFor(key);
-  return `<li class="ast-node ast-node--leaf"><div class="ast-summary ast-summary--leaf"><span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-value">${escapeHtml(preview(value))}</span>${copyButton(value, label)}</div></li>`;
+  return `<li class="ast-node ast-node--leaf"><div class="ast-summary ast-summary--leaf"><span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-value">${escapeHtml(preview(value))}</span>${copyButton(label)}</div></li>`;
 }
 
 /** Render an AST as a readable, collapsible tree with an optional raw JSON view. */
@@ -129,3 +129,17 @@ export function renderAst(ast: unknown): string {
     <pre class="ast-raw" hidden>${json}</pre>
   </section>`;
 }
+
+export function bindAstCopyTargets(root: ParentNode, ast: unknown): void {
+  const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-ast-action=\"copy\"]"));
+  let index = 0;
+  const visit = (value: unknown, depth: number): void => {
+    if (depth > 80) return;
+    const button = buttons[index++];
+    if (button) copyValues.set(button, value);
+    if (Array.isArray(value)) value.forEach((item) => visit(item, depth + 1));
+    else if (isRecord(value)) Object.entries(value).filter(([key]) => key !== "kind").forEach(([, child]) => visit(child, depth + 1));
+  };
+  visit(ast, 0);
+}
+export function getAstCopyValue(button: Element): unknown { return copyValues.get(button); }

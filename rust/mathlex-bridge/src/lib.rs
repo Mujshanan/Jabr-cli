@@ -37,24 +37,28 @@ fn latex_to_latex_string(input: &str) -> Result<String, String> {
 /// Parse a plain-text mathematical expression and return its Mathlex JSON AST.
 #[wasm_bindgen]
 pub fn parse_math(input: &str) -> Result<String, JsValue> {
+    console_error_panic_hook::set_once();
     parse_math_json(input).map_err(|error| JsValue::from_str(&error))
 }
 
 /// Parse a LaTeX mathematical expression and return its Mathlex JSON AST.
 #[wasm_bindgen]
 pub fn parse_latex(input: &str) -> Result<String, JsValue> {
+    console_error_panic_hook::set_once();
     parse_latex_json(input).map_err(|error| JsValue::from_str(&error))
 }
 
 /// Parse plain-text mathematical notation and serialize the AST back to LaTeX.
 #[wasm_bindgen]
 pub fn math_to_latex(input: &str) -> Result<String, JsValue> {
+    console_error_panic_hook::set_once();
     math_to_latex_string(input).map_err(|error| JsValue::from_str(&error))
 }
 
 /// Parse LaTeX notation and serialize the AST back to normalized LaTeX.
 #[wasm_bindgen]
 pub fn latex_to_latex(input: &str) -> Result<String, JsValue> {
+    console_error_panic_hook::set_once();
     latex_to_latex_string(input).map_err(|error| JsValue::from_str(&error))
 }
 

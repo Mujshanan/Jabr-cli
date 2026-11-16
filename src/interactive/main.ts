@@ -2,7 +2,7 @@ import { registerCommands } from "../command/register";
 import { CommandDispatcher } from "../engine/dispatcher";
 import { CommandRegistry } from "../engine/registry";
 import type { OutputKind, TerminalContext } from "../engine/types";
-import { renderAst } from "./ast-renderer";
+import { bindAstCopyTargets, getAstCopyValue, renderAst } from "./ast-renderer";
 import { CommandHistory } from "./command-history";
 import { createMathOutput, renderMathOutput } from "./math-renderer";
 
@@ -26,6 +26,7 @@ function printAst(ast: unknown): void {
   const line = document.createElement("div");
   line.className = "output-line output-line--ast";
   line.innerHTML = renderAst(ast);
+  bindAstCopyTargets(line, ast);
   terminalOutput.append(line);
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
@@ -74,10 +75,10 @@ terminalOutput.addEventListener("click", async (event) => {
   if (action === "copy") {
     event.preventDefault();
     event.stopPropagation();
-    const data = button.dataset.copy;
-    if (!data) return;
+    const serialized = JSON.stringify(getAstCopyValue(button), null, 2);
+    if (serialized === undefined) return;
     try {
-      await navigator.clipboard.writeText(JSON.stringify(JSON.parse(data), null, 2));
+      await navigator.clipboard.writeText(serialized);
       button.dataset.original ??= button.textContent ?? "";
       const previousTimer = copyButtonTimers.get(button);
       if (previousTimer !== undefined) window.clearTimeout(previousTimer);
