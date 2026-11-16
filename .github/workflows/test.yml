@@ -1,8 +1,10 @@
 name: Test
 
 on:
+  # Main is tested on direct pushes; feature branches are tested by pull_request.
+  # This avoids duplicate runs when a PR branch receives a push.
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
 
 concurrency:
@@ -17,12 +19,15 @@ jobs:
     name: Vendored Calcpad native engine and Python checks (Windows)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24
-      - uses: actions/setup-python@v6
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - name: Build and smoke-test the vendored native engine
@@ -34,14 +39,15 @@ jobs:
     name: Vendored Rust engine tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Test the vendored Calcpad core
         run: cargo test --manifest-path engine/Cargo.toml -p jabr-calcpad-core
       - name: Test the vendored tokenizer/highlighter
         run: cargo test --manifest-path engine/Cargo.toml -p jabr-calcpad-highlighter
       - name: Test the Jabr Mathlex compatibility bridge
-        run: cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
+        run: cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
 
   javascript:
     name: WebAssembly and Vite (${{ matrix.manager }})
@@ -51,10 +57,11 @@ jobs:
       matrix:
         manager: [bun, npm]
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
         with:
           targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Install wasm-pack
         run: |
           curl --fail --location --silent --show-error \
@@ -64,11 +71,16 @@ jobs:
           tar -xzf /tmp/wasm-pack.tar.gz -C /tmp
           sudo install /tmp/wasm-pack-v0.15.1-x86_64-unknown-linux-musl/wasm-pack /usr/local/bin/wasm-pack
           wasm-pack --version
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24
-      - uses: oven-sh/setup-bun@v2
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         if: matrix.manager == 'bun'
+        with:
+          cache: true
+          cache-dependency-path: bun.lock
       - name: Install dependencies with Bun
         if: matrix.manager == 'bun'
         run: bun install --frozen-lockfile
@@ -77,7 +89,8 @@ jobs:
         run: npm ci
       - name: Run npm dependency audit
         if: matrix.manager == 'npm'
-        run: npm audit --audit-level=low
+        run: npm audit --audit-level=high
+      # Build first: src/engine/wasm is generated and intentionally gitignored.
       - name: Build native runner, local WASM engines and Vite with Bun
         if: matrix.manager == 'bun'
         run: bun run build:bun
@@ -94,12 +107,15 @@ jobs:
   rust-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Generate the vendored engine lockfile
         run: cargo generate-lockfile --manifest-path engine/Cargo.toml
-      - name: Install Rust dependency auditor
-        run: cargo install cargo-audit --locked
+      - name: Install prebuilt Rust dependency auditor
+        uses: taiki-e/install-action@ab49d3c64680143e184118bed66a46419fc15519 # v2.90.5
+        with:
+          tool: cargo-audit
       - name: Audit vendored engine dependencies
         run: cargo audit --file engine/Cargo.lock
       - name: Audit Mathlex bridge dependencies
