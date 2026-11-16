@@ -24,10 +24,10 @@ function print(content: string, kind: OutputKind = "normal"): void {
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
-function printAst(ast: MathlexAstNode): void {
+function printAst(ast: MathlexAstNode, source: string): void {
   const line = document.createElement("div");
   line.className = "output-line output-line--ast";
-  line.append(createAstExplorer(ast));
+  line.append(createAstExplorer(ast, source));
   terminalOutput.append(line);
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
