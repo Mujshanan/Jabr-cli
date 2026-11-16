@@ -25,7 +25,7 @@ function loadMathJax(): Promise<MathJaxApi> {
   if (!mathJaxInitialization) {
     window.MathJax = {
       startup: { typeset: false },
-      tex: { inlineMath: [["\\\\(", "\\\\)"]], displayMath: [["\\\\[", "\\\\]"]] },
+      tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] },
       options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] },
     };
     mathJaxInitialization = new Promise<MathJaxApi>((resolve, reject) => {
@@ -124,7 +124,7 @@ export async function renderMathOutput(
     if (!isCurrentRender()) return;
     // Typeset off-DOM so a slow MathJax operation cannot overwrite a newer renderer selection.
     const staging = document.createElement("div");
-    staging.textContent = "\\\\[" + latex + "\\\\]";
+    staging.textContent = "\\[" + latex + "\\]";
     await mathJax.typesetPromise?.([staging]);
     if (!isCurrentRender()) { mathJax.typesetClear?.([staging]); return; }
     target.replaceChildren(...Array.from(staging.childNodes));
