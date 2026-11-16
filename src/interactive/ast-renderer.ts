@@ -248,7 +248,7 @@ export function createAstExplorer(ast: unknown): HTMLElement {
 
     if (node.children.length > 0) {
       const children = element("ul", "ast-children");
-      children.hidden = true;
+      children.hidden = !expanded.has(node.id);
       childLists.set(node.id, children);
       for (const child of node.children) children.append(renderNode(child));
       item.append(children);
