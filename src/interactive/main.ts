@@ -59,6 +59,8 @@ terminalOutput.addEventListener("click", async (event) => {
   }
 
   if (action === "copy") {
+    event.preventDefault();
+    event.stopPropagation();
     const data = button.dataset.copy;
     if (!data) return;
     try {
