@@ -94,3 +94,40 @@ This allows Python/SymPy/NumPy checks to compare parsing and evaluation independ
 3. Create a minimal Rust-side API extension in a maintained CivilKit fork/patch to return the AST DTO.
 4. Add native tests for the DTO before exposing it through WASM.
 5. Add the AST panel to the Jabr inspector when the engine endpoint is available.
+
+
+## AST explorer UI — current implementation
+
+The first frontend implementation lives in \`src/interactive/ast-renderer.ts\` and is deliberately parser-neutral. It normalizes parser JSON into a stable, path-keyed view model and renders a DOM tree, selected-node details, and full JSON without introducing a UI framework or a parser-specific tree dependency.
+
+The source panel accepts optional per-node spans using this browser-facing shape:
+
+\`\`\`json
+{
+  "span": {
+    "start": 0,
+    "end": 5,
+    "unit": "utf16"
+  }
+}
+\`\`\`
+
+Offsets are zero-based UTF-16 code units and the end offset is exclusive. This is the UI boundary contract because CodeMirror and JavaScript string slicing use UTF-16 code-unit offsets. The Rust inspection DTO should continue to use UTF-8 byte offsets; the TypeScript adapter must convert those offsets before passing nodes to the explorer.
+
+When valid spans are present:
+- Selecting a tree node highlights its complete source range.
+- Selecting a highlighted source segment selects the narrowest AST node covering that segment.
+- The details pane reports the selected node's source range.
+
+When spans are absent, the source is displayed as read-only reference text with an explicit unavailable status. The UI must not guess spans from node values, tokenize-and-match text, or fabricate a source mapping.
+
+### Current parser limitation
+
+The terminal's existing \`ast\` and \`ast-latex\` commands still use the separately integrated Mathlex 0.4.2 parser. Its serialized expression nodes contain \`kind\` and \`annotations\`; the public AST type does not carry source positions. Consequently, the new source-navigation UI is implemented and testable against source-aware fixtures, but live Mathlex output currently displays the source without node highlighting.
+
+The vendored Calcpad highlighter exposes token positions, not AST node positions. Those token spans must not be assigned to AST nodes. Live bidirectional navigation becomes available only after the actual Calcpad parser emits source spans and the Jabr adapter maps them to this UI contract.
+
+### Frontend tests
+
+\`src/interactive/ast-renderer.test.ts\` covers stable node paths, arbitrary node kinds, nesting limits, valid UTF-16 span metadata, and rejection of invalid spans. Browser interaction tests should be added when the test environment includes a DOM; the current Vitest environment is Node.
+
