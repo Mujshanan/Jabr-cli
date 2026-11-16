@@ -2,6 +2,21 @@
 resolver = "2"
 members = ["calcpad-core", "calcpad-wasm", "calcpad-highlighter", "calcpad-highlighter-wasm"]
 
-[workspace.package]
-edition = "2021"
-license = "MIT"
+[profile.release]
+debug = false
+
+# The upstream engine optimizes tests because matrix comparison cases are CPU intensive.
+[profile.test]
+opt-level = 3
+
+[profile.wasm]
+inherits = "release"
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.wasm-size]
+inherits = "wasm"
+opt-level = "z"
