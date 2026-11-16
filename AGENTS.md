@@ -4,7 +4,7 @@ These instructions apply to the entire Jabr CLI repository.
 
 ## Project identity and scope
 
-Jabr is a small browser-based engine laboratory for evaluating the CivilKit/Calcpad Rust calculation engine. It is not the separate notes application that may eventually embed the engine through a custom calculation block.
+Jabr is a small browser-based engine laboratory for developing and testing a locally maintained copy of the Calcpad Rust calculation engine. It is not the separate notes application that may eventually embed the engine through a custom calculation block.
 
 Keep the existing terminal and the CivilKit engine test page as developer tools. Do not turn this repository into the notes application, a full worksheet editor, or a general-purpose operating-system shell.
 
@@ -13,10 +13,11 @@ Keep the existing terminal and the CivilKit engine test page as developer tools.
 - Keep the frontend on the existing Vanilla HTML/CSS + TypeScript + Vite stack. Do not introduce React, Vue, Nuxt, or another framework solely to implement a feature.
 - Keep Bun and npm supported. Do not introduce pnpm.
 - Keep Windows x64 as a required development and CI target.
-- Keep CivilKit isolated behind a documented adapter. Do not let UI code depend directly on Rust internals or upstream-specific DTOs.
+- Keep the vendored Calcpad core inside `engine/` as a locally maintained fork; do not add a CivilKit API or Git submodule runtime/build dependency.
+- Keep the Jabr TypeScript/WASM adapter narrow and versioned. UI code must not depend directly on Rust internals or upstream-specific DTOs.
 - Keep tokenizer output, AST inspection, evaluation results, LaTeX, diagnostics, and HTML report output as distinct concepts.
 - Never fabricate an AST from tokens or reverse-engineer it from generated HTML.
-- Preserve the upstream CivilKit submodule pin, license, NOTICE files, and attribution. Do not silently change the upstream revision.
+- Preserve the vendored upstream source revision, license, NOTICE files, and attribution recorded in `engine/UPSTREAM.md`. Review upstream changes deliberately; do not overwrite Jabr modifications wholesale.
 - Use Python as an independent test oracle where useful; do not make Python a runtime dependency of the browser app or Rust engine.
 - Do not merge pull requests, close PRs, retarget PRs, or change protected architectural decisions unless the user explicitly authorizes that action.
 
@@ -30,8 +31,8 @@ Keep the existing terminal and the CivilKit engine test page as developer tools.
 
 ## Architecture boundaries
 
-- **CivilKit Rust engine:** parsing, calculation semantics, units, evaluation, and native/WASM engine behavior.
-- **Jabr engine adapter:** stable, versioned interface; initialization; inspection; evaluation; normalized diagnostics; version/capability reporting.
+- **Vendored Calcpad Rust core:** parsing, calculation semantics, units, evaluation, and native/WASM engine behavior. Source is maintained locally under `engine/`.
+- **Jabr engine adapter:** stable, versioned interface; initialization; inspection; evaluation; normalized diagnostics; version/capability reporting. The adapter calls the local Rust crates, never an external CivilKit API.
 - **Tokenizer/highlighter:** lexical tokenization and source highlighting only. It is not the AST.
 - **AST inspector:** presentation of the real parser AST. The UI may format and navigate the tree but must not invent parser semantics.
 - **Terminal:** simulated application command interface. It dispatches only registered commands.
