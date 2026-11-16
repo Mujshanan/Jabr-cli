@@ -12,12 +12,14 @@ if (!output || !form || !input) {
   throw new Error("Terminal elements are missing from index.html.");
 }
 
+const terminalOutput = output;
+
 function print(content: string, kind: OutputKind = "normal"): void {
   const line = document.createElement("div");
   line.className = `output-line output-line--${kind}`;
   line.textContent = content;
-  output.append(line);
-  output.scrollTop = output.scrollHeight;
+  terminalOutput.append(line);
+  terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
 function printAst(ast: unknown): void {
@@ -25,12 +27,12 @@ function printAst(ast: unknown): void {
   line.className = "output-line output-line--ast";
   // renderAst escapes all AST keys and values before producing this HTML.
   line.innerHTML = renderAst(ast);
-  output.append(line);
-  output.scrollTop = output.scrollHeight;
+  terminalOutput.append(line);
+  terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
 function clear(): void {
-  output.replaceChildren();
+  terminalOutput.replaceChildren();
 }
 
 const context: TerminalContext = { print, printAst, clear };
