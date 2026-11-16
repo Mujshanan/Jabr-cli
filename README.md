@@ -6,6 +6,15 @@ Jabr is an **engine laboratory** for evaluating CivilKit/Calcpad before its even
 
 Jabr CLI is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
 
+## Project documentation
+
+- [Development guide](docs/DEVELOPMENT.md) — architecture, setup, build workflow, testing strategy, and AST inspector design.
+- [Agent instructions](AGENTS.md) — repository-wide rules and constraints for AI coding agents.
+- [Contributing guide](CONTRIBUTING.md) — branch, coding, testing, review, and pull-request expectations.
+- [Engine-lab development plan](docs/ENGINE-LAB-PLAN.md) — milestones, API contract, and acceptance criteria.
+- [CivilKit API audit](docs/CIVILKIT-API-AUDIT.md) — current upstream API findings.
+- [Tokenizer and AST design](docs/TOKENIZER-AST-DESIGN.md) — tokenizer/AST distinction and proposed inspection contract.
+
 ## Stack
 
 - Vanilla HTML and CSS
@@ -105,8 +114,6 @@ npm run test:python
 
 The initial standard-library test suite checks scalar arithmetic, variable evaluation, operator precedence, and report generation. It computes expected values independently in Python and checks the native Calcpad report. SymPy and NumPy are deliberately deferred until the engine's value/unit/AST output contract is exposed.
 
-See [the engine-lab development plan](docs/ENGINE-LAB-PLAN.md), [CivilKit API audit](docs/CIVILKIT-API-AUDIT.md), [tokenizer and AST design](docs/TOKENIZER-AST-DESIGN.md), and [Python test notes](tests/python/README.md).
-
 ## Windows build
 
 After installing the requirements and initializing the submodule, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. For npm:
@@ -175,7 +182,10 @@ CI builds the native CLI on Windows, runs independent Python CLI checks, tests t
 
 ```text
 .
+├── AGENTS.md                 # Repository-wide coding-agent instructions
+├── CONTRIBUTING.md           # Contribution and pull-request guidelines
 ├── docs/
+│   ├── DEVELOPMENT.md        # Architecture and development workflow
 │   └── ENGINE-LAB-PLAN.md    # Engine lab scope, API plan and phases
 ├── vendor/
 │   └── civilkit-calcs/       # Pinned CivilKit source submodule
