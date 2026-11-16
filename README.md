@@ -58,25 +58,18 @@ npm run preview    # Preview the production build
 ├── vite.config.ts
 ├── vitest.config.ts
 └── src/
-    ├── main.ts
-    ├── style.css
-    ├── commands/
-    │   └── register.ts
-    └── engine/
-        ├── dispatcher.ts
-        ├── parser.ts
-        ├── parser.test.ts
-        ├── registry.ts
-        └── types.ts
+    ├── engine/       # Parsing, command registry, dispatch and shared types
+    ├── command/      # Built-in and application command definitions
+    └── interactive/  # Terminal UI, DOM event handling and styles
+        ├── main.ts
+        └── style.css
 ```
 
 ## Architecture
 
-- **Terminal UI:** HTML, CSS and the DOM code in `src/main.ts`.
-- **Parser:** Converts a command line into a command name and arguments. Quoted arguments and escaped spaces are supported.
-- **Registry:** Stores explicitly registered commands.
-- **Dispatcher:** Finds and runs a registered command and handles parsing/execution errors.
-- **Command modules:** Define application actions independently of the terminal UI.
+- **Engine:** Parses command input, stores registered commands, dispatches execution and defines shared interfaces. It is independent of the DOM.
+- **Command:** Defines application actions independently of the terminal UI.
+- **Interactive:** Handles the terminal display, DOM events, input history and styling.
 
 Commands receive a small `TerminalContext` for writing output or clearing the terminal. This keeps command logic separate from DOM rendering and makes it possible to connect application services later.
 
