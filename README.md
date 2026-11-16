@@ -50,6 +50,12 @@ pnpm install
 pnpm dev
 ```
 
+### Windows production build
+
+After installing the requirements above, run either `build.ps1` from PowerShell or `build.bat` from Command Prompt. Both scripts install the locked JavaScript dependencies, ensure the WebAssembly target is installed, and run the production build. The generated site is written to `dist/`.
+
+PowerShell may require allowing locally created scripts to run for the current user; if so, use `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` in an elevated or appropriately authorized PowerShell session.
+
 Vite listens on all interfaces so its preview can be opened from GitHub Codespaces. Use the patched Vite version in the lockfile whenever exposing this development server to a network.
 
 The development server and production build generate the WebAssembly package first. To generate it manually:
