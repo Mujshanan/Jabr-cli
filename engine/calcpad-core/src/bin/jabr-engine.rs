@@ -15,6 +15,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut parser = ExpressionParser::new();
     parser.source_file_path = Some(Path::new(&args[1]).to_string_lossy().to_string());
     parser.parse(&source, true);
-    fs::write(&args[2], parser.html_result.as_bytes())?;
+
+    let report = format!(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Jabr calculation</title></head><body>{}</body></html>",
+        parser.html_result
+    );
+    fs::write(&args[2], report.as_bytes())?;
     Ok(())
 }
