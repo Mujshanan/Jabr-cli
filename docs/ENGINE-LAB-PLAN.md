@@ -174,3 +174,31 @@ This means the next technical step is a small, controlled upstream API extension
 ## Immediate implementation scope
 
 Phase 0 now includes the Python black-box regression runner and the first source-level API audit. CI has been configured to run the Python checks after building the native CLI. The AST DTO and standalone LaTeX formatter remain the next implementation milestone, after the CI baseline is green.
+
+
+## Worksheet editor milestone (CodeMirror 6)
+
+The CivilKit engine test page will use a minimal CodeMirror 6 editor instead of a plain textarea. This is an input/editor improvement only: the existing Mathlex terminal and CivilKit WASM adapter remain separate and unchanged.
+
+### Scope
+
+- Core editor state/view and a small TypeScript mount/dispose API.
+- Automatic closing of brackets and quotes, bracket matching, indentation, undo/redo, and standard keyboard commands.
+- A compact completion popup for a conservative set of verified mathematical function names and Greek symbols.
+- Preserve the current worksheet content and keep Run/Tokenize reading the latest editor document.
+
+### Constraints and exclusions
+
+- Keep Vanilla HTML/CSS + TypeScript + Vite; no React/Vue, Monaco, LSP, language server, or additional parser.
+- Add only focused CodeMirror packages required by the selected extensions.
+- Do not couple the editor to CivilKit WASM or the future AST DTO. Semantic completion for worksheet variables, units, and constants is deferred until the relevant symbol catalogue/API is verified.
+- Keep the editor UI compact and preserve the current engine status, report, tokenizer, and diagnostics panels.
+
+### Delivery sequence
+
+1. Mount CodeMirror in the existing engine-test page and preserve source read/write behavior.
+2. Add bracket/quote closing, matching, indentation, history, and keyboard commands.
+3. Add static completion for verified functions and Greek symbols.
+4. Add tests, document the boundary, and verify Bun/npm builds and the Windows CI path.
+
+**Acceptance criteria:** the engine-test page uses CodeMirror; core editing interactions work; completion inserts the selected item at the correct cursor range; Run and Tokenize consume the latest document; the existing terminal and engine behavior remain unchanged; no unnecessary framework or language-server dependencies are introduced.
