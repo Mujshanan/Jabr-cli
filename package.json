@@ -18,7 +18,8 @@
     "build:bun": "bun scripts/build-native.mjs && bun scripts/build-wasm.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:python": "python tests/python/run_civilkit_checks.py"
   },
   "devDependencies": {
     "typescript": "5.9.3",
