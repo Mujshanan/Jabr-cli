@@ -19,8 +19,6 @@ No React or frontend framework is used.
 ## Requirements
 
 - Bun (recommended), or Node.js 20.19+ / 22.12+ with npm
-
-Install Bun using the official instructions at https://bun.sh/docs/installation. For the npm workflow, install Node.js from https://nodejs.org/; npm is included.
 - Rust toolchain (rustup and Cargo)
 - wasm-pack 0.15.1
 - cargo-audit (for Rust dependency security checks)
@@ -127,7 +125,14 @@ npm run build
 npm audit --audit-level=low
 ```
 
-Both `bun.lock` and `package-lock.json` are committed. Use the lockfile corresponding to your package manager. CI installs dependencies and runs tests/builds with both Bun and npm, and also checks the Rust dependency lockfile and security audit.
+Both `bun.lock` and `package-lock.json` are committed. Use the lockfile corresponding to your package manager. CI installs dependencies and runs tests/builds with both Bun and npm. Rust tests and the Rust dependency audit run in CI as well.
+
+Run the Rust checks locally with:
+
+```bash
+cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
+cargo audit --file rust/mathlex-bridge/Cargo.lock
+```
 
 ## Project structure
 
