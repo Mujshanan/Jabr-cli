@@ -4,7 +4,7 @@ This guide explains how to build, test, and extend Jabr. Contributor process is 
 
 ## 1. What this repository is
 
-Jabr is a standalone laboratory for testing the CivilKit/Calcpad calculation engine. It provides:
+Jabr is a standalone laboratory for developing and testing a locally maintained copy of the Calcpad Rust calculation engine. It provides:
 
 - A simulated command terminal for the existing Mathlex experiment.
 - A minimal worksheet page for testing CivilKit.
@@ -27,11 +27,11 @@ Jabr
 │   ├── inspect / parse
 │   ├── evaluate
 │   └── normalized diagnostics and results
-├── CivilKit Rust submodule
-│   ├── calcpad-core
-│   ├── worksheet CLI
-│   ├── WASM wrapper
-│   └── tokenizer/highlighter
+├── Vendored Calcpad Rust source (inside Jabr)
+│   ├── copied core parser and evaluator
+│   ├── required supporting crates
+│   ├── Jabr-owned native/WASM bridge
+│   └── optional tokenizer/highlighter source
 └── Validation
     ├── Rust tests
     ├── browser/WASM checks
@@ -43,7 +43,7 @@ Jabr
 
 | Layer | Owns | Must not own |
 |---|---|---|
-| CivilKit Rust | Parsing, calculation semantics, units, evaluation | Jabr UI state |
+| Vendored Calcpad Rust core | Parsing, calculation semantics, units, evaluation; source is maintained inside Jabr | Jabr UI state |
 | Jabr adapter | Stable API, normalization, version/capability contract | Reimplementing parser semantics |
 | Highlighter | Tokens, lexical metadata, source formatting | AST structure or evaluation |
 | AST inspector | Tree/ATS, JSON presentation, source navigation | Inventing AST nodes |
@@ -54,11 +54,7 @@ Jabr
 
 The repository's current requirements are listed in [README.md](../README.md). The supported JavaScript package managers are Bun and npm. Keep their lockfiles and scripts consistent when changing dependencies.
 
-Initialize the CivilKit submodule:
-
-```bash
-git submodule update --init --recursive
-```
+Jabr's target engine setup is a local Cargo workspace. A clean checkout must not need `git submodule update`, network access to CivilKit, or an external engine API. The Calcpad source, required supporting crates, and applicable license/attribution files are vendored in the repository.
 
 Build with Bun:
 
@@ -110,7 +106,7 @@ The tokenizer identifies lexical units such as numbers, identifiers, operators, 
 
 These are different outputs and must remain different in code, UI, tests, and documentation.
 
-The current highlighter WASM package provides tokenization. The current CivilKit WASM `convert` endpoint does not expose a standalone AST. The AST inspector must wait for a Rust-side API that returns the actual parser tree. See [the API audit](CIVILKIT-API-AUDIT.md) and [tokenizer/AST design](TOKENIZER-AST-DESIGN.md).
+The current highlighter package provides tokenization. The existing WASM conversion path does not expose a standalone AST. Because Jabr owns the copied Rust source, the AST inspector should expose the actual internal parser tree through a Jabr-owned Rust DTO; it must not depend on an external CivilKit API. See [the API audit](CIVILKIT-API-AUDIT.md) and [tokenizer/AST design](TOKENIZER-AST-DESIGN.md).
 
 ## 6. AST inspector target design
 
@@ -173,8 +169,9 @@ The authoritative milestone and acceptance-criteria list is [ENGINE-LAB-PLAN.md]
 
 Current high-level sequence:
 
-1. Reproducible native/WASM baseline.
-2. Complete API audit and expose structured inspection outputs.
+1. Copy the Calcpad Rust core and required supporting source into Jabr; remove submodule/API build dependencies.
+2. Establish a reproducible native/WASM baseline from the vendored source.
+3. Expose structured inspection outputs directly from the copied parser.
 3. Add golden tests and independent Python comparisons.
 4. Establish native/WASM parity.
 5. Stabilize the engine adapter contract.
