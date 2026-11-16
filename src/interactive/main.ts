@@ -149,6 +149,7 @@ input.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("click", (event) => {
+  if (window.getSelection()?.toString()) return;
   if (event.target instanceof Element && event.target.closest("button, a, input, textarea, select")) {
     return;
   }
