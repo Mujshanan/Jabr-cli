@@ -17,7 +17,7 @@ No React or frontend framework is used.
 
 ## Requirements
 
-- Node.js 20.19+ or 22.12+
+- Node.js 20.19+ or 22.12+ (CI uses Node.js 24)
 - pnpm 10.34.5
 - Rust toolchain (rustup and Cargo)
 - wasm-pack 0.15.1
@@ -31,7 +31,17 @@ corepack enable
 corepack prepare pnpm@10.34.5 --activate
 ```
 
-Install wasm-pack using its [official instructions](https://rustwasm.github.io/wasm-pack/installer/).
+Install the pinned wasm-pack release with Cargo:
+
+```bash
+cargo install wasm-pack --version 0.15.1 --locked
+```
+
+Install the Rust dependency auditor:
+
+```bash
+cargo install cargo-audit --locked
+```
 
 ## Getting started
 
@@ -78,7 +88,7 @@ pnpm audit --audit-level=high
 cargo audit --file rust/mathlex-bridge/Cargo.lock
 ```
 
-Commit both `pnpm-lock.yaml` and `rust/mathlex-bridge/Cargo.lock`. CI uses frozen/locked dependency resolution once those lockfiles are present.
+Both `pnpm-lock.yaml` and `rust/mathlex-bridge/Cargo.lock` are committed. CI enforces frozen/locked dependency resolution and runs JavaScript and Rust security audits.
 
 ## Project structure
 
