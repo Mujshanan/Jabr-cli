@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["calcpad-core", "calcpad-wasm"]
+members = ["calcpad-core", "calcpad-wasm", "calcpad-highlighter", "calcpad-highlighter-wasm"]
 
 [workspace.package]
 edition = "2021"
