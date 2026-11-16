@@ -42,6 +42,10 @@ jobs:
           else
             cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
           fi
+      - name: Install Rust dependency auditor
+        run: cargo install cargo-audit --locked
+      - name: Run Rust dependency audit
+        run: cargo audit --file rust/mathlex-bridge/Cargo.lock
       - name: Run TypeScript tests
         run: pnpm test
       - name: Build browser application
