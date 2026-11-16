@@ -167,3 +167,35 @@ kbd { padding: 2px 5px; border: 1px solid #343d48; border-radius: 4px; color: #a
 .math-output__source code { display: block; overflow-x: auto; margin-top: 6px; padding: 8px; border-radius: 5px; background: #0b1016; color: #e6bd78; font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .math-output__caption { margin-top: 8px; color: #778797; font-size: 10px; overflow-wrap: anywhere; }
 .math-output__error { color: #ff9999; font-size: 11px; text-align: center; }
+
+
+/* DOM-based AST explorer */
+.output-line--ast { white-space: normal; overflow: visible; }
+.ast-workspace { display: grid; grid-template-columns: minmax(220px, 1.15fr) minmax(190px, .85fr); gap: 12px; padding-top: 10px; }
+.ast-tree-panel, .ast-details-panel { min-width: 0; padding: 9px; border: 1px solid #293746; border-radius: 7px; background: #0e151d; }
+.ast-panel-heading { margin-bottom: 8px; color: #8294a8; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.ast-tree { max-height: 460px; overflow: auto; margin: 0; padding: 0; }
+.ast-node-row { display: flex; align-items: center; gap: 4px; min-width: 0; margin: 2px 0; }
+.ast-toggle, .ast-select, .ast-copy { border: 1px solid transparent; border-radius: 4px; background: transparent; color: #cbd5e1; cursor: pointer; font: inherit; }
+.ast-toggle { flex: 0 0 20px; width: 20px; height: 24px; color: #91a4b8; }
+.ast-toggle:hover, .ast-copy:hover { border-color: #405368; background: #1b2936; }
+.ast-toggle-spacer { flex: 0 0 20px; width: 20px; }
+.ast-select { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 3px 5px; text-align: left; }
+.ast-select:hover, .ast-select[aria-current="true"] { background: #1b2b3b; }
+.ast-select[aria-current="true"] { border-color: #466b8e; }
+.ast-node__label { flex: 0 0 auto; color: #e2e8f0; font-size: 11px; font-weight: 600; }
+.ast-kind { flex: 0 0 auto; color: #83b9e8; font-size: 9px; }
+.ast-preview { min-width: 0; overflow: hidden; color: #91a0b0; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.ast-copy { flex: 0 0 24px; width: 24px; height: 23px; color: #91a0b0; font-size: 12px; }
+.ast-details-title { margin: 2px 0 4px; color: #e2e8f0; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.ast-details-meta { margin-bottom: 9px; color: #82a9ca; font-size: 10px; overflow-wrap: anywhere; }
+.ast-details-json { max-height: 300px; overflow: auto; margin: 0; padding: 8px; border: 1px solid #273544; border-radius: 5px; background: #090e14; color: #d2dce7; font: 10px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ast-source-note { margin: 9px 0 0; color: #78899b; font-size: 9px; line-height: 1.5; }
+.ast-raw { max-height: 380px; overflow: auto; margin: 10px 0 0; padding: 10px; border: 1px solid #293746; border-radius: 6px; background: #090e14; color: #cbd5e1; font: 10px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; }
+.ast-node .ast-children { margin: 2px 0 3px 10px; padding-left: 10px; border-left: 1px solid #344354; }
+@media (max-width: 680px) {
+  .ast-workspace { grid-template-columns: 1fr; }
+  .ast-tree { max-height: 340px; }
+  .ast-details-json { max-height: 220px; }
+  .ast-toolbar__title { width: 100%; }
+}
