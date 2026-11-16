@@ -56,7 +56,7 @@ See [README.md](README.md) for the full toolchain installation and Windows build
   - `test(engine): add matrix regression fixtures`
   - `docs: clarify native and WASM development workflow`
 - Avoid mixing formatting-only changes with functional changes.
-- Do not include generated WASM bindings, build output, local caches, or unrelated submodule pointer changes unless required and explained.
+- Do not include generated WASM bindings, build output, local caches, or unreviewed upstream source changes unless required and explained.
 
 ## Coding guidelines
 
@@ -136,7 +136,7 @@ A good pull request should include:
 - [ ] Build/test results, including any skipped checks.
 - [ ] Documentation updates where needed.
 - [ ] Dependency and license review for new packages.
-- [ ] No unrelated generated files or accidental submodule changes.
+- [ ] No unrelated generated files or unreviewed vendored-source changes.
 - [ ] Known limitations and follow-up work.
 - [ ] Confirmation that no merge or release was performed without authorization.
 

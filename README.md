@@ -204,7 +204,7 @@ CI builds the native runner on Windows, runs independent Python checks, tests th
 
 ## Upstream and licensing
 
-CivilKit Calcs is MIT-licensed and is itself a derivative of the MIT-licensed CalcpadCE project. Its upstream `LICENSE` and `NOTICE` are retained inside the pinned submodule. Preserve those notices in any redistributed build. See https://github.com/civilkit/civilkit-calcs for upstream source and history.
+CivilKit Calcs is MIT-licensed and is itself a derivative of the MIT-licensed CalcpadCE project. Its upstream `LICENSE` and `NOTICE` are retained under `engine/`. Preserve those notices in any redistributed build. See https://github.com/civilkit/civilkit-calcs for upstream source and history.
 
 ## Safety boundary
 
