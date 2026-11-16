@@ -71,6 +71,14 @@ body {
 .output-line--error { color: #ff8585; }
 .output-line--success { color: #8bd5a7; }
 
+.ast-tree { margin: 8px 0 14px; color: #cbd5e1; white-space: normal; }
+.ast-children { list-style: none; margin: 3px 0 3px 18px; padding-left: 14px; border-left: 1px solid #354150; }
+.ast-children--root { margin-left: 0; padding-left: 0; border-left: 0; }
+.ast-node { position: relative; margin: 5px 0; }
+.ast-key { display: inline-block; min-width: 54px; margin-right: 9px; color: #8bd5a7; font-weight: 600; }
+.ast-value { color: #e6bd78; }
+.ast-node > .ast-children { margin-top: 5px; }
+
 .terminal-prompt {
   display: flex;
   align-items: center;

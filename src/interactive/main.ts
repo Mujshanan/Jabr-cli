@@ -2,6 +2,8 @@ import { registerCommands } from "../command/register";
 import { CommandDispatcher } from "../engine/dispatcher";
 import { CommandRegistry } from "../engine/registry";
 import type { OutputKind, TerminalContext } from "../engine/types";
+import { renderAst } from "./ast-renderer";
+import { CommandHistory } from "./command-history";
 
 const output = document.querySelector<HTMLElement>("#terminal-output");
 const form = document.querySelector<HTMLFormElement>("#terminal-form");
@@ -11,24 +13,34 @@ if (!output || !form || !input) {
   throw new Error("Terminal elements are missing from index.html.");
 }
 
+const terminalOutput = output;
+
 function print(content: string, kind: OutputKind = "normal"): void {
   const line = document.createElement("div");
   line.className = `output-line output-line--${kind}`;
   line.textContent = content;
-  output.append(line);
-  output.scrollTop = output.scrollHeight;
+  terminalOutput.append(line);
+  terminalOutput.scrollTop = terminalOutput.scrollHeight;
+}
+
+function printAst(ast: unknown): void {
+  const line = document.createElement("div");
+  line.className = "output-line output-line--ast";
+  // renderAst escapes all AST keys and values before producing this HTML.
+  line.innerHTML = renderAst(ast);
+  terminalOutput.append(line);
+  terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
 function clear(): void {
-  output.replaceChildren();
+  terminalOutput.replaceChildren();
 }
 
-const context: TerminalContext = { print, clear };
+const context: TerminalContext = { print, printAst, clear };
 const registry = new CommandRegistry();
 registerCommands(registry);
 const dispatcher = new CommandDispatcher(registry, context);
-const history: string[] = [];
-let historyIndex = 0;
+const history = new CommandHistory();
 
 print("Welcome to Jabr CLI v0.1.0.", "success");
 print('Type "help" to see available commands.', "muted");
@@ -40,26 +52,37 @@ form.addEventListener("submit", async (event) => {
   if (!value) return;
 
   print(`guest@jabr:~$ ${value}`, "command");
-  history.push(value);
-  historyIndex = history.length;
+  history.add(value);
+  history.resetNavigation();
   input.value = "";
   await dispatcher.dispatch(value);
+  input.focus();
 });
 
 input.addEventListener("keydown", (event) => {
   if (event.key === "ArrowUp") {
     event.preventDefault();
-    if (history.length === 0) return;
-    historyIndex = Math.max(0, historyIndex - 1);
-    input.value = history[historyIndex] ?? "";
-  } else if (event.key === "ArrowDown") {
+    input.value = history.previous(input.value);
+    input.setSelectionRange(input.value.length, input.value.length);
+    return;
+  }
+
+  if (event.key === "ArrowDown") {
     event.preventDefault();
-    historyIndex = Math.min(history.length, historyIndex + 1);
-    input.value = history[historyIndex] ?? "";
-  } else if (event.ctrlKey && event.key.toLowerCase() === "l") {
+    input.value = history.next();
+    input.setSelectionRange(input.value.length, input.value.length);
+    return;
+  }
+
+  if (event.ctrlKey && event.key.toLowerCase() === "l") {
     event.preventDefault();
     clear();
   }
 });
 
-document.addEventListener("click", () => input.focus());
+document.addEventListener("click", (event) => {
+  if (event.target instanceof Element && event.target.closest("button, a, input, textarea, select")) {
+    return;
+  }
+  input.focus();
+});

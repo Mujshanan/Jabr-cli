@@ -1,3 +1,4 @@
+import { parseLatexExpression, parseMathExpression } from "../engine/mathlex";
 import type { CommandRegistry } from "../engine/registry";
 
 export function registerCommands(registry: CommandRegistry): void {
@@ -17,6 +18,40 @@ export function registerCommands(registry: CommandRegistry): void {
     description: "Print text to the terminal.",
     usage: 'echo "your message"',
     execute: (args, context) => context.print(args.join(" ")),
+  });
+
+  registry.register({
+    name: "ast",
+    description: "Parse a plain-text mathematical expression and display its AST.",
+    usage: 'ast "2*x + sin(y)^2"',
+    execute: async (args, context) => {
+      const expression = args.join(" ").trim();
+      if (!expression) {
+        context.print('Usage: ast "mathematical expression"', "error");
+        return;
+      }
+
+      const ast = await parseMathExpression(expression);
+      context.print(`Mathlex AST (plain text): ${expression}`, "success");
+      context.printAst(ast);
+    },
+  });
+
+  registry.register({
+    name: "ast-latex",
+    description: "Parse a LaTeX mathematical expression and display its AST.",
+    usage: String.raw`ast-latex "\frac{1}{2}"`,
+    execute: async (args, context) => {
+      const expression = args.join(" ").trim();
+      if (!expression) {
+        context.print(String.raw`Usage: ast-latex "\frac{1}{2}"`, "error");
+        return;
+      }
+
+      const ast = await parseLatexExpression(expression);
+      context.print(`Mathlex AST (LaTeX): ${expression}`, "success");
+      context.printAst(ast);
+    },
   });
 
   registry.register({

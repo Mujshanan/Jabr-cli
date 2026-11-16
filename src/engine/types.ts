@@ -2,6 +2,7 @@ export type OutputKind = "normal" | "muted" | "command" | "success" | "error";
 
 export interface TerminalContext {
   print: (content: string, kind?: OutputKind) => void;
+  printAst: (ast: unknown) => void;
   clear: () => void;
 }
 
