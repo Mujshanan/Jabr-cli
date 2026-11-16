@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 const root = process.cwd();
 const civilkitManifest = resolve(root, "vendor/civilkit-calcs/calcpad-wasm/Cargo.toml");
+const highlighterManifest = resolve(root, "vendor/civilkit-calcs/calcpad-highlighter-wasm/Cargo.toml");
 const mathlexManifest = resolve(root, "rust/mathlex-bridge/Cargo.toml");
 
 function run(command, args) {
@@ -20,6 +21,9 @@ function run(command, args) {
 
 if (!existsSync(civilkitManifest)) {
   throw new Error("CivilKit submodule is missing. Run: git submodule update --init --recursive");
+}
+if (!existsSync(highlighterManifest)) {
+  throw new Error("CivilKit highlighter WASM manifest is missing.");
 }
 if (!existsSync(mathlexManifest)) {
   throw new Error("The existing Mathlex bridge manifest is missing.");
@@ -40,7 +44,10 @@ run("wasm-pack", [
   "civilkit_engine",
 ]);
 
-console.log("[3/3] Building the existing Mathlex parser bridge used by the terminal prototype...");
+console.log("[3/4] Building CivilKit tokenizer/highlighter for browser inspection...");
+run("wasm-pack", ["build", "vendor/civilkit-calcs/calcpad-highlighter-wasm", "--target", "web", "--out-dir", "../../../src/engine/civilkit-highlighter-wasm", "--out-name", "civilkit_highlighter"]);
+
+console.log("[4/4] Building the existing Mathlex parser bridge used by the terminal prototype...");
 run("wasm-pack", [
   "build",
   "rust/mathlex-bridge",
@@ -52,4 +59,4 @@ run("wasm-pack", [
   "jabr_mathlex",
 ]);
 
-console.log("CivilKit and Mathlex WebAssembly packages built successfully.");
+console.log("CivilKit engine, CivilKit highlighter, and Mathlex WebAssembly packages built successfully.");
