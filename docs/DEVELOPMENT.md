@@ -200,3 +200,9 @@ When a change affects architecture, toolchain, commands, API behavior, limitatio
 - Update [AGENTS.md](../AGENTS.md) if repository-wide agent constraints change.
 
 Always distinguish implemented behavior from planned work and known limitations.
+
+## 12. Worksheet editor
+
+The CivilKit engine test page will use a minimal CodeMirror 6 editor for worksheet input. Keep the editor implementation isolated under `src/editor/`; the page reads the current document through a small editor API and remains responsible for invoking the CivilKit WASM engine. Do not couple CodeMirror to engine internals, AST DTOs, or the separate Mathlex terminal.
+
+The initial feature set is automatic bracket/quote closing, bracket matching, indentation, undo/redo, and a compact completion popup for verified static mathematical names and Greek symbols. Worksheet-variable completion, units/constants catalogue generation, hover documentation, LSP, and AST-aware diagnostics are deferred. Keep package additions focused and maintain both Bun and npm lockfiles.
