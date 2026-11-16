@@ -46,7 +46,7 @@ function createExpressionCommand(
           ? await parseMathExpression(expression)
           : await parseLatexExpression(expression);
         context.print(`Mathlex AST (${mode === "math" ? "plain text" : "LaTeX"}): ${expression}`, "success");
-        context.printAst(ast);
+        context.printAst(ast, expression);
         return;
       }
 
