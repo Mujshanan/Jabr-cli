@@ -78,9 +78,15 @@ terminalOutput.addEventListener("click", async (event) => {
     if (!data) return;
     try {
       await navigator.clipboard.writeText(JSON.stringify(JSON.parse(data), null, 2));
-      const original = button.textContent;
+      button.dataset.original ??= button.textContent ?? "";
+      const previousTimer = copyButtonTimers.get(button);
+      if (previousTimer !== undefined) window.clearTimeout(previousTimer);
       button.textContent = "✓";
-      window.setTimeout(() => { button.textContent = original; }, 1200);
+      const timer = window.setTimeout(() => {
+        button.textContent = button.dataset.original ?? "";
+        copyButtonTimers.delete(button);
+      }, 1200);
+      copyButtonTimers.set(button, timer);
     } catch {
       button.textContent = "!";
       button.title = "Clipboard access unavailable";
@@ -96,6 +102,7 @@ const registry = new CommandRegistry();
 registerCommands(registry);
 const dispatcher = new CommandDispatcher(registry, context);
 const history = new CommandHistory();
+const copyButtonTimers = new WeakMap<HTMLButtonElement, number>();
 
 // Commands execute serially so asynchronous initialization or evaluation cannot
 // let a later command print its output before an earlier command has completed.
