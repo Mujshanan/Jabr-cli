@@ -194,11 +194,9 @@ export function createAstExplorer(ast: unknown): HTMLElement {
   const expandButtons = new Map<string, HTMLButtonElement>();
   const nodeButtons = new Map<string, HTMLButtonElement>();
   const expanded = new Set<string>(["root"]);
-  let selected = model;
   let showingFullJson = false;
 
   function selectNode(node: AstTreeNode): void {
-    selected = node;
     selectedTitle.textContent = node.label;
     selectedMeta.textContent = node.kind + " · " + node.id;
     selectedJson.textContent = serialize(node.value);
@@ -283,8 +281,15 @@ export function createAstExplorer(ast: unknown): HTMLElement {
     selectedJson.hidden = showingFullJson;
     rawToggle.textContent = showingFullJson ? "Node details" : "Full JSON";
   });
-  copyRoot.addEventListener("click", () => {
-    void navigator.clipboard?.writeText(serialize(ast));
+  copyRoot.addEventListener("click", async () => {
+    try {
+      if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(serialize(ast));
+      copyRoot.textContent = "Copied";
+      window.setTimeout(() => { copyRoot.textContent = "Copy AST"; }, 1000);
+    } catch {
+      copyRoot.textContent = "Copy unavailable";
+    }
   });
 
   root.addEventListener("click", async (event) => {
