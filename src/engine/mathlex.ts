@@ -22,6 +22,15 @@ async function ensureInitialized(): Promise<void> {
   await initialization;
 }
 
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.values(value).every((item) => typeof item === "string")
+  );
+}
+
 function decodeAst(json: string): MathlexAstNode {
   const ast: unknown = JSON.parse(json);
 
@@ -30,7 +39,8 @@ function decodeAst(json: string): MathlexAstNode {
     ast === null ||
     !("kind" in ast) ||
     typeof ast.kind !== "string" ||
-    !("value" in ast)
+    !("value" in ast) ||
+    ("annotations" in ast && !isStringRecord(ast.annotations))
   ) {
     throw new Error("Mathlex returned an AST that does not match its documented wire format.");
   }
@@ -43,8 +53,13 @@ async function parse(input: string, parser: MathlexParser): Promise<MathlexAstNo
     throw new TypeError("A non-empty mathematical expression is required.");
   }
 
-  await ensureInitialized();
-  return decodeAst(parser(input));
+  try {
+    await ensureInitialized();
+    return decodeAst(parser(input));
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error(String(error));
+  }
 }
 
 /** Parse plain-text notation using Mathlex and return its JSON AST. */
