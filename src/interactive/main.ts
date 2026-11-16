@@ -2,6 +2,7 @@ import { registerCommands } from "../command/register";
 import { CommandDispatcher } from "../engine/dispatcher";
 import { CommandRegistry } from "../engine/registry";
 import type { OutputKind, TerminalContext } from "../engine/types";
+import { renderAst } from "./ast-renderer";
 
 const output = document.querySelector<HTMLElement>("#terminal-output");
 const form = document.querySelector<HTMLFormElement>("#terminal-form");
@@ -19,11 +20,19 @@ function print(content: string, kind: OutputKind = "normal"): void {
   output.scrollTop = output.scrollHeight;
 }
 
+function printAst(ast: unknown): void {
+  const line = document.createElement("div");
+  line.className = "output-line output-line--ast";
+  line.append(renderAst(ast));
+  output.append(line);
+  output.scrollTop = output.scrollHeight;
+}
+
 function clear(): void {
   output.replaceChildren();
 }
 
-const context: TerminalContext = { print, clear };
+const context: TerminalContext = { print, printAst, clear };
 const registry = new CommandRegistry();
 registerCommands(registry);
 const dispatcher = new CommandDispatcher(registry, context);
