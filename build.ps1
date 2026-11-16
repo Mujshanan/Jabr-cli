@@ -19,8 +19,10 @@ function Invoke-Checked {
 $requiredTools = @("rustup", "cargo", "wasm-pack")
 if ($PackageManager -eq "bun") {
     $requiredTools += "bun"
+    $buildScript = "build:bun"
 } else {
     $requiredTools += @("node", "npm")
+    $buildScript = "build"
 }
 
 foreach ($tool in $requiredTools) {
@@ -46,5 +48,5 @@ if ($PackageManager -eq "bun") {
 Write-Host "Installing the WebAssembly Rust target..."
 Invoke-Checked "rustup" @("target", "add", "wasm32-unknown-unknown")
 Write-Host "Building native CivilKit CLI, CivilKit WebAssembly, Mathlex compatibility bridge, and Vite UI..."
-Invoke-Checked $runner @("run", "build")
+Invoke-Checked $runner @("run", $buildScript)
 Write-Host "Build completed successfully. Production files are in dist/."

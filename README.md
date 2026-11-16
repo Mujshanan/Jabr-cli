@@ -46,12 +46,12 @@ The full build deliberately follows this order:
 2. **WebAssembly:** compile CivilKit's `calcpad-wasm` crate for `wasm32-unknown-unknown` and generate browser bindings; then build the existing Mathlex compatibility bridge.
 3. **Vite:** type-check TypeScript and build both browser pages.
 
-Bun:
+Bun (Bun runtime and package manager):
 
 ```bash
 bun install
-bun run build
-bun run dev
+bun run build:bun
+bun run dev:bun
 ```
 
 npm:
@@ -62,13 +62,7 @@ npm run build
 npm run dev
 ```
 
-The native and WASM stages can also be run separately:
-
-```bash
-bun run engine:native
-bun run engine:wasm
-bun run build:web
-```
+The native and WASM stages can also be run separately. Use `bun run engine:native:bun` and `bun run engine:wasm:bun` with Bun, or `npm run engine:native` and `npm run engine:wasm` with Node/npm.
 
 ## Minimal CivilKit test page
 
@@ -84,11 +78,7 @@ The existing terminal remains at `/`. It continues to use the Mathlex parser bri
 
 ## Native CLI smoke test
 
-The native build uses CivilKit's own CLI and a tiny fixture:
-
-```bash
-bun run engine:native
-```
+The native build uses CivilKit's own CLI and a tiny fixture. With Bun, run `bun run engine:native:bun`; with npm, run `npm run engine:native`.
 
 The script builds `vendor/civilkit-calcs/calcpad-cli`, runs it against `tests/fixtures/civilkit-smoke.cpd`, and checks that the generated HTML contains the expected result.
 
@@ -132,8 +122,8 @@ Bun:
 
 ```bash
 bun run test
-bun run typecheck
-bun run build
+bun run typecheck:bun
+bun run build:bun
 ```
 
 npm:

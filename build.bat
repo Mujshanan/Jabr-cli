@@ -18,6 +18,7 @@ if errorlevel 1 (
     exit /b 1
 )
 set "RUNNER=bun"
+set "BUILD_SCRIPT=build:bun"
 echo Installing JavaScript dependencies with Bun...
 call bun install --frozen-lockfile
 if errorlevel 1 exit /b %errorlevel%
@@ -35,6 +36,7 @@ if errorlevel 1 (
     exit /b 1
 )
 set "RUNNER=npm"
+set "BUILD_SCRIPT=build"
 echo Installing JavaScript dependencies with npm...
 call npm ci
 if errorlevel 1 exit /b %errorlevel%
@@ -66,7 +68,7 @@ call rustup target add wasm32-unknown-unknown
 if errorlevel 1 exit /b %errorlevel%
 
 echo Building Jabr with %PACKAGE_MANAGER%...
-call %RUNNER% run build
+call %RUNNER% run %BUILD_SCRIPT%
 if errorlevel 1 exit /b %errorlevel%
 echo Build completed successfully. Production files are in dist/.
 exit /b 0
