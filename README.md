@@ -168,7 +168,7 @@ npm test
 npm run typecheck
 npm run build
 npm run test:python
-npm audit --audit-level=low
+npm audit --audit-level=high
 ```
 
 Rust:
