@@ -26,6 +26,7 @@
     clippy::nonminimal_bool
 )]
 
+pub mod ast;
 pub mod base_types;
 pub mod calcpad_error;
 pub mod calculator;
