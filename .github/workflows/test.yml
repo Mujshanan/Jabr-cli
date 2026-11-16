@@ -22,7 +22,9 @@ jobs:
       - name: Run Rust tests
         run: cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
       - name: Install JavaScript dependencies
-        run: npm install
+        run: |
+          npm cache clean --force
+          npm install --no-audit --no-fund
       - name: Run TypeScript tests
         run: npm test
       - name: Build browser application
