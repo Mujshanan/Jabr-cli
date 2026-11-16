@@ -1,3 +1,12 @@
+export interface AstTreeNode {
+  readonly id: string;
+  readonly label: string;
+  readonly kind: string;
+  readonly preview: string;
+  readonly value: unknown;
+  readonly children: readonly AstTreeNode[];
+}
+
 type AstRecord = Record<string, unknown>;
 
 const LABELS: Record<string, string> = {
@@ -38,19 +47,6 @@ function isRecord(value: unknown): value is AstRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => {
-    const entities: Record<string, string> = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
-    return entities[character] ?? character;
-  });
-}
-
 function readableLabel(key: string): string {
   return LABELS[key] ?? key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]/g, " ");
 }
@@ -64,82 +60,269 @@ function preview(value: unknown): string {
   if (typeof value === "string") return JSON.stringify(value);
   if (value === null) return "null";
   if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (Array.isArray(value)) return `[${value.length} items]`;
+  if (Array.isArray(value)) return "[" + value.length + " items]";
   if (isRecord(value)) return "{…}";
   return String(value);
 }
 
-const copyValues = new WeakMap<Element, unknown>();
-function copyButton(label: string): string {
-  return `<button class="ast-copy" type="button" data-ast-action="copy" title="Copy this node as JSON" aria-label="Copy ${escapeHtml(label)} node">⧉</button>`;
-}
-
-function renderEntry(key: string, value: unknown, depth: number): string {
-  const label = readableLabel(key);
-
-  if (depth > 80) {
-    return `<li class="ast-node"><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-value">Maximum display depth reached</span></li>`;
-  }
-
-  if (Array.isArray(value)) {
-    const children = value.map((item, index) => renderEntry(String(index), item, depth + 1)).join("");
-    return `<li class="ast-node"><details class="ast-details"><summary class="ast-summary"><span class="ast-icon ast-icon--collection">▦</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-preview">${value.length} items</span>${copyButton(label)}</summary><ul class="ast-children">${children}</ul></details></li>`;
-  }
-
-  if (isRecord(value)) {
-    const kind = typeof value.kind === "string" ? value.kind : "";
-    const title = kind || label;
-    const icon = iconFor(kind || key);
-    const childEntries = Object.entries(value).filter(([childKey]) => childKey !== "kind");
-    const scalarValue = value.value;
-    const valuePreview = scalarValue !== undefined && !isRecord(scalarValue) && !Array.isArray(scalarValue)
-      ? preview(scalarValue)
-      : childEntries.length === 0 ? "" : `${childEntries.length} fields`;
-    const children = childEntries
-      .map(([childKey, childValue]) => renderEntry(childKey, childValue, depth + 1))
-      .join("");
-    const kindTag = kind ? `<span class="ast-kind">${escapeHtml(kind)}</span>` : "";
-    const summary = `<span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(title)}</span>${kindTag}<span class="ast-preview">${escapeHtml(valuePreview)}</span>${copyButton(title)}`;
-
-    if (children.length === 0) {
-      return `<li class="ast-node ast-node--leaf"><div class="ast-summary ast-summary--leaf">${summary}</div></li>`;
+/** Normalize arbitrary parser JSON into a stable, path-keyed tree for the UI. */
+export function buildAstTreeModel(value: unknown): AstTreeNode {
+  function visit(key: string, current: unknown, id: string, depth: number): AstTreeNode {
+    if (depth > 80) {
+      return {
+        id,
+        label: readableLabel(key),
+        kind: "DepthLimit",
+        preview: "Maximum display depth reached",
+        value: current,
+        children: [],
+      };
     }
 
-    return `<li class="ast-node"><details class="ast-details" ${depth === 0 ? "open" : ""}><summary class="ast-summary">${summary}</summary><ul class="ast-children">${children}</ul></details></li>`;
+    if (Array.isArray(current)) {
+      return {
+        id,
+        label: readableLabel(key),
+        kind: "Array",
+        preview: current.length + " items",
+        value: current,
+        children: current.map((item, index) => visit(String(index), item, id + "[" + index + "]", depth + 1)),
+      };
+    }
+
+    if (isRecord(current)) {
+      const kind = typeof current.kind === "string" ? current.kind : "Object";
+      const entries = Object.entries(current).filter(([childKey]) => childKey !== "kind");
+      const children = entries.map(([childKey, childValue]) =>
+        visit(childKey, childValue, id + "." + childKey, depth + 1));
+      const scalar = current.value;
+      const summary = scalar !== undefined && !isRecord(scalar) && !Array.isArray(scalar)
+        ? preview(scalar)
+        : children.length === 0 ? "No fields" : children.length + " fields";
+      return {
+        id,
+        label: kind === "Object" ? readableLabel(key) : kind,
+        kind,
+        preview: summary,
+        value: current,
+        children,
+      };
+    }
+
+    return {
+      id,
+      label: readableLabel(key),
+      kind: key,
+      preview: preview(current),
+      value: current,
+      children: [],
+    };
   }
 
-  const icon = iconFor(key);
-  return `<li class="ast-node ast-node--leaf"><div class="ast-summary ast-summary--leaf"><span class="ast-icon ast-icon--${icon.category}">${icon.glyph}</span><span class="ast-node__label">${escapeHtml(label)}</span><span class="ast-value">${escapeHtml(preview(value))}</span>${copyButton(label)}</div></li>`;
+  return visit("Expression", value, "root", 0);
 }
 
-/** Render an AST as a readable, collapsible tree with an optional raw JSON view. */
-export function renderAst(ast: unknown): string {
-  const tree = `<ul class="ast-children ast-children--root">${renderEntry("Expression", ast, 0)}</ul>`;
-  const json = escapeHtml(JSON.stringify(ast, null, 2) ?? "undefined");
-
-  return `<section class="ast-view" aria-label="Abstract syntax tree">
-    <div class="ast-toolbar">
-      <span class="ast-toolbar__title">AST tree</span>
-      <span class="ast-toolbar__spacer"></span>
-      <button type="button" class="ast-action" data-ast-action="expand">Expand all</button>
-      <button type="button" class="ast-action" data-ast-action="collapse">Collapse all</button>
-      <button type="button" class="ast-action" data-ast-action="raw">Raw JSON</button>
-    </div>
-    <div class="ast-tree">${tree}</div>
-    <pre class="ast-raw" hidden>${json}</pre>
-  </section>`;
+function element<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
-export function bindAstCopyTargets(root: ParentNode, ast: unknown): void {
-  const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-ast-action=\"copy\"]"));
-  let index = 0;
-  const visit = (value: unknown, depth: number): void => {
-    if (depth > 80) return;
-    const button = buttons[index++];
-    if (button) copyValues.set(button, value);
-    if (Array.isArray(value)) value.forEach((item) => visit(item, depth + 1));
-    else if (isRecord(value)) Object.entries(value).filter(([key]) => key !== "kind").forEach(([, child]) => visit(child, depth + 1));
-  };
-  visit(ast, 0);
+function button(label: string, action: string, className = "ast-action"): HTMLButtonElement {
+  const node = element("button", className, label);
+  node.type = "button";
+  node.dataset.astAction = action;
+  return node;
 }
-export function getAstCopyValue(button: Element): unknown { return copyValues.get(button); }
+
+function serialize(value: unknown): string {
+  return JSON.stringify(value, null, 2) ?? "undefined";
+}
+
+/**
+ * Mount a DOM-based AST explorer.
+ *
+ * The tree uses stable path IDs, and selection/details state is kept separately
+ * from expansion state. No parser-specific source ranges are assumed.
+ */
+export function createAstExplorer(ast: unknown): HTMLElement {
+  const model = buildAstTreeModel(ast);
+  const root = element("section", "ast-view");
+  root.setAttribute("aria-label", "Abstract syntax tree explorer");
+
+  const toolbar = element("div", "ast-toolbar");
+  toolbar.append(
+    element("span", "ast-toolbar__title", "AST explorer"),
+    element("span", "ast-toolbar__spacer"),
+  );
+  const expandAll = button("Expand all", "expand");
+  const collapseAll = button("Collapse all", "collapse");
+  const rawToggle = button("Full JSON", "raw");
+  const copyRoot = button("Copy AST", "copy-root");
+  toolbar.append(expandAll, collapseAll, rawToggle, copyRoot);
+
+  const workspace = element("div", "ast-workspace");
+  const treePanel = element("div", "ast-tree-panel");
+  const treeHeading = element("div", "ast-panel-heading", "Structure");
+  const tree = element("ul", "ast-children ast-children--root");
+  const detailsPanel = element("aside", "ast-details-panel");
+  detailsPanel.setAttribute("aria-label", "Selected AST node details");
+  const detailsHeading = element("div", "ast-panel-heading", "Node details");
+  const selectedTitle = element("div", "ast-details-title", model.label);
+  const selectedMeta = element("div", "ast-details-meta", model.kind + " · " + model.id);
+  const selectedJson = element("pre", "ast-details-json", serialize(model.value));
+  const sourceNote = element(
+    "p",
+    "ast-source-note",
+    "Source ranges are not provided by this parser AST; source highlighting is not available in this view.",
+  );
+  detailsPanel.append(detailsHeading, selectedTitle, selectedMeta, selectedJson, sourceNote);
+  treePanel.append(treeHeading, tree);
+  workspace.append(treePanel, detailsPanel);
+
+  const fullJson = element("pre", "ast-raw", serialize(ast));
+  fullJson.hidden = true;
+  root.append(toolbar, workspace, fullJson);
+
+  const rows = new Map<string, HTMLElement>();
+  const childLists = new Map<string, HTMLUListElement>();
+  const expandButtons = new Map<string, HTMLButtonElement>();
+  const nodeButtons = new Map<string, HTMLButtonElement>();
+  const expanded = new Set<string>(["root"]);
+  let selected = model;
+  let showingFullJson = false;
+
+  function selectNode(node: AstTreeNode): void {
+    selected = node;
+    selectedTitle.textContent = node.label;
+    selectedMeta.textContent = node.kind + " · " + node.id;
+    selectedJson.textContent = serialize(node.value);
+    showingFullJson = false;
+    fullJson.hidden = true;
+    selectedJson.hidden = false;
+    rawToggle.textContent = "Full JSON";
+    for (const [id, nodeButton] of nodeButtons) {
+      nodeButton.setAttribute("aria-current", String(id === node.id));
+    }
+  }
+
+  function renderNode(node: AstTreeNode): HTMLLIElement {
+    const item = element("li", "ast-node");
+    item.dataset.nodeId = node.id;
+    rows.set(node.id, item);
+
+    const row = element("div", "ast-node-row");
+    if (node.children.length > 0) {
+      const toggle = button("▸", "toggle", "ast-toggle");
+      toggle.setAttribute("aria-label", "Expand " + node.label);
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.dataset.nodeId = node.id;
+      expandButtons.set(node.id, toggle);
+      row.append(toggle);
+    } else {
+      row.append(element("span", "ast-toggle-spacer"));
+    }
+
+    const icon = iconFor(node.kind);
+    const select = button("", "select", "ast-select");
+    select.dataset.nodeId = node.id;
+    select.setAttribute("aria-current", "false");
+    const glyph = element("span", "ast-icon ast-icon--" + icon.category, icon.glyph);
+    const label = element("span", "ast-node__label", node.label);
+    const kind = element("span", "ast-kind", node.kind);
+    const summary = element("span", "ast-preview", node.preview);
+    select.append(glyph, label, kind, summary);
+    nodeButtons.set(node.id, select);
+    row.append(select);
+
+    const copy = button("⧉", "copy-node", "ast-copy");
+    copy.dataset.nodeId = node.id;
+    copy.setAttribute("aria-label", "Copy " + node.label + " node JSON");
+    row.append(copy);
+    item.append(row);
+
+    if (node.children.length > 0) {
+      const children = element("ul", "ast-children");
+      children.hidden = true;
+      childLists.set(node.id, children);
+      for (const child of node.children) children.append(renderNode(child));
+      item.append(children);
+    }
+    return item;
+  }
+
+  tree.append(renderNode(model));
+  selectNode(model);
+
+  function setExpanded(id: string, isExpanded: boolean): void {
+    const list = childLists.get(id);
+    const toggle = expandButtons.get(id);
+    if (!list || !toggle) return;
+    list.hidden = !isExpanded;
+    toggle.textContent = isExpanded ? "▾" : "▸";
+    toggle.setAttribute("aria-expanded", String(isExpanded));
+    toggle.setAttribute("aria-label", (isExpanded ? "Collapse " : "Expand ") + (rows.get(id)?.querySelector(".ast-node__label")?.textContent ?? "node"));
+    if (isExpanded) expanded.add(id);
+    else expanded.delete(id);
+  }
+
+  function setAllExpanded(isExpanded: boolean): void {
+    for (const id of childLists.keys()) setExpanded(id, isExpanded);
+  }
+
+  expandAll.addEventListener("click", () => setAllExpanded(true));
+  collapseAll.addEventListener("click", () => setAllExpanded(false));
+  rawToggle.addEventListener("click", () => {
+    showingFullJson = !showingFullJson;
+    fullJson.hidden = !showingFullJson;
+    selectedJson.hidden = showingFullJson;
+    rawToggle.textContent = showingFullJson ? "Node details" : "Full JSON";
+  });
+  copyRoot.addEventListener("click", () => {
+    void navigator.clipboard?.writeText(serialize(ast));
+  });
+
+  root.addEventListener("click", async (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target.closest<HTMLButtonElement>("button[data-ast-action]");
+    if (!target) return;
+    const action = target.dataset.astAction;
+    const id = target.dataset.nodeId;
+    if (action === "toggle" && id) {
+      setExpanded(id, !expanded.has(id));
+      return;
+    }
+    if (action === "select" && id) {
+      const node = findNode(model, id);
+      if (node) selectNode(node);
+      return;
+    }
+    if (action === "copy-node" && id) {
+      const node = findNode(model, id);
+      if (!node) return;
+      try {
+        await navigator.clipboard.writeText(serialize(node.value));
+        target.textContent = "✓";
+        window.setTimeout(() => { target.textContent = "⧉"; }, 1000);
+      } catch {
+        target.textContent = "!";
+      }
+    }
+  });
+
+  return root;
+}
+
+function findNode(root: AstTreeNode, id: string): AstTreeNode | undefined {
+  if (root.id === id) return root;
+  for (const child of root.children) {
+    const found = findNode(child, id);
+    if (found) return found;
+  }
+  return undefined;
+}
