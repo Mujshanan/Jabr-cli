@@ -117,6 +117,48 @@ The AST and LaTeX work must begin with an API audit of the pinned source. Prefer
 
 **Exit criteria:** the notes application can embed a calculation block while Jabr remains independently buildable and testable.
 
+## AST inspector UI milestone
+
+The AST inspector is a first-class developer tool inside Jabr's existing TypeScript/Vite application. It should borrow the interaction model of AST Explorer (source-to-tree synchronization and hierarchical inspection), but it must not import or copy AST Explorer application code. Keep Jabr's existing framework and review any third-party component licenses before adding dependencies.
+
+### Inspector experience
+
+The inspector should provide four coordinated views over the same selected AST node:
+
+- **Tree / ATS:** expandable, human-readable hierarchy with descriptive node labels. This is the default view.
+- **JSON:** complete serialized AST and selected-node subtree, with copyable structured output.
+- **Source:** original worksheet source with the selected node's source span highlighted.
+- **LaTeX:** rendered mathematical representation of the selected expression where supported. LaTeX is a formatter output, not a substitute for the AST.
+
+A node-details pane should show the selected node's kind, operator/name/literal, arguments, children, units or other kind-specific properties, and source location. Selecting a tree node highlights its source span; selecting source text should resolve to the narrowest corresponding AST node where possible. Tree expansion state should remain independent of selection.
+
+### Frontend implementation boundary
+
+Keep the inspector independent of the terminal and engine-test page so it can be reused later or adapted for the notes application's custom calculation block.
+
+Suggested modules (adapt names to the current repository conventions):
+
+- `src/ast/types.ts`: versioned Jabr-facing AST and diagnostic types.
+- `src/ast/adapter.ts`: normalize CivilKit DTOs without discarding engine semantics.
+- `src/ast/formatter.ts`: human-readable ATS labels and tree formatting.
+- `src/ast/source-map.ts`: map Rust source spans to editor positions.
+- `src/ast/latex.ts`: AST-to-LaTeX formatting for supported expression nodes.
+- `src/components/ast-inspector/`: tree, node details, JSON, and source-highlight views.
+
+Use the repository's existing TypeScript/Vite stack. Prefer a lightweight accessible tree component or a small purpose-built renderer over importing a complete AST Explorer clone. Monaco decorations may be used if Monaco is already the editor; otherwise integrate with the existing editor API. Keep KaTeX as the rendering layer if it is already available or selected for Jabr. Do not introduce Vue/Nuxt or React solely for the inspector.
+
+### Delivery order
+
+1. Expose the real CivilKit AST through a versioned Rust inspection DTO; do not synthesize an AST from tokenizer output or report HTML.
+2. Normalize the DTO in the Jabr adapter and preserve node kinds, child order, literals, units, diagnostics, and source spans.
+3. Implement the expandable ATS tree and node-details pane.
+4. Add bidirectional tree/source selection and source highlighting.
+5. Add the JSON view and copyable full/subtree output.
+6. Add AST-to-LaTeX formatting and KaTeX rendering for explicitly supported node kinds; report unsupported constructs clearly.
+7. Add fixtures and tests for tree labels, selection/source mapping, schema compatibility, Unicode offsets, and malformed input.
+
+**Acceptance criteria:** a real CivilKit parse result can be inspected as a readable tree and JSON; selecting a node highlights the corresponding source; source selection can identify its AST node where unambiguous; LaTeX is generated from the AST (not scraped from HTML); unsupported or partial results are explicit. The inspector remains separate from evaluation and does not change terminal behavior.
+
 ## Tokenizer and AST milestone
 
 The browser test page now builds and loads CivilKit's separate `calcpad-highlighter-wasm` package and displays actual upstream token records (type, type ID, source text, line, UTF-16 column, and length). The AST panel is present but intentionally reports the current engine API limitation; it does not fabricate a tree from tokenizer output.
