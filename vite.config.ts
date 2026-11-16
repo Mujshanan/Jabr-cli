@@ -1,4 +1,3 @@
-import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -7,8 +6,8 @@ export default defineConfig({
     target: "es2020",
     rollupOptions: {
       input: {
-        terminal: resolve(process.cwd(), "index.html"),
-        engineTest: resolve(process.cwd(), "engine-test.html"),
+        terminal: "index.html",
+        engineTest: "engine-test.html",
       },
     },
   },
