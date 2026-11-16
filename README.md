@@ -1,114 +1,132 @@
 # Jabr CLI
 
-A lightweight, browser-based command interface for an application, built with Vanilla HTML, CSS, TypeScript and a Rust/WebAssembly math parser.
+Jabr is a lightweight browser-based application terminal built with Vanilla HTML, CSS, TypeScript and Vite. The repository currently contains the original Mathlex expression-parser terminal and a separate minimal test page for the CivilKit Rust calculation engine.
 
 Jabr CLI is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
 
 ## Stack
 
 - Vanilla HTML and CSS
-- TypeScript and Vite
-- Rust with the [Mathlex](https://github.com/ChrisGVE/mathlex) expression parser
-- WebAssembly via wasm-bindgen and wasm-pack
-- KaTeX and MathJax for browser-side mathematical typesetting
+- TypeScript and Vite (no React or frontend framework)
+- CivilKit Calcs Rust calculation engine, pinned as a Git submodule
+- CivilKit's native worksheet CLI for the native build/smoke test
+- CivilKit WebAssembly engine via wasm-pack/wasm-bindgen
+- Existing Mathlex parser bridge retained temporarily for the original terminal commands
+- KaTeX and MathJax for the original terminal's mathematical typesetting
 - Vitest and Cargo tests
 - Bun (preferred) or npm for JavaScript dependencies
 
-No React or frontend framework is used.
-
 ## Requirements
 
+- Git with submodule support
 - Bun (recommended), or Node.js 20.19+ / 22.12+ with npm
 - Rust toolchain (rustup and Cargo)
-- wasm-pack 0.15.1
-- cargo-audit (for Rust dependency security checks)
+- wasm-pack **0.15.1**
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
 
-Install Bun using the official instructions at https://bun.sh/docs/installation. For the npm workflow, install Node.js from https://nodejs.org/; npm is included.
+Install Bun using https://bun.sh/docs/installation. For npm, install Node.js from https://nodejs.org/.
 
-Install the pinned wasm-pack release with Cargo:
+Install the pinned wasm-pack release:
 
 ```bash
 cargo install wasm-pack --version 0.15.1 --locked
 ```
 
-Install the Rust dependency auditor:
+The CivilKit source is pinned to commit `97f4bb698cea3bd6a9a4fae46dbc28b0d3ca5ffc` in `vendor/civilkit-calcs`. After cloning the repository, initialize it:
 
 ```bash
-cargo install cargo-audit --locked
+git submodule update --init --recursive
 ```
 
-## Getting started
+## Build sequence
 
-Bun (recommended):
+The full build deliberately follows this order:
+
+1. **Native CLI:** compile CivilKit's native `Cli` binary and run a small worksheet smoke test.
+2. **WebAssembly:** compile CivilKit's `calcpad-wasm` crate for `wasm32-unknown-unknown` and generate browser bindings; then build the existing Mathlex compatibility bridge.
+3. **Vite:** type-check TypeScript and build both browser pages.
+
+Bun:
 
 ```bash
 bun install
+bun run build
 bun run dev
 ```
 
-Or use npm:
+npm:
 
 ```bash
-npm install
+npm ci
+npm run build
 npm run dev
 ```
 
-### Windows production build
-
-After installing the requirements above, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. To use npm, run `./build.ps1 -PackageManager npm` in PowerShell or `build.bat npm` in Command Prompt. Both scripts install dependencies from the matching lockfile, ensure the WebAssembly target is installed, and build the site into `dist/`.
-
-PowerShell may require allowing locally created scripts to run for the current user; if so, use `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` in an elevated or appropriately authorized PowerShell session.
-
-Vite listens on all interfaces so its preview can be opened from GitHub Codespaces. Use the patched Vite version in the lockfile whenever exposing this development server to a network.
-
-The development server and production build generate the WebAssembly package first. To generate it manually:
+The native and WASM stages can also be run separately:
 
 ```bash
-bun run wasm:build
-# or
-npm run wasm:build
+bun run engine:native
+bun run engine:wasm
+bun run build:web
 ```
 
-## Try the AST commands
+## Minimal CivilKit test page
+
+Start the development server and open:
 
 ```text
-ast "2*x + sin(y)^2"
-ast-latex "\\frac{1}{2}"
+http://localhost:5173/engine-test.html
 ```
 
+The page has only a worksheet editor, Run button, engine status/version, rendered report and calculation messages. It calls CivilKit's existing `convert` API through WebAssembly. The generated report is displayed in a sandboxed iframe; scripts in worksheet output are not enabled.
 
-## Mathematical output
+The existing terminal remains at `/`. It continues to use the Mathlex parser bridge while the CivilKit engine is evaluated separately. This is intentional: the current test harness validates CivilKit before the terminal's parser/execution architecture is migrated.
 
-Jabr uses Mathlex to parse expressions and serialize its AST back to LaTeX. It then sends that LaTeX to a browser renderer. Parsing, serialization and rendering remain separate responsibilities.
+## Native CLI smoke test
+
+The native build uses CivilKit's own CLI and a tiny fixture:
+
+```bash
+bun run engine:native
+```
+
+The script builds `vendor/civilkit-calcs/calcpad-cli`, runs it against `tests/fixtures/civilkit-smoke.cpd`, and checks that the generated HTML contains the expected result.
+
+## Windows build
+
+After installing the requirements and initializing the submodule, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. For npm:
+
+```powershell
+./build.ps1 -PackageManager npm
+```
+
+Or:
+
+```bat
+build.bat npm
+```
+
+PowerShell may require allowing locally created scripts to run for the current user; if so, use `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` where permitted.
+
+Vite listens on all interfaces so its development server can be opened from GitHub Codespaces. The production build writes both pages to `dist/`.
+
+## Existing terminal commands
 
 ```text
+help
 math "2*x + sin(y)^2"
 math-latex "\\frac{1}{2}"
+ast "2*x + sin(y)^2"
+ast-latex "\\frac{1}{2}"
+echo hello
+version
+about
+clear
 ```
 
-Each mathematical output block has a renderer switch:
+The Mathlex bridge parses expressions and serializes its AST to LaTeX. It does not evaluate worksheets. The CivilKit test page is the first integration of a full calculation engine.
 
-- **KaTeX** is the default, fast synchronous renderer.
-- **MathJax** is available when broader TeX support is needed; its typesetting is asynchronous.
-
-The LaTeX source is available under each rendered expression. Both renderers are loaded from pinned jsDelivr CDN URLs in index.html, so this first version requires an internet connection to load their scripts, CSS and fonts. The parser and Rust/WASM engine remain local. A later packaging step can vendor the renderer assets for fully offline use.
-
-## Commands
-
-| Command | Description |
-| --- | --- |
-| `help` | List available commands |
-| `math "2*x + sin(y)^2"` | Parse plain-text notation and render the expression |
-| `math-latex "LaTeX expression"` | Parse LaTeX and render the expression |
-| `ast "2*x + sin(y)^2"` | Parse a plain-text expression and display its AST |
-| `ast-latex "\\frac{1}{2}"` | Parse a LaTeX expression and display its AST |
-| `echo <text>` | Print text |
-| `clear` | Clear terminal output |
-| `version` | Show the Jabr CLI version |
-| `about` | Explain what Jabr CLI is |
-
-## Tests and builds
+## Tests
 
 Bun:
 
@@ -127,45 +145,39 @@ npm run build
 npm audit --audit-level=low
 ```
 
-Both `bun.lock` and `package-lock.json` are committed. Use the lockfile corresponding to your package manager. CI installs dependencies and runs tests/builds with both Bun and npm. Rust tests and the Rust dependency audit run in CI as well.
-
-Run the Rust checks locally with:
+Rust:
 
 ```bash
+cargo test --locked --manifest-path vendor/civilkit-calcs/Cargo.toml -p civilkit-calcs-engine
 cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
-cargo audit --file rust/mathlex-bridge/Cargo.lock
 ```
+
+CI builds the native CLI on Windows, tests the Rust engines, and builds the WebAssembly/Vite application with both Bun and npm.
 
 ## Project structure
 
 ```text
 .
+├── vendor/
+│   └── civilkit-calcs/       # Pinned CivilKit source submodule
 ├── rust/
-│   └── mathlex-bridge/  # Rust Mathlex parser exposed to JavaScript through WASM
+│   └── mathlex-bridge/       # Temporary parser bridge for the original terminal
+├── scripts/
+│   ├── build-native.mjs      # Native CLI build and smoke test
+│   └── build-wasm.mjs        # CivilKit and Mathlex WebAssembly builds
 ├── src/
-│   ├── engine/          # Command parsing, Mathlex bridge and shared types
-│   ├── command/         # Built-in application commands
-│   └── interactive/     # Terminal UI, AST tree and math output renderers
-├── index.html
-├── package.json
-└── vite.config.ts
+│   ├── engine/               # Terminal engine and generated WASM bindings
+│   ├── command/              # Built-in terminal commands
+│   └── interactive/          # Terminal UI and minimal engine test UI
+├── tests/fixtures/
+│   └── civilkit-smoke.cpd
+├── index.html                # Existing terminal
+└── engine-test.html          # Minimal CivilKit calculation test page
 ```
 
-## Mathlex API boundary
+## Upstream and licensing
 
-The Rust bridge exposes two independent parser functions:
-
-- `parse_math(input)` parses plain-text mathematical notation using Mathlex's `parse_with_config` API with implicit multiplication enabled.
-- `parse_latex(input)` parses LaTeX notation using Mathlex's dedicated `parse_latex` API.
-- `math_to_latex(input)` parses plain text and serializes the AST using Mathlex's `ToLatex` trait.
-- `latex_to_latex(input)` parses LaTeX and serializes the AST back to normalized LaTeX.
-
-Both parser functions return JSON using Mathlex's documented AST wire format: a node has a string `kind`, a `value` payload, and optional `annotations`. The TypeScript API validates the root node before returning it:
-
-- `parseMathExpression(input)`
-- `parseLatexExpression(input)`
-
-The `ast` and `ast-latex` commands exercise the parser APIs. The `math` and `math-latex` commands use the serializer APIs before rendering the resulting LaTeX. Mathlex parses expressions only. It does not evaluate them or implement Jabr's worksheet language, variables, units or execution model.
+CivilKit Calcs is MIT-licensed and is itself a derivative of the MIT-licensed CalcpadCE project. Its upstream `LICENSE` and `NOTICE` are retained inside the pinned submodule. Preserve those notices in any redistributed build. See https://github.com/civilkit/civilkit-calcs for upstream source and history.
 
 ## Safety boundary
 

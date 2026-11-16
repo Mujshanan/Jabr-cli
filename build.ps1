@@ -16,7 +16,7 @@ function Invoke-Checked {
     }
 }
 
-$requiredTools = @("rustup", "wasm-pack")
+$requiredTools = @("rustup", "cargo", "wasm-pack")
 if ($PackageManager -eq "bun") {
     $requiredTools += "bun"
 } else {
@@ -27,6 +27,10 @@ foreach ($tool in $requiredTools) {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
         throw "Required tool '$tool' was not found. See README.md for installation instructions."
     }
+}
+
+if (-not (Test-Path "vendor/civilkit-calcs/Cargo.toml")) {
+    throw "CivilKit submodule is missing. Run: git submodule update --init --recursive"
 }
 
 if ($PackageManager -eq "bun") {
@@ -41,6 +45,6 @@ if ($PackageManager -eq "bun") {
 
 Write-Host "Installing the WebAssembly Rust target..."
 Invoke-Checked "rustup" @("target", "add", "wasm32-unknown-unknown")
-Write-Host "Building Jabr CLI with $PackageManager..."
+Write-Host "Building native CivilKit CLI, CivilKit WebAssembly, Mathlex compatibility bridge, and Vite UI..."
 Invoke-Checked $runner @("run", "build")
 Write-Host "Build completed successfully. Production files are in dist/."

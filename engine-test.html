@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101318" />
+    <meta name="description" content="Minimal CivilKit Rust calculation engine test harness for Jabr." />
+    <title>Jabr · CivilKit Engine Test</title>
+    <link rel="stylesheet" href="/src/interactive/engine-test.css" />
+  </head>
+  <body>
+    <main class="engine-test">
+      <header class="engine-test__header">
+        <a href="/" class="engine-test__back">← Jabr terminal</a>
+        <div>
+          <h1>CivilKit engine test</h1>
+          <p>Minimal worksheet runner · Rust compiled to WebAssembly</p>
+        </div>
+        <output id="engine-status" class="engine-status" aria-live="polite">Loading engine…</output>
+      </header>
+      <section class="engine-test__workspace" aria-label="Calculation test">
+        <div class="engine-test__editor">
+          <label for="worksheet-source">Worksheet source</label>
+          <textarea id="worksheet-source" spellcheck="false" autocapitalize="off">a = 6
+b = 7
+answer = a*b</textarea>
+          <button id="run-worksheet" type="button" disabled>Run worksheet</button>
+        </div>
+        <div class="engine-test__result">
+          <div class="engine-test__result-heading">
+            <label for="engine-report">Calculation report</label>
+            <span id="engine-version"></span>
+          </div>
+          <iframe id="engine-report" title="CivilKit calculation report" sandbox="" referrerpolicy="no-referrer"></iframe>
+          <section id="engine-errors" class="engine-errors" aria-live="polite" hidden>
+            <h2>Calculation messages</h2>
+            <pre></pre>
+          </section>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/interactive/engine-test.ts"></script>
+  </body>
+</html>

@@ -13,8 +13,35 @@ permissions:
   contents: read
 
 jobs:
+  native-cli:
+    name: CivilKit native CLI (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Build and smoke-test the native CLI
+        run: node scripts/build-native.mjs
+
+  rust-tests:
+    name: Rust engine tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test the CivilKit calculation engine
+        run: cargo test --locked --manifest-path vendor/civilkit-calcs/Cargo.toml -p civilkit-calcs-engine
+      - name: Test the Jabr Mathlex compatibility bridge
+        run: cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
+
   javascript:
-    name: JavaScript (${{ matrix.manager }})
+    name: WebAssembly and Vite (${{ matrix.manager }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -22,9 +49,13 @@ jobs:
         manager: [bun, npm]
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - name: Install wasm-bindgen CLI matching the CivilKit crate
+        run: cargo install wasm-bindgen-cli --version 0.2.122 --locked
       - name: Install wasm-pack
         run: |
           curl --fail --location --silent --show-error \
@@ -48,18 +79,16 @@ jobs:
       - name: Run npm dependency audit
         if: matrix.manager == 'npm'
         run: npm audit --audit-level=low
-      - name: Run Rust tests
-        run: cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
       - name: Run TypeScript tests with Bun
         if: matrix.manager == 'bun'
         run: bun run test
       - name: Run TypeScript tests with npm
         if: matrix.manager == 'npm'
         run: npm test
-      - name: Build browser application with Bun
+      - name: Build native CLI, WebAssembly engines and Vite pages with Bun
         if: matrix.manager == 'bun'
         run: bun run build
-      - name: Build browser application with npm
+      - name: Build native CLI, WebAssembly engines and Vite pages with npm
         if: matrix.manager == 'npm'
         run: npm run build
 
@@ -67,8 +96,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Rust dependency auditor
         run: cargo install cargo-audit --locked
-      - name: Run Rust dependency audit
+      - name: Audit CivilKit dependencies
+        run: cargo audit --file vendor/civilkit-calcs/Cargo.lock
+      - name: Audit Mathlex bridge dependencies
         run: cargo audit --file rust/mathlex-bridge/Cargo.lock

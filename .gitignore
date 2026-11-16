@@ -3,3 +3,4 @@ dist/
 coverage/
 *.local
 src/engine/wasm/
+src/engine/civilkit-wasm/

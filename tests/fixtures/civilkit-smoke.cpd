@@ -1,0 +1,4 @@
+' Jabr native CLI smoke test
+a = 6
+b = 7
+answer = a*b

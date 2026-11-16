@@ -5,10 +5,12 @@
   "type": "module",
   "engines": { "node": "^20.19.0 || >=22.12.0" },
   "scripts": {
-    "dev": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex && vite",
-    "wasm:build": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex",
-    "typecheck": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex && tsc --noEmit",
-    "build": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex && tsc --noEmit && vite build",
+    "dev": "node scripts/build-native.mjs && node scripts/build-wasm.mjs && vite",
+    "engine:native": "node scripts/build-native.mjs",
+    "engine:wasm": "node scripts/build-wasm.mjs",
+    "typecheck": "node scripts/build-wasm.mjs && tsc --noEmit",
+    "build:web": "tsc --noEmit && vite build",
+    "build": "node scripts/build-native.mjs && node scripts/build-wasm.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
