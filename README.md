@@ -21,6 +21,8 @@ No React or frontend framework is used.
 - Rust toolchain (rustup and Cargo)
 - wasm-pack
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
+- wasm-pack
+- WebAssembly target: `rustup target add wasm32-unknown-unknown`
 
 Install wasm-pack using its [official instructions](https://rustwasm.github.io/wasm-pack/installer/).
 
