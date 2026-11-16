@@ -153,15 +153,21 @@ Suggested modules (adapt names to the current repository conventions):
 
 Use the repository's existing TypeScript/Vite stack. Prefer a lightweight accessible tree component or a small purpose-built renderer over importing a complete AST Explorer clone. Monaco decorations may be used if Monaco is already the editor; otherwise integrate with the existing editor API. Keep KaTeX as the rendering layer if it is already available or selected for Jabr. Do not introduce Vue/Nuxt or React solely for the inspector.
 
+### Current implementation status
+
+- The parser-neutral DOM explorer is implemented in `src/interactive/ast-renderer.ts` and mounted in the existing Mathlex terminal commands. It provides the expandable tree, selected-node details, full JSON, and copy actions.
+- The source pane and bidirectional source/tree selection are implemented for nodes that carry valid spans. The UI boundary uses zero-based UTF-16 code-unit offsets with an end-exclusive end position.
+- The current Mathlex AST does not provide source spans, so live Mathlex output shows source text without highlighting. The Calcpad highlighter's token spans are not substituted for AST spans.
+- The next parser-side requirement is a genuine Calcpad AST with source spans, emitted by the local Rust parser and converted from UTF-8 byte offsets to UTF-16 in the TypeScript adapter.
+- Tests cover normalized tree structure, stable node IDs, depth limits, and source-span validation. DOM interaction tests remain pending because the current Vitest environment is Node-only.
+
 ### Delivery order
 
 1. Expose the real AST from Jabr's vendored parser through a versioned Rust inspection DTO; do not synthesize an AST from tokenizer output or report HTML.
 2. Normalize the DTO in the Jabr adapter and preserve node kinds, child order, literals, units, diagnostics, and source spans.
-3. Implement the expandable ATS tree and node-details pane.
-4. Add bidirectional tree/source selection and source highlighting.
-5. Add the JSON view and copyable full/subtree output.
-6. Add AST-to-LaTeX formatting and KaTeX rendering for explicitly supported node kinds; report unsupported constructs clearly.
-7. Add fixtures and tests for tree labels, selection/source mapping, schema compatibility, Unicode offsets, and malformed input.
+3. Connect the existing tree/details/JSON/source explorer to the Calcpad DTO and add DOM interaction tests.
+4. Add AST-to-LaTeX formatting and KaTeX rendering for explicitly supported node kinds; report unsupported constructs clearly.
+5. Add fixtures and tests for tree labels, selection/source mapping, schema compatibility, Unicode offsets, and malformed input.
 
 **Acceptance criteria:** a real Jabr/Calcpad parse result can be inspected as a readable tree and JSON; selecting a node highlights the corresponding source; source selection can identify its AST node where unambiguous; LaTeX is generated from the AST (not scraped from HTML); unsupported or partial results are explicit. The inspector remains separate from evaluation and does not change terminal behavior.
 
