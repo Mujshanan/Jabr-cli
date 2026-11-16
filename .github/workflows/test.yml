@@ -1,0 +1,29 @@
+name: Test
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Rust tests
+        run: cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
+      - name: Install JavaScript dependencies
+        run: npm install
+      - name: Run TypeScript tests
+        run: npm test
+      - name: Build browser application
+        run: npm run build
