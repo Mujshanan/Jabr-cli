@@ -199,3 +199,11 @@ kbd { padding: 2px 5px; border: 1px solid #343d48; border-radius: 4px; color: #a
   .ast-details-json { max-height: 220px; }
   .ast-toolbar__title { width: 100%; }
 }
+
+
+/* Source-aware AST navigation */
+.ast-source-panel { margin-top: 10px; padding: 9px; border: 1px solid #293746; border-radius: 7px; background: #0e151d; }
+.ast-source-code { max-height: 180px; overflow: auto; margin: 0; padding: 9px; border: 1px solid #273544; border-radius: 5px; background: #090e14; color: #cbd5e1; font: 11px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ast-source-segment { border-radius: 2px; background: rgba(69, 112, 151, .28); cursor: pointer; text-decoration: underline; text-decoration-color: rgba(130, 185, 232, .45); text-underline-offset: 2px; }
+.ast-source-segment:hover { background: rgba(91, 151, 201, .48); }
+.ast-source-segment--selected { background: rgba(224, 164, 75, .38); outline: 1px solid rgba(224, 164, 75, .65); }
