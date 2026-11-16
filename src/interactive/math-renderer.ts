@@ -31,6 +31,7 @@ function loadMathJax(): Promise<MathJaxApi> {
     mathJaxInitialization = new Promise<MathJaxApi>((resolve, reject) => {
       const script = document.createElement("script");
       script.src = "https://cdn.jsdelivr.net/npm/mathjax@4.0.0/tex-chtml.js";
+      script.integrity = "sha384-2BWc4dVaHADUocwKrUrK9u3iDwHxVMKXWEcoRmUkXYSFKhAsgVAYClu9ydNuo5Oz";
       script.crossOrigin = "anonymous";
       script.onload = () => window.MathJax?.typesetPromise
         ? resolve(window.MathJax)
