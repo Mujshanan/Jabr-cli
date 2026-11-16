@@ -20,7 +20,7 @@ No React or frontend framework is used.
 - Node.js 20.19+ or 22.12+
 - pnpm 10.34.5
 - Rust toolchain (rustup and Cargo)
-- wasm-pack 0.13.1
+- wasm-pack 0.15.1
 - cargo-audit (for Rust dependency security checks)
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
 
