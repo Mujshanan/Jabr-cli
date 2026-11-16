@@ -99,8 +99,8 @@ Commit both `pnpm-lock.yaml` and `rust/mathlex-bridge/Cargo.lock`. CI uses froze
 
 The Rust bridge exposes two independent parser functions:
 
-- `parse_math(input)` parses plain-text mathematical notation.
-- `parse_latex(input)` parses LaTeX notation.
+- `parse_math(input)` parses plain-text mathematical notation using Mathlex's `parse_with_config` API with implicit multiplication enabled.
+- `parse_latex(input)` parses LaTeX notation using Mathlex's dedicated `parse_latex` API.
 
 Both return JSON using Mathlex's documented AST wire format: a node has a string `kind`, a `value` payload, and optional `annotations`. The TypeScript API validates the root node before returning it:
 
