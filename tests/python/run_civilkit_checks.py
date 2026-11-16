@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Independent smoke checks for the CivilKit native worksheet CLI.
+"""Independent smoke checks for the Jabr vendored Calcpad native runner.
 
 This runner intentionally uses only the Python standard library. It launches the
-same pinned CivilKit CLI used by Jabr's native build script and checks a small,
+same pinned Jabr engine used by Jabr's native build script and checks a small,
 deterministic worksheet corpus against Python-computed expected values.
 
 Run from the repository root:
@@ -28,9 +28,9 @@ from pathlib import Path
 from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[2]
-UPSTREAM = ROOT / "vendor" / "civilkit-calcs"
-TARGET = UPSTREAM / "target" / "release"
-CLI = TARGET / ("Cli.exe" if os.name == "nt" else "Cli")
+ENGINE = ROOT / "engine"
+TARGET = ENGINE / "target" / "release"
+CLI = TARGET / ("jabr-engine.exe" if os.name == "nt" else "jabr-engine")
 
 
 class ReportText(HTMLParser):
@@ -69,14 +69,14 @@ def run_cli(source: str, output: Path) -> str:
         )
         if completed.returncode != 0:
             raise RuntimeError(
-                "CivilKit CLI failed ("
+                "Jabr engine failed ("
                 + str(completed.returncode)
                 + "):\n"
                 + completed.stdout
                 + completed.stderr
             )
         if not output.is_file():
-            raise RuntimeError("CivilKit CLI did not create the requested HTML report.")
+            raise RuntimeError("Jabr engine did not create the requested HTML report.")
         return output.read_text(encoding="utf-8", errors="replace")
     finally:
         worksheet_path.unlink(missing_ok=True)
@@ -89,7 +89,7 @@ def check_case(name: str, source: str, expected: float, report_path: Path) -> di
     visible = html.unescape(parser.text)
 
     # The CLI report is the current observable result surface. The expected value
-    # is calculated independently below, not by parsing CivilKit's own expression.
+    # is calculated independently below, not by parsing the engine's own expression.
     if not math.isfinite(expected):
         raise AssertionError(f"{name}: test expectation must be finite")
     if not any(token in visible for token in (str(expected), f"{expected:g}")):
@@ -111,7 +111,7 @@ def check_case(name: str, source: str, expected: float, report_path: Path) -> di
 def main() -> int:
     if not CLI.is_file():
         print(
-            "CivilKit CLI not found. Build it first with "
+            "Jabr engine runner not found. Build it first with "
             "'npm run engine:native' or 'bun run engine:native:bun'.",
             file=sys.stderr,
         )
