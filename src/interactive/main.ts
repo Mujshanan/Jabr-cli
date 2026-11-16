@@ -97,11 +97,15 @@ registerCommands(registry);
 const dispatcher = new CommandDispatcher(registry, context);
 const history = new CommandHistory();
 
+// Commands execute serially so asynchronous initialization or evaluation cannot
+// let a later command print its output before an earlier command has completed.
+let dispatchQueue: Promise<void> = Promise.resolve();
+
 print("Welcome to Jabr CLI v0.1.0.", "success");
 print('Type "help" to see available commands.', "muted");
 print("");
 
-form.addEventListener("submit", async (event) => {
+form.addEventListener("submit", (event) => {
   event.preventDefault();
   const value = input.value.trim();
   if (!value) return;
@@ -109,7 +113,12 @@ form.addEventListener("submit", async (event) => {
   history.add(value);
   history.resetNavigation();
   input.value = "";
-  await dispatcher.dispatch(value);
+
+  dispatchQueue = dispatchQueue
+    .then(() => dispatcher.dispatch(value))
+    .catch((error: unknown) => {
+      print(error instanceof Error ? error.message : "Command failed unexpectedly.", "error");
+    });
   input.focus();
 });
 
