@@ -17,9 +17,9 @@
     "build": "node scripts/build-native.mjs && node scripts/build-wasm.mjs && tsc --noEmit && vite build",
     "build:bun": "bun scripts/build-native.mjs && bun scripts/build-wasm.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --exclude src/engine/mathlex.wasm.integration.test.ts",
     "test:wasm": "vitest run src/engine/mathlex.wasm.integration.test.ts",
-    "test:watch": "vitest",
+    "test:watch": "vitest --exclude src/engine/mathlex.wasm.integration.test.ts",
     "test:python": "python tests/python/run_civilkit_checks.py"
   },
   "devDependencies": {

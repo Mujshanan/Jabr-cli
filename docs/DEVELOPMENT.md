@@ -163,6 +163,28 @@ Use multiple independent levels:
 
 Avoid brittle comparisons of generated HTML whitespace. Prefer structured output and semantic assertions.
 
+### Mathlex WebAssembly integration test
+
+The ordinary TypeScript suite intentionally excludes the real-WASM integration test so it can run without a generated WASM package. Build the WASM package first, then run the integration test separately. The test reads the generated `.wasm` bytes and passes them to the wasm-bindgen initializer; it does not mock the parser.
+
+With Bun:
+
+```bash
+bun run test
+bun run engine:wasm:bun
+bun run test:wasm
+```
+
+With npm:
+
+```bash
+npm test
+npm run engine:wasm
+npm run test:wasm
+```
+
+CI builds the WASM packages before running both test suites.
+
 ## 9. Development plan
 
 The authoritative milestone and acceptance-criteria list is [ENGINE-LAB-PLAN.md](ENGINE-LAB-PLAN.md).
