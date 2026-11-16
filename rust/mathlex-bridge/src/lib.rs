@@ -34,28 +34,24 @@ fn latex_to_latex_string(input: &str) -> Result<String, String> {
     Ok(parse_latex_expression(input)?.to_latex())
 }
 
-/// Parse a plain-text mathematical expression and return its Mathlex JSON AST.
 #[wasm_bindgen]
 pub fn parse_math(input: &str) -> Result<String, JsValue> {
     console_error_panic_hook::set_once();
     parse_math_json(input).map_err(|error| JsValue::from_str(&error))
 }
 
-/// Parse a LaTeX mathematical expression and return its Mathlex JSON AST.
 #[wasm_bindgen]
 pub fn parse_latex(input: &str) -> Result<String, JsValue> {
     console_error_panic_hook::set_once();
     parse_latex_json(input).map_err(|error| JsValue::from_str(&error))
 }
 
-/// Parse plain-text mathematical notation and serialize the AST back to LaTeX.
 #[wasm_bindgen]
 pub fn math_to_latex(input: &str) -> Result<String, JsValue> {
     console_error_panic_hook::set_once();
     math_to_latex_string(input).map_err(|error| JsValue::from_str(&error))
 }
 
-/// Parse LaTeX notation and serialize the AST back to normalized LaTeX.
 #[wasm_bindgen]
 pub fn latex_to_latex(input: &str) -> Result<String, JsValue> {
     console_error_panic_hook::set_once();
@@ -69,15 +65,8 @@ mod tests {
     fn assert_mathlex_wire_format(json: &str) {
         let ast: serde_json::Value =
             serde_json::from_str(json).expect("parser should return valid JSON");
-
-        assert!(
-            ast.get("kind").and_then(serde_json::Value::as_str).is_some(),
-            "each Mathlex AST node must expose a string kind"
-        );
-        assert!(
-            ast.get("value").is_some(),
-            "each Mathlex AST node must expose a value payload"
-        );
+        assert!(ast.get("kind").and_then(serde_json::Value::as_str).is_some());
+        assert!(ast.get("value").is_some());
     }
 
     #[test]
@@ -85,7 +74,6 @@ mod tests {
         let json = parse_math_json("2*x + sin(y)^2").expect("expression should parse");
         let ast: serde_json::Value =
             serde_json::from_str(&json).expect("parser should return valid JSON");
-
         assert_eq!(ast["kind"], "Binary");
         assert_eq!(ast["value"]["op"]["kind"], "Add");
         assert_mathlex_wire_format(&json);
@@ -96,7 +84,6 @@ mod tests {
         let json = parse_math_json("2x + 3").expect("implicit multiplication should parse");
         let ast: serde_json::Value =
             serde_json::from_str(&json).expect("parser should return valid JSON");
-
         assert_eq!(ast["kind"], "Binary");
         assert_eq!(ast["value"]["op"]["kind"], "Add");
     }
@@ -110,19 +97,30 @@ mod tests {
     #[test]
     fn serializes_plain_text_expression_to_latex() {
         let latex = math_to_latex_string("2*x + 3").expect("expression should serialize");
-        assert!(latex.contains(r"\cdot") || latex.contains("*") || latex.contains("2"));
-        assert!(latex.contains("x"));
+        assert_eq!(latex, r"2 \cdot x + 3");
     }
 
     #[test]
     fn normalizes_latex_expression() {
         let latex = latex_to_latex_string(r"\frac{1}{2}").expect("LaTeX should serialize");
-        assert!(latex.contains(r"\frac"));
+        assert_eq!(latex, r"\frac{1}{2}");
     }
 
     #[test]
     fn reports_invalid_plain_text_input() {
         assert!(parse_math_json("2 + * 3").is_err());
         assert!(math_to_latex_string("2 + * 3").is_err());
+    }
+
+    #[test]
+    fn reports_invalid_latex_input() {
+        assert!(parse_latex_json(r"\frac{1}{").is_err());
+        assert!(latex_to_latex_string(r"\frac{1}{").is_err());
+    }
+
+    #[test]
+    fn parses_plain_text_backslashes_and_apostrophes() {
+        assert!(parse_math_json("x' + y''").is_ok());
+        assert!(parse_latex_json(r"\alpha + \beta").is_ok());
     }
 }
