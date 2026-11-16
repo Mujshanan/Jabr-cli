@@ -14,8 +14,8 @@ describe("buildAstTreeModel", () => {
 
     expect(model.id).toBe("root");
     expect(model.kind).toBe("Binary");
-    expect(model.children[0]?.id).toBe("root.value");
-    expect(model.children[0]?.children[0]?.id).toBe("root.value.op");
+    expect(model.children[0]?.id).toBe("root/value");
+    expect(model.children[0]?.children[0]?.id).toBe("root/value/op");
     expect(model.children[0]?.children[1]?.kind).toBe("Integer");
     expect(model.children[0]?.children[1]?.preview).toBe("2");
     expect(model.children[0]?.children[2]?.kind).toBe("Variable");
@@ -31,6 +31,16 @@ describe("buildAstTreeModel", () => {
     expect(model.kind).toBe("CivilKitFutureNode");
     expect(model.children[0]?.kind).toBe("Array");
     expect(model.children[0]?.children.map((node) => node.preview)).toEqual(["1", '"two"', "null"]);
+  });
+
+  it("escapes path segments so keys cannot collide", () => {
+    const model = buildAstTreeModel({
+      "a.b": 1,
+      a: { b: 2 },
+      "x/y": 3,
+    });
+    expect(model.children.map((node) => node.id)).toEqual(["root/a.b", "root/a", "root/x~1y"]);
+    expect(model.children[1]?.children[0]?.id).toBe("root/a/b");
   });
 
   it("limits pathological nesting without throwing", () => {
