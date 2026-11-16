@@ -1,4 +1,4 @@
-# Jabr CivilKit Engine Lab — Development Plan
+# Jabr Calcpad Engine Lab — Development Plan
 
 ## Purpose
 
@@ -64,13 +64,17 @@ The AST and LaTeX work must use the copied engine internals directly. Jabr may m
 ### Phase 0 — Vendor the Calcpad Rust core and establish a reproducible baseline
 
 - Identify the exact upstream Calcpad source revision currently used by the project and record its repository URL, revision, license, and attribution.
-- Copy the required Rust core engine source into Jabr's repository (not as a submodule). Include the minimum supporting crates, build files, generated assets, and license/NOTICE files needed to build it independently.
-- Replace submodule-based build assumptions with Jabr-local Cargo workspace paths. No build step may fetch or call a CivilKit API.
-- Keep upstream-origin changes distinguishable from Jabr-specific patches and document how future upstream updates will be reviewed and imported.
-- Build and smoke-test the local native engine and WASM target.
-- Add a Python test runner that invokes the native CLI and checks deterministic fixture outputs against independently calculated expected values.
+- Copy the Calcpad core parser/evaluator and supporting source into `engine/calcpad-core`; preserve the upstream MIT license and NOTICE.
+- Copy the worksheet tokenizer/highlighter and its local WASM wrapper into `engine/calcpad-highlighter` and `engine/calcpad-highlighter-wasm` so the existing token inspector no longer requires the submodule.
+- Copy the existing Calcpad WASM adapter into `engine/calcpad-wasm` and bind it to Jabr's local core package.
+- Rename local Cargo packages where appropriate, add the local Cargo workspace, remove `.gitmodules`, and replace submodule-based build scripts/CI with local paths.
+- Add a minimal native `jabr-engine` runner and point the Python black-box tests at it.
+- Record the upstream repository/revision and license provenance in `engine/UPSTREAM.md`.
+- Run native, Rust, WASM, and Python checks; fix any integration issues before declaring the milestone complete.
 
-**Exit criteria:** a clean clone of Jabr builds the copied engine and runs native/WASM smoke checks without initializing a submodule or depending on an external CivilKit API.
+**Current progress:** source files, local manifests, native runner, local WASM wrappers, build scripts, CI configuration, and provenance files have been added. The environment used for this edit did not provide a local Rust toolchain/build, so compilation and smoke-test verification are still pending.
+
+**Exit criteria:** a clean clone of Jabr builds the copied core and highlighter and runs native/WASM smoke checks without initializing a submodule or depending on an external CivilKit API.
 
 ### Phase 1 — Output observability and direct AST exposure
 
@@ -141,7 +145,7 @@ Keep the inspector independent of the terminal and engine-test page so it can be
 Suggested modules (adapt names to the current repository conventions):
 
 - `src/ast/types.ts`: versioned Jabr-facing AST and diagnostic types.
-- `src/ast/adapter.ts`: normalize CivilKit DTOs without discarding engine semantics.
+- `src/ast/adapter.ts`: normalize Jabr AST DTOs without discarding engine semantics.
 - `src/ast/formatter.ts`: human-readable ATS labels and tree formatting.
 - `src/ast/source-map.ts`: map Rust source spans to editor positions.
 - `src/ast/latex.ts`: AST-to-LaTeX formatting for supported expression nodes.
@@ -151,7 +155,7 @@ Use the repository's existing TypeScript/Vite stack. Prefer a lightweight access
 
 ### Delivery order
 
-1. Expose the real CivilKit AST through a versioned Rust inspection DTO; do not synthesize an AST from tokenizer output or report HTML.
+1. Expose the real AST from Jabr's vendored parser through a versioned Rust inspection DTO; do not synthesize an AST from tokenizer output or report HTML.
 2. Normalize the DTO in the Jabr adapter and preserve node kinds, child order, literals, units, diagnostics, and source spans.
 3. Implement the expandable ATS tree and node-details pane.
 4. Add bidirectional tree/source selection and source highlighting.
@@ -159,21 +163,21 @@ Use the repository's existing TypeScript/Vite stack. Prefer a lightweight access
 6. Add AST-to-LaTeX formatting and KaTeX rendering for explicitly supported node kinds; report unsupported constructs clearly.
 7. Add fixtures and tests for tree labels, selection/source mapping, schema compatibility, Unicode offsets, and malformed input.
 
-**Acceptance criteria:** a real CivilKit parse result can be inspected as a readable tree and JSON; selecting a node highlights the corresponding source; source selection can identify its AST node where unambiguous; LaTeX is generated from the AST (not scraped from HTML); unsupported or partial results are explicit. The inspector remains separate from evaluation and does not change terminal behavior.
+**Acceptance criteria:** a real Jabr/Calcpad parse result can be inspected as a readable tree and JSON; selecting a node highlights the corresponding source; source selection can identify its AST node where unambiguous; LaTeX is generated from the AST (not scraped from HTML); unsupported or partial results are explicit. The inspector remains separate from evaluation and does not change terminal behavior.
 
 ## Tokenizer and AST milestone
 
-The browser test page now builds and loads CivilKit's separate `calcpad-highlighter-wasm` package and displays actual upstream token records (type, type ID, source text, line, UTF-16 column, and length). The AST panel is present but intentionally reports the current engine API limitation; it does not fabricate a tree from tokenizer output.
+The browser test page is configured to build and load Jabr's vendored `calcpad-highlighter-wasm` package and display the actual tokenizer records (type, type ID, source text, line, UTF-16 column, and length). The AST panel is present but intentionally reports the current engine API limitation; it does not fabricate a tree from tokenizer output.
 
-The AST DTO and source-span contract are documented in [TOKENIZER-AST-DESIGN.md](TOKENIZER-AST-DESIGN.md). The next implementation dependency is a small Rust-side extension in a maintained CivilKit patch/fork because the current RPN-to-`Expr` methods are crate-private.
+The AST DTO and source-span contract are documented in [TOKENIZER-AST-DESIGN.md](TOKENIZER-AST-DESIGN.md). The next implementation step is a small Rust-side extension directly in Jabr's local fork because the current RPN-to-`Expr` methods are crate-private.
 
 ## Initial audit result
 
-The source-level audit is recorded in [CIVILKIT-API-AUDIT.md](CIVILKIT-API-AUDIT.md). The audit found that `MathParser` exposes public parse/evaluate/value APIs, while internal RPN and AST-construction methods are crate-private. Because Jabr will own a copy of the Rust source, the implementation can expose the existing internal expression tree directly through a Jabr-owned versioned DTO. Do not duplicate the parser or reverse-engineer AST/LaTeX from HTML.
+The source-level audit is recorded in [CIVILKIT-API-AUDIT.md](CIVILKIT-API-AUDIT.md). The audit found that `MathParser` exposes public parse/evaluate/value APIs, while internal RPN and AST-construction methods are crate-private. Because Jabr owns a copy of the Rust source, the implementation can expose the existing internal expression tree directly through a Jabr-owned versioned DTO. Do not duplicate the parser or reverse-engineer AST/LaTeX from HTML.
 
 ## Immediate implementation scope
 
-Phase 0 previously established the Python black-box regression runner and source-level API audit against the submodule snapshot. The plan is now to vendor the required Calcpad Rust core into Jabr and remove the submodule/API dependency before continuing with direct AST exposure and the standalone LaTeX formatter. Do not mark the vendoring milestone complete until a clean checkout builds without submodule initialization.
+Phase 0 previously established the Python black-box regression runner and source-level API audit against the submodule snapshot. The Calcpad core, highlighter, and WASM wrapper sources have been imported into Jabr and the submodule reference removed. Native/WASM build and CI verification are the remaining Phase 0 exit criteria; do not mark vendoring complete until those checks pass from a clean checkout.
 
 
 ## Worksheet editor milestone (CodeMirror 6)
