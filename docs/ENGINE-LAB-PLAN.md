@@ -2,14 +2,15 @@
 
 ## Purpose
 
-Jabr is an isolated laboratory for evaluating the CivilKit/Calcpad Rust calculation engine before it is integrated into the separate notes application through a future custom block. Jabr's UI remains deliberately small: enter a worksheet, execute it, and inspect every useful representation returned by the engine.
+Jabr is an isolated laboratory for developing and testing a locally maintained copy of the Calcpad Rust calculation engine before it is integrated into the separate notes application through a future custom block. The required engine source must live inside Jabr's repository; Jabr must not require the CivilKit API or a Git submodule at build or runtime. Jabr's UI remains deliberately small: enter a worksheet, execute it, and inspect every useful representation returned by the engine.
 
 The notes application must not depend on CivilKit internals. It will eventually consume a stable, documented engine adapter contract.
 
 ## Design principles
 
-1. Keep the upstream CivilKit source pinned and reproducible. Preserve its upstream history, MIT license, and NOTICE files.
-2. Treat CivilKit as the system under test, not as the final notes application.
+1. Copy the required Calcpad Rust core source into Jabr and maintain it as a first-party vendored fork. Record the exact upstream repository/revision and preserve all applicable licenses, copyright notices, and attribution files.
+2. Keep the vendored engine buildable from a clean Jabr checkout without initializing a submodule or calling an external CivilKit API.
+3. Treat upstream Calcpad as the source of the engine, not as a runtime/service dependency or the final notes application.
 3. Keep the browser UI minimal. The terminal and engine test page are developer tools.
 4. Separate engine execution from presentation. HTML report output is one output format, not the canonical data model.
 5. Do not claim AST or standalone LaTeX support until those outputs are exposed and tested directly.
@@ -29,11 +30,12 @@ Jabr Engine Lab
 │   ├── parse / inspect
 │   ├── evaluate
 │   └── normalize diagnostics and outputs
-├── CivilKit Rust engine (pinned upstream)
-│   ├── parser and evaluator
+├── Jabr vendored Calcpad Rust engine (locally maintained fork)
+│   ├── copied core parser and evaluator source
 │   ├── units, vectors, matrices, solvers
-│   ├── Calcpad worksheet formatter / HTML report
-│   └── highlighter / prettifier (separate upstream component)
+│   ├── worksheet formatter / HTML report
+│   ├── required supporting crates and assets
+│   └── Jabr-owned AST / inspection / WASM bridge
 └── independent tests
     ├── Rust unit and integration tests
     ├── browser/WASM tests
@@ -55,25 +57,25 @@ For each worksheet, Jabr should be able to inspect these outputs independently:
 | Diagnostics | Source line, output line, category, message | Available through the existing WASM `convert` API |
 | Highlighter data | Tokens, lint, prettification | Available in the separate CivilKit highlighter component; API integration to be evaluated |
 
-The AST and LaTeX work must begin with an API audit of the pinned source. Prefer adding a narrow Jabr-facing Rust adapter around public/reusable CivilKit APIs. Avoid modifying upstream internals unless the audit proves that no clean adapter is possible. If a required API is private, record that limitation and propose the smallest upstream-facing extension.
+The AST and LaTeX work must use the copied engine internals directly. Jabr may modify parser/compiler visibility and add its own serializable AST DTO where required; it must not reconstruct AST from tokens or report HTML, nor constrain itself to the upstream public API.
 
 ## Phases
 
-### Phase 0 — Reproducible baseline (in progress)
+### Phase 0 — Vendor the Calcpad Rust core and establish a reproducible baseline
 
-- Pin CivilKit as a submodule at a known commit.
-- Build and smoke-test the native CLI.
-- Build the WASM package and run the minimal browser test page.
-- Record upstream version, commit, build prerequisites, and known limitations.
+- Identify the exact upstream Calcpad source revision currently used by the project and record its repository URL, revision, license, and attribution.
+- Copy the required Rust core engine source into Jabr's repository (not as a submodule). Include the minimum supporting crates, build files, generated assets, and license/NOTICE files needed to build it independently.
+- Replace submodule-based build assumptions with Jabr-local Cargo workspace paths. No build step may fetch or call a CivilKit API.
+- Keep upstream-origin changes distinguishable from Jabr-specific patches and document how future upstream updates will be reviewed and imported.
+- Build and smoke-test the local native engine and WASM target.
 - Add a Python test runner that invokes the native CLI and checks deterministic fixture outputs against independently calculated expected values.
 
-**Exit criteria:** a clean checkout can initialize the submodule, build native and WASM targets, and run the baseline smoke checks.
+**Exit criteria:** a clean clone of Jabr builds the copied engine and runs native/WASM smoke checks without initializing a submodule or depending on an external CivilKit API.
 
-### Phase 1 — Output observability and AST/API audit
+### Phase 1 — Output observability and direct AST exposure
 
-- Inspect `calcpad-core`, `calcpad-wasm`, and `calcpad-highlighter` public APIs at the pinned commit.
-- Trace how source text becomes parsed expressions, evaluated values, and formatted HTML.
-- Identify whether the internal expression representation can be serialized without changing calculation semantics.
+- Trace how the copied core engine turns source text into parsed expressions, evaluated values, and formatted HTML.
+- Identify the internal expression representation and expose it through a Jabr-owned, versioned serialization DTO without changing calculation semantics.
 - Define a versioned JSON inspection schema for AST nodes, source spans, LaTeX, values, units, and diagnostics.
 - Add a native probe first; then expose the same contract to WASM.
 - Keep HTML report generation as a separate formatter output.
@@ -167,13 +169,11 @@ The AST DTO and source-span contract are documented in [TOKENIZER-AST-DESIGN.md]
 
 ## Initial audit result
 
-The source-level audit is recorded in [CIVILKIT-API-AUDIT.md](CIVILKIT-API-AUDIT.md). The important finding is that `MathParser` has public parse/evaluate/value APIs, but the internal RPN and the methods that compile it into the public `compiler::Expr` tree are crate-private. The existing WASM conversion endpoint exposes Calcpad HTML and diagnostics, not a standalone AST or LaTeX response. The separate highlighter crate does expose source prettification and tokenization.
-
-This means the next technical step is a small, controlled upstream API extension or a maintained patch exposing a versioned AST inspection DTO. Do not duplicate the private parser implementation in Jabr and do not reverse-engineer AST or LaTeX from HTML.
+The source-level audit is recorded in [CIVILKIT-API-AUDIT.md](CIVILKIT-API-AUDIT.md). The audit found that `MathParser` exposes public parse/evaluate/value APIs, while internal RPN and AST-construction methods are crate-private. Because Jabr will own a copy of the Rust source, the implementation can expose the existing internal expression tree directly through a Jabr-owned versioned DTO. Do not duplicate the parser or reverse-engineer AST/LaTeX from HTML.
 
 ## Immediate implementation scope
 
-Phase 0 now includes the Python black-box regression runner and the first source-level API audit. CI has been configured to run the Python checks after building the native CLI. The AST DTO and standalone LaTeX formatter remain the next implementation milestone, after the CI baseline is green.
+Phase 0 previously established the Python black-box regression runner and source-level API audit against the submodule snapshot. The plan is now to vendor the required Calcpad Rust core into Jabr and remove the submodule/API dependency before continuing with direct AST exposure and the standalone LaTeX formatter. Do not mark the vendoring milestone complete until a clean checkout builds without submodule initialization.
 
 
 ## Worksheet editor milestone (CodeMirror 6)
