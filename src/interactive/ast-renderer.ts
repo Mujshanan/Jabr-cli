@@ -220,9 +220,10 @@ export function createAstExplorer(ast: unknown): HTMLElement {
 
     const row = element("div", "ast-node-row");
     if (node.children.length > 0) {
-      const toggle = button("▸", "toggle", "ast-toggle");
-      toggle.setAttribute("aria-label", "Expand " + node.label);
-      toggle.setAttribute("aria-expanded", "false");
+      const isExpanded = expanded.has(node.id);
+      const toggle = button(isExpanded ? "▾" : "▸", "toggle", "ast-toggle");
+      toggle.setAttribute("aria-label", (isExpanded ? "Collapse " : "Expand ") + node.label);
+      toggle.setAttribute("aria-expanded", String(isExpanded));
       toggle.dataset.nodeId = node.id;
       expandButtons.set(node.id, toggle);
       row.append(toggle);
