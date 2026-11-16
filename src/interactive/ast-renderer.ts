@@ -211,6 +211,8 @@ export function createAstExplorer(ast: unknown, source?: string): HTMLElement {
       else {
         const segment = element("span", "ast-source-segment", source!.slice(start, end));
         segment.dataset.sourceNode = owner.node.id;
+        segment.dataset.sourceStart = String(start);
+        segment.dataset.sourceEnd = String(end);
         segment.title = owner.node.kind + " · " + owner.node.id;
         sourceCode.append(segment);
       }
@@ -268,7 +270,9 @@ export function createAstExplorer(ast: unknown, source?: string): HTMLElement {
       nodeButton.setAttribute("aria-current", String(id === node.id));
     }
     for (const segment of sourceCode.querySelectorAll<HTMLElement>("[data-source-node]")) {
-      segment.classList.toggle("ast-source-segment--selected", segment.dataset.sourceNode === node.id);
+      const segmentStart = Number(segment.dataset.sourceStart);
+      const segmentEnd = Number(segment.dataset.sourceEnd);
+      segment.classList.toggle("ast-source-segment--selected", !!node.span && segmentStart >= node.span.start && segmentEnd <= node.span.end);
     }
     const activeSegment = sourceCode.querySelector<HTMLElement>('.ast-source-segment--selected');
     activeSegment?.scrollIntoView({ block: "nearest", inline: "nearest" });
