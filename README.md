@@ -10,6 +10,7 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 - TypeScript and Vite
 - Rust with the [Mathlex](https://github.com/ChrisGVE/mathlex) expression parser
 - WebAssembly via wasm-bindgen and wasm-pack
+- KaTeX and MathJax for browser-side mathematical typesetting
 - Vitest and Cargo tests
 - pnpm for JavaScript dependencies
 
@@ -71,11 +72,30 @@ ast "2*x + sin(y)^2"
 ast-latex "\\frac{1}{2}"
 ```
 
+
+## Mathematical output
+
+Jabr uses Mathlex to parse expressions and serialize its AST back to LaTeX. It then sends that LaTeX to a browser renderer. Parsing, serialization and rendering remain separate responsibilities.
+
+```text
+math "2*x + sin(y)^2"
+math-latex "\\frac{1}{2}"
+```
+
+Each mathematical output block has a renderer switch:
+
+- **KaTeX** is the default, fast synchronous renderer.
+- **MathJax** is available when broader TeX support is needed; its typesetting is asynchronous.
+
+The LaTeX source is available under each rendered expression. Both renderers are loaded from pinned jsDelivr CDN URLs in index.html, so this first version requires an internet connection to load their scripts, CSS and fonts. The parser and Rust/WASM engine remain local. A later packaging step can vendor the renderer assets for fully offline use.
+
 ## Commands
 
 | Command | Description |
 | --- | --- |
 | `help` | List available commands |
+| `math "2*x + sin(y)^2"` | Parse plain-text notation and render the expression |
+| `math-latex "LaTeX expression"` | Parse LaTeX and render the expression |
 | `ast "2*x + sin(y)^2"` | Parse a plain-text expression and display its AST |
 | `ast-latex "\\frac{1}{2}"` | Parse a LaTeX expression and display its AST |
 | `echo <text>` | Print text |
@@ -105,7 +125,7 @@ Both `pnpm-lock.yaml` and `rust/mathlex-bridge/Cargo.lock` are committed. CI enf
 ├── src/
 │   ├── engine/          # Command parsing, Mathlex bridge and shared types
 │   ├── command/         # Built-in application commands
-│   └── interactive/     # Terminal UI and HTML AST tree renderer
+│   └── interactive/     # Terminal UI, AST tree and math output renderers
 ├── index.html
 ├── package.json
 └── vite.config.ts
@@ -117,13 +137,15 @@ The Rust bridge exposes two independent parser functions:
 
 - `parse_math(input)` parses plain-text mathematical notation using Mathlex's `parse_with_config` API with implicit multiplication enabled.
 - `parse_latex(input)` parses LaTeX notation using Mathlex's dedicated `parse_latex` API.
+- `math_to_latex(input)` parses plain text and serializes the AST using Mathlex's `ToLatex` trait.
+- `latex_to_latex(input)` parses LaTeX and serializes the AST back to normalized LaTeX.
 
-Both return JSON using Mathlex's documented AST wire format: a node has a string `kind`, a `value` payload, and optional `annotations`. The TypeScript API validates the root node before returning it:
+Both parser functions return JSON using Mathlex's documented AST wire format: a node has a string `kind`, a `value` payload, and optional `annotations`. The TypeScript API validates the root node before returning it:
 
 - `parseMathExpression(input)`
 - `parseLatexExpression(input)`
 
-The `ast` and `ast-latex` terminal commands exercise those respective APIs. Mathlex parses expressions only. It does not evaluate them or implement Jabr's worksheet language, variables, units or execution model.
+The `ast` and `ast-latex` commands exercise the parser APIs. The `math` and `math-latex` commands use the serializer APIs before rendering the resulting LaTeX. Mathlex parses expressions only. It does not evaluate them or implement Jabr's worksheet language, variables, units or execution model.
 
 ## Safety boundary
 

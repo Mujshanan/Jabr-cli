@@ -159,3 +159,20 @@ kbd { padding: 2px 5px; border: 1px solid #343d48; border-radius: 4px; color: #a
   .ast-action { font-size: 9px; }
   .ast-summary, .ast-summary--leaf { gap: 5px; }
 }
+
+
+/* Rendered mathematical output */
+.output-line--math { white-space: normal; overflow: visible; }
+.math-output { margin: 10px 0 16px; padding: 12px 14px; border: 1px solid #293b4a; border-radius: 8px; background: #121a22; color: #e6edf3; }
+.math-output__toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-bottom: 9px; border-bottom: 1px solid #293744; }
+.math-output__title { color: #c7d8e8; font-size: 11px; font-weight: 700; }
+.math-output__controls { display: flex; gap: 6px; }
+.math-output__renderer { padding: 4px 9px; border: 1px solid #3a4a5a; border-radius: 5px; background: #1a2632; color: #aebdcb; cursor: pointer; font: inherit; font-size: 10px; }
+.math-output__renderer[aria-pressed="true"] { border-color: #6da4cc; background: #243d52; color: #e4f2ff; }
+.math-output__rendered { min-height: 48px; display: grid; place-items: center; overflow-x: auto; padding: 18px 8px; color: #f0f4f8; font-size: 1.1em; }
+.math-output__rendered .katex-display { margin: 0; }
+.math-output__source { padding-top: 8px; color: #94a3b8; font-size: 10px; }
+.math-output__source summary { cursor: pointer; }
+.math-output__source code { display: block; overflow-x: auto; margin-top: 6px; padding: 8px; border-radius: 5px; background: #0b1016; color: #e6bd78; font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.math-output__caption { margin-top: 8px; color: #778797; font-size: 10px; overflow-wrap: anywhere; }
+.math-output__error { color: #ff9999; font-size: 11px; text-align: center; }
