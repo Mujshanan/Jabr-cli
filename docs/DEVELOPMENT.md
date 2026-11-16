@@ -52,7 +52,7 @@ Jabr
 
 ## 3. Toolchain
 
-The repository's current requirements are listed in [README.md](../README.md). The supported JavaScript package managers are Bun and npm. Keep their lockfiles and scripts consistent when changing dependencies.
+The repository's current requirements are listed in [README.md](../README.md). Bun is the canonical and sole JavaScript package manager. Commit only `bun.lock`; do not maintain an npm lockfile.
 
 Jabr's target engine setup is a local Cargo workspace. A clean checkout must not need `git submodule update`, network access to CivilKit, or an external engine API. The Calcpad source, required supporting crates, and applicable license/attribution files are vendored in the repository.
 
@@ -110,7 +110,7 @@ The vendored highlighter package provides tokenization. The local WASM conversio
 
 ## 6. AST inspector target design
 
-The planned inspector has four coordinated views:
+The document model has three explicit node types: **Text**, **Code**, and **Math**. Text owns headings, paragraphs, and inline content; Code owns executable source (JavaScript and/or Calcpad programming syntax, with language identity explicit); Math owns Calcpad mathematical expressions and functions. A node's declared type selects its parser—plain prose must never be sent to the math parser, and an invalid math expression must not be silently reclassified as text. Import/paste may offer classification suggestions, but must not silently change an explicitly selected node type.\n\nThe first AST implementation targets the actual Calcpad math parser/compiler. Calcpad's existing worksheet parser is line-oriented and handles text, headings, expressions, directives, and control flow; its internal `Expr` compiler representation also includes program constructs. Do not claim that the upstream parser already exposes three separate ASTs. The Jabr document model is a layer above that source language.\n\nThe planned inspector has four coordinated views:
 
 - **Tree / ATS:** expandable human-readable AST hierarchy.
 - **JSON:** complete schema output and selected subtree.
@@ -135,7 +135,7 @@ Jabr TypeScript adapter
     └── AST-to-LaTeX formatter
 ```
 
-The AST inspector should be a reusable frontend module, not coupled to terminal commands. The adapter must preserve Calcpad engine semantics and source locations. Define offset units explicitly and convert Rust UTF-8 byte offsets to JavaScript UTF-16 positions before editor highlighting.
+The AST inspector should be a reusable frontend module, not coupled to terminal commands. The adapter must preserve Calcpad engine semantics and source locations. The new `engine/calcpad-core/src/ast.rs` defines the first versioned Jabr DTO scaffold (`schemaVersion: 1`), document-node discriminator, stable node identity/kind, ordered children, kind-specific attributes, diagnostics, partial-result marker, and explicit UTF-8 byte spans. The DTO is not yet populated by the parser; that wiring is the next implementation task. Convert UTF-8 byte offsets to JavaScript UTF-16 positions before editor highlighting.
 
 Do not copy AST Explorer application code; use its source/tree synchronization as an interaction reference. Keep the current frontend stack and review licenses before adding any tree or JSON-view dependency.
 
