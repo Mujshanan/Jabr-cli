@@ -21,24 +21,24 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 - TypeScript and Vite (no React or frontend framework)
 - Locally vendored Calcpad Rust core and supporting crates under `engine/`
 - Jabr-owned native worksheet runner for native build/smoke testing
-- CivilKit WebAssembly engine via wasm-pack/wasm-bindgen
+- Vendored Calcpad WebAssembly engine via wasm-pack/wasm-bindgen
 - CivilKit tokenizer/highlighter WebAssembly package (upstream `calcpad-highlighter-wasm`)
 - Existing Mathlex parser bridge retained temporarily for the original terminal commands
 - KaTeX and MathJax for the original terminal's mathematical typesetting
 - Vitest and Cargo tests
 - Python standard-library black-box regression checks
-- Bun (preferred) or npm for JavaScript dependencies
+- Bun as the sole JavaScript package manager
 
 ## Requirements
 
 - Git
-- Bun (recommended), or Node.js 20.19+ / 22.12+ with npm
+- Bun (runtime and sole JavaScript package manager)
 - Rust toolchain (rustup and Cargo)
 - wasm-pack **0.15.1**
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
 - Python 3.10+ for the independent CLI regression checks
 
-Install Bun using https://bun.sh/docs/installation. For npm, install Node.js from https://nodejs.org/.
+Install Bun using https://bun.sh/docs/installation.
 
 Install the pinned wasm-pack release:
 
@@ -56,23 +56,15 @@ The full build deliberately follows this order:
 2. **WebAssembly:** compile CivilKit's `calcpad-wasm` and `calcpad-highlighter-wasm` crates for `wasm32-unknown-unknown` and generate browser bindings; then build the existing Mathlex compatibility bridge.
 3. **Vite:** type-check TypeScript and build both browser pages.
 
-Bun (Bun runtime and package manager):
+Bun:
 
 ```bash
-bun install
+bun install --frozen-lockfile
 bun run build:bun
 bun run dev:bun
 ```
 
-npm:
-
-```bash
-npm ci
-npm run build
-npm run dev
-```
-
-The native and WASM stages can also be run separately. Use `bun run engine:native:bun` and `bun run engine:wasm:bun` with Bun, or `npm run engine:native` and `npm run engine:wasm` with Node/npm.
+The native and WASM stages can also be run separately with `bun run engine:native:bun` and `bun run engine:wasm:bun`.
 
 ## Minimal CivilKit test page
 
@@ -88,7 +80,7 @@ The existing terminal remains at `/`. It continues to use the Mathlex parser bri
 
 ## Native CLI smoke test
 
-The native build uses Jabr's local `jabr-engine` runner and a tiny fixture. With Bun, run `bun run engine:native:bun`; with npm, run `npm run engine:native`.
+The native build uses Jabr's local `jabr-engine` runner and a tiny fixture. Run `bun run engine:native:bun`.
 
 The script builds `engine/calcpad-core` and its `jabr-engine` binary, runs it against `tests/fixtures/civilkit-smoke.cpd`, and checks that the generated HTML contains the expected result.
 
@@ -105,26 +97,14 @@ python tests/python/run_civilkit_checks.py
 Or use the package script:
 
 ```bash
-npm run test:python
+bun run test:python
 ```
 
 The initial standard-library test suite checks scalar arithmetic, variable evaluation, operator precedence, and report generation. It computes expected values independently in Python and checks the native Calcpad report. SymPy and NumPy are deliberately deferred until the engine's value/unit/AST output contract is exposed.
 
 ## Windows build
 
-After installing the requirements, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. For npm:
-
-```powershell
-./build.ps1 -PackageManager npm
-```
-
-Or:
-
-```bat
-build.bat npm
-```
-
-PowerShell may require allowing locally created scripts to run for the current user; if so, use `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` where permitted.
+After installing the requirements, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the required JavaScript package manager. The Windows build scripts install the frozen Bun lockfile and run the full build.PowerShell may require allowing locally created scripts to run for the current user; if so, use `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` where permitted.
 
 Vite binds to `127.0.0.1` by default. It binds to `0.0.0.0` only in GitHub Codespaces so the development server can be forwarded. The production build writes both pages to `dist/`.
 
@@ -148,23 +128,14 @@ The Mathlex bridge parses expressions and serializes its AST to LaTeX. It does n
 
 ## Tests
 
-Bun:
+Bun and Python:
 
 ```bash
 bun run test
 bun run typecheck:bun
 bun run build:bun
+bun run test:wasm
 python tests/python/run_civilkit_checks.py
-```
-
-npm:
-
-```bash
-npm test
-npm run typecheck
-npm run build
-npm run test:python
-npm audit --audit-level=high
 ```
 
 Rust:
@@ -174,7 +145,7 @@ cargo test --manifest-path engine/Cargo.toml -p jabr-calcpad-core
 cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
 ```
 
-CI builds the native runner on Windows, runs independent Python checks, tests the vendored Rust crates, and builds the WebAssembly/Vite application with Bun and npm.
+CI runs the Windows native build and Python checks, the vendored Rust test suites, and the WebAssembly integration and Vite build using Bun.
 
 ## Project structure
 

@@ -29,18 +29,16 @@ Jabr is not the separate notes application. Features belonging exclusively to th
 ### Requirements
 
 - Git.
-- Bun (preferred) or supported Node.js with npm.
+- Bun (runtime and sole JavaScript package manager).
 - Rust toolchain and Cargo.
 - wasm-pack 0.15.1.
 - `wasm32-unknown-unknown` Rust target.
 - Python 3.10+ for independent CLI checks.
 
-Install JavaScript dependencies using one package manager:
+Install JavaScript dependencies with Bun:
 
 ```bash
-bun install
-# or
-npm ci
+bun install --frozen-lockfile
 ```
 
 See [README.md](README.md) for the full toolchain installation and Windows build instructions.
@@ -97,25 +95,18 @@ See [README.md](README.md) for the full toolchain installation and Windows build
 
 ## Validation checklist
 
-Run the relevant checks for your change. A broad local validation can include:
+Run the relevant checks for your change. Bun is the sole JavaScript package manager. A broad local validation can include:
 
 ```bash
 # JavaScript tests
 bun run test
-# or
-npm test
 
 # TypeScript and web build
 bun run typecheck:bun
 bun run build:web
-# or
-npm run typecheck
-npm run build:web
 
 # Native engine build and smoke test
 bun run engine:native:bun
-# or
-npm run engine:native
 
 # Independent Python checks (after native build)
 python tests/python/run_civilkit_checks.py
