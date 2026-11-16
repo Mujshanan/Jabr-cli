@@ -117,6 +117,12 @@ The AST and LaTeX work must begin with an API audit of the pinned source. Prefer
 
 **Exit criteria:** the notes application can embed a calculation block while Jabr remains independently buildable and testable.
 
+## Tokenizer and AST milestone
+
+The browser test page now builds and loads CivilKit's separate `calcpad-highlighter-wasm` package and displays actual upstream token records (type, type ID, source text, line, UTF-16 column, and length). The AST panel is present but intentionally reports the current engine API limitation; it does not fabricate a tree from tokenizer output.
+
+The AST DTO and source-span contract are documented in [TOKENIZER-AST-DESIGN.md](TOKENIZER-AST-DESIGN.md). The next implementation dependency is a small Rust-side extension in a maintained CivilKit patch/fork because the current RPN-to-`Expr` methods are crate-private.
+
 ## Initial audit result
 
 The source-level audit is recorded in [CIVILKIT-API-AUDIT.md](CIVILKIT-API-AUDIT.md). The important finding is that `MathParser` has public parse/evaluate/value APIs, but the internal RPN and the methods that compile it into the public `compiler::Expr` tree are crate-private. The existing WASM conversion endpoint exposes Calcpad HTML and diagnostics, not a standalone AST or LaTeX response. The separate highlighter crate does expose source prettification and tokenization.
