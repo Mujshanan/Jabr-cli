@@ -1,0 +1,38 @@
+name: Generate package-manager lockfiles
+
+on:
+  push:
+    branches: [chore/bun-and-npm-support]
+    paths-ignore:
+      - bun.lock
+      - package-lock.json
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - name: Generate Bun lockfile
+        run: bun install
+      - name: Generate npm lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit generated lockfiles
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfiles are already up to date."
+          else
+            git commit -m "Generate Bun and npm lockfiles"
+            git push
+          fi
