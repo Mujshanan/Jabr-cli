@@ -43,6 +43,30 @@ describe("buildAstTreeModel", () => {
     expect(model.children[1]?.children[0]?.id).toBe("root/a/b");
   });
 
+  it("keeps source spans as node metadata rather than AST children", () => {
+    const model = buildAstTreeModel({
+      kind: "Binary",
+      span: { start: 0, end: 5, unit: "utf16" },
+      value: {
+        left: { kind: "Integer", value: 12, span: { start: 0, end: 2, unit: "utf16" } },
+        right: { kind: "Variable", value: "x", span: { start: 4, end: 5, unit: "utf16" } },
+      },
+    });
+    expect(model.span).toEqual({ start: 0, end: 5, unit: "utf16" });
+    expect(model.children.map((node) => node.label)).toEqual(["Value"]);
+    expect(model.children[0]?.children[0]?.span).toEqual({ start: 0, end: 2, unit: "utf16" });
+    expect(model.children[0]?.children[1]?.span).toEqual({ start: 4, end: 5, unit: "utf16" });
+  });
+
+  it("rejects invalid source spans", () => {
+    const model = buildAstTreeModel({
+      kind: "Variable",
+      span: { start: 5, end: 2, unit: "utf16" },
+      value: "x",
+    });
+    expect(model.span).toBeUndefined();
+  });
+
   it("limits pathological nesting without throwing", () => {
     let value: unknown = "leaf";
     for (let index = 0; index < 90; index += 1) value = { child: value };
