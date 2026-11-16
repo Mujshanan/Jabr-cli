@@ -70,7 +70,7 @@ function preview(value: unknown): string {
 }
 
 function copyButton(value: unknown, label: string): string {
-  const copyData = escapeHtml(JSON.stringify(value));
+  const copyData = escapeHtml(JSON.stringify(value) ?? "undefined");
   return `<button class="ast-copy" type="button" data-ast-action="copy" data-copy="${copyData}" title="Copy this node as JSON" aria-label="Copy ${escapeHtml(label)} node">⧉</button>`;
 }
 
