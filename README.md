@@ -11,18 +11,24 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 - Rust with the [Mathlex](https://github.com/ChrisGVE/mathlex) expression parser
 - WebAssembly via wasm-bindgen and wasm-pack
 - Vitest and Cargo tests
+- pnpm for JavaScript dependencies
 
 No React or frontend framework is used.
 
 ## Requirements
 
 - Node.js 20.19+ or 22.12+
-- npm
+- pnpm 10.22+
 - Rust toolchain (rustup and Cargo)
 - wasm-pack
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
-- wasm-pack
-- WebAssembly target: `rustup target add wasm32-unknown-unknown`
+
+Install pnpm using [Corepack](https://pnpm.io/installation#using-corepack):
+
+```bash
+corepack enable
+corepack prepare pnpm@10.22.0 --activate
+```
 
 Install wasm-pack using its [official instructions](https://rustwasm.github.io/wasm-pack/installer/).
 
@@ -33,10 +39,18 @@ pnpm install
 pnpm dev
 ```
 
+Vite listens on all interfaces so its preview can be opened from GitHub Codespaces.
+
 The development server and production build generate the WebAssembly package first. To generate it manually:
 
 ```bash
-npm run wasm:build
+pnpm wasm:build
+```
+
+## Try the AST command
+
+```text
+ast "2*x + sin(y)^2"
 ```
 
 ## Commands
@@ -68,7 +82,7 @@ cargo test --manifest-path rust/mathlex-bridge/Cargo.toml
 ├── src/
 │   ├── engine/          # Command parsing, Mathlex bridge and shared types
 │   ├── command/         # Built-in application commands
-│   └── interactive/     # Terminal UI and safe HTML AST tree renderer
+│   └── interactive/     # Terminal UI and HTML AST tree renderer
 ├── index.html
 ├── package.json
 └── vite.config.ts
