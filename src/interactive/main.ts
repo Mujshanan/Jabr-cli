@@ -4,7 +4,7 @@ import { createDispatchQueue } from "../engine/dispatch-queue";
 import { CommandRegistry } from "../engine/registry";
 import type { MathlexAstNode } from "../engine/mathlex";
 import type { OutputKind, TerminalContext } from "../engine/types";
-import { bindAstCopyTargets, getAstCopyValue, renderAst } from "./ast-renderer";
+import { createAstExplorer } from "./ast-renderer";
 import { CommandHistory } from "./command-history";
 import { createMathOutput, renderMathOutput } from "./math-renderer";
 
@@ -27,8 +27,7 @@ function print(content: string, kind: OutputKind = "normal"): void {
 function printAst(ast: MathlexAstNode): void {
   const line = document.createElement("div");
   line.className = "output-line output-line--ast";
-  line.innerHTML = renderAst(ast);
-  bindAstCopyTargets(line, ast);
+  line.append(createAstExplorer(ast));
   terminalOutput.append(line);
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
@@ -43,57 +42,12 @@ function printMath(latex: string, source: string): void {
 
 terminalOutput.addEventListener("click", async (event) => {
   if (!(event.target instanceof Element)) return;
-
   const rendererButton = event.target.closest<HTMLButtonElement>("button[data-math-renderer]");
-  if (rendererButton) {
-    const mathBlock = rendererButton.closest<HTMLElement>(".math-output");
-    const renderer = rendererButton.dataset.mathRenderer;
-    if (mathBlock && (renderer === "katex" || renderer === "mathjax")) {
-      await renderMathOutput(mathBlock, renderer);
-    }
-    return;
-  }
-
-  const button = event.target.closest<HTMLButtonElement>("button[data-ast-action]");
-  if (!button) return;
-  const astView = button.closest<HTMLElement>(".ast-view");
-  if (!astView) return;
-
-  const action = button.dataset.astAction;
-  if (action === "expand" || action === "collapse") {
-    const expanded = action === "expand";
-    astView.querySelectorAll<HTMLDetailsElement>("details.ast-details").forEach((details) => {
-      details.open = expanded;
-    });
-    return;
-  }
-  if (action === "raw") {
-    const raw = astView.querySelector<HTMLElement>(".ast-raw");
-    if (!raw) return;
-    raw.hidden = !raw.hidden;
-    button.textContent = raw.hidden ? "Raw JSON" : "Hide JSON";
-    return;
-  }
-  if (action === "copy") {
-    event.preventDefault();
-    event.stopPropagation();
-    const serialized = JSON.stringify(getAstCopyValue(button), null, 2);
-    if (serialized === undefined) return;
-    try {
-      await navigator.clipboard.writeText(serialized);
-      button.dataset.original ??= button.textContent ?? "";
-      const previousTimer = copyButtonTimers.get(button);
-      if (previousTimer !== undefined) window.clearTimeout(previousTimer);
-      button.textContent = "✓";
-      const timer = window.setTimeout(() => {
-        button.textContent = button.dataset.original ?? "";
-        copyButtonTimers.delete(button);
-      }, 1200);
-      copyButtonTimers.set(button, timer);
-    } catch {
-      button.textContent = "!";
-      button.title = "Clipboard access unavailable";
-    }
+  if (!rendererButton) return;
+  const mathBlock = rendererButton.closest<HTMLElement>(".math-output");
+  const renderer = rendererButton.dataset.mathRenderer;
+  if (mathBlock && (renderer === "katex" || renderer === "mathjax")) {
+    await renderMathOutput(mathBlock, renderer);
   }
 });
 
@@ -105,11 +59,9 @@ const registry = new CommandRegistry();
 registerCommands(registry);
 const dispatcher = new CommandDispatcher(registry, context);
 const history = new CommandHistory();
-const copyButtonTimers = new WeakMap<HTMLButtonElement, number>();
-
 const enqueueDispatch = createDispatchQueue();
 
-print(`Welcome to Jabr CLI v${__APP_VERSION__}.`, "success");
+print("Welcome to Jabr CLI v" + __APP_VERSION__ + ".", "success");
 print('Type "help" to see available commands.', "muted");
 print("");
 
