@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+<title id="title">Jabr Calcpad engine test page preview</title>
+<desc id="desc">Illustrative dark interface with a worksheet editor on the left and tokenizer, AST and calculation report panels on the right.</desc>
+<rect width="1440" height="900" fill="#101318"/>
+<text x="74" y="70" fill="#a9c7ff" font-family="Arial,sans-serif" font-size="18">← Jabr terminal</text>
+<text x="74" y="122" fill="#e8edf4" font-family="Arial,sans-serif" font-size="30" font-weight="700">Calcpad engine test</text>
+<text x="74" y="151" fill="#929baa" font-family="Arial,sans-serif" font-size="16">Minimal worksheet runner · locally maintained Rust engine</text>
+<text x="1260" y="112" fill="#83d7a5" font-family="Arial,sans-serif" font-size="16">● Ready</text>
+<rect x="74" y="190" width="520" height="650" rx="14" fill="#171c24" stroke="#2b323e" stroke-width="2"/>
+<text x="102" y="230" fill="#c8d0dc" font-family="Arial,sans-serif" font-size="18" font-weight="700">Worksheet source</text>
+<rect x="102" y="254" width="464" height="420" rx="9" fill="#0e1218" stroke="#343e4d"/>
+<g font-family="monospace" font-size="20">
+<text x="126" y="300" fill="#718096">1</text><text x="162" y="300" fill="#8fb6ff">a</text><text x="184" y="300" fill="#d3dce8"> = </text><text x="224" y="300" fill="#e6c07b">6</text>
+<text x="126" y="342" fill="#718096">2</text><text x="162" y="342" fill="#8fb6ff">b</text><text x="184" y="342" fill="#d3dce8"> = </text><text x="224" y="342" fill="#e6c07b">7</text>
+<text x="126" y="384" fill="#718096">3</text><text x="162" y="384" fill="#8fb6ff">answer</text><text x="246" y="384" fill="#d3dce8"> = </text><text x="286" y="384" fill="#8fb6ff">a</text><text x="306" y="384" fill="#d3dce8">*</text><text x="326" y="384" fill="#8fb6ff">b</text>
+</g>
+<text x="102" y="704" fill="#7f8b9b" font-family="Arial,sans-serif" font-size="13">Ctrl / ⌘ + Enter to run worksheet · Tab to indent</text>
+<rect x="102" y="738" width="160" height="48" rx="8" fill="#356ac4"/><text x="182" y="768" fill="#fff" font-family="Arial,sans-serif" font-size="16" font-weight="700" text-anchor="middle">Run worksheet</text>
+<rect x="276" y="738" width="170" height="48" rx="8" fill="#242d3a" stroke="#46556b"/><text x="361" y="768" fill="#dce7f7" font-family="Arial,sans-serif" font-size="16" font-weight="700" text-anchor="middle">Tokenize source</text>
+<rect x="616" y="190" width="750" height="190" rx="14" fill="#171c24" stroke="#2b323e" stroke-width="2"/>
+<text x="646" y="230" fill="#c8d0dc" font-family="Arial,sans-serif" font-size="20" font-weight="700">Tokenizer</text><text x="1300" y="230" fill="#8793a4" font-family="Arial,sans-serif" font-size="14" text-anchor="end">11 tokens</text>
+<rect x="642" y="250" width="698" height="104" rx="8" fill="#10151d" stroke="#343e4d"/>
+<text x="664" y="282" fill="#cbd7e8" font-family="monospace" font-size="15">[{ "line": 1, "column": 1, "type": "Identifier", "text": "a" },</text>
+<text x="664" y="310" fill="#cbd7e8" font-family="monospace" font-size="15">  { "line": 1, "type": "Operator", "text": "=" }, … ]</text>
+<rect x="616" y="400" width="750" height="160" rx="14" fill="#171c24" stroke="#2b323e" stroke-width="2"/>
+<text x="646" y="440" fill="#c8d0dc" font-family="Arial,sans-serif" font-size="20" font-weight="700">AST</text><text x="1340" y="440" fill="#8793a4" font-family="Arial,sans-serif" font-size="14" text-anchor="end">Pending Rust API extension</text>
+<rect x="642" y="460" width="698" height="76" rx="8" fill="#10151d" stroke="#343e4d"/>
+<text x="664" y="492" fill="#cbd7e8" font-family="Arial,sans-serif" font-size="15">AST inspection is not exposed by the current upstream API.</text>
+<text x="664" y="516" fill="#8793a4" font-family="Arial,sans-serif" font-size="14">This panel will connect to the versioned Jabr AST DTO.</text>
+<rect x="616" y="580" width="750" height="260" rx="14" fill="#171c24" stroke="#2b323e" stroke-width="2"/>
+<text x="646" y="620" fill="#c8d0dc" font-family="Arial,sans-serif" font-size="20" font-weight="700">Calculation report</text>
+<rect x="642" y="644" width="698" height="170" rx="8" fill="#fff"/>
+<text x="674" y="690" fill="#17202b" font-family="Arial,sans-serif" font-size="18" font-weight="700">Calculation results</text>
+<text x="674" y="735" fill="#17202b" font-family="Arial,sans-serif" font-size="17">a = 6</text><text x="674" y="770" fill="#17202b" font-family="Arial,sans-serif" font-size="17">b = 7</text><text x="850" y="735" fill="#17202b" font-family="Arial,sans-serif" font-size="17">answer = 42</text>
+<text x="1360" y="878" fill="#718096" font-family="Arial,sans-serif" font-size="12" text-anchor="end">Illustrative UI preview · not a runtime screenshot</text>
+</svg>
