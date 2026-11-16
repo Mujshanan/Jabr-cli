@@ -233,13 +233,14 @@ export function createAstExplorer(ast: unknown, source?: string): HTMLElement {
   const detailsHeading = element("div", "ast-panel-heading", "Node details");
   const selectedTitle = element("div", "ast-details-title", model.label);
   const selectedMeta = element("div", "ast-details-meta", model.kind + " · " + model.id);
+  const selectedSpan = element("div", "ast-details-meta");
   const selectedJson = element("pre", "ast-details-json", serialize(model.value));
   const sourceNote = element(
     "p",
     "ast-source-note",
-    "Source ranges are not provided by this parser AST; source highlighting is not available in this view.",
+    "Source ranges are shown when supplied by the parser.",
   );
-  detailsPanel.append(detailsHeading, selectedTitle, selectedMeta, selectedJson, sourceNote);
+  detailsPanel.append(detailsHeading, selectedTitle, selectedMeta, selectedSpan, selectedJson, sourceNote);
   treePanel.append(treeHeading, tree);
   workspace.append(treePanel, detailsPanel);
 
@@ -257,6 +258,7 @@ export function createAstExplorer(ast: unknown, source?: string): HTMLElement {
   function selectNode(node: AstTreeNode): void {
     selectedTitle.textContent = node.label;
     selectedMeta.textContent = node.kind + " · " + node.id;
+    selectedSpan.textContent = node.span ? "Source: [" + node.span.start + ", " + node.span.end + ") UTF-16" : "Source: unavailable";
     selectedJson.textContent = serialize(node.value);
     showingFullJson = false;
     fullJson.hidden = true;
@@ -265,6 +267,11 @@ export function createAstExplorer(ast: unknown, source?: string): HTMLElement {
     for (const [id, nodeButton] of nodeButtons) {
       nodeButton.setAttribute("aria-current", String(id === node.id));
     }
+    for (const segment of sourceCode.querySelectorAll<HTMLElement>("[data-source-node]")) {
+      segment.classList.toggle("ast-source-segment--selected", segment.dataset.sourceNode === node.id);
+    }
+    const activeSegment = sourceCode.querySelector<HTMLElement>('.ast-source-segment--selected');
+    activeSegment?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 
   function renderNode(node: AstTreeNode): HTMLLIElement {
@@ -353,6 +360,12 @@ export function createAstExplorer(ast: unknown, source?: string): HTMLElement {
 
   root.addEventListener("click", async (event) => {
     if (!(event.target instanceof Element)) return;
+    const sourceTarget = event.target.closest<HTMLElement>("[data-source-node]");
+    if (sourceTarget?.dataset.sourceNode) {
+      const sourceNode = findNode(model, sourceTarget.dataset.sourceNode);
+      if (sourceNode) selectNode(sourceNode);
+      return;
+    }
     const target = event.target.closest<HTMLButtonElement>("button[data-ast-action]");
     if (!target) return;
     const action = target.dataset.astAction;
