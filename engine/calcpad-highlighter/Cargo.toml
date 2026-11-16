@@ -1,0 +1,16 @@
+[package]
+name = "jabr-calcpad-highlighter"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+description = "Vendored Calcpad worksheet tokenizer and editor services maintained by Jabr"
+
+[lib]
+name = "calcpad_highlighter"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "unicode-perl", "unicode-case"] }
+calcpad-core = { package = "jabr-calcpad-core", path = "../calcpad-core" }
