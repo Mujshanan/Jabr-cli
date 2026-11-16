@@ -1,6 +1,6 @@
 import init, { parse_math } from "./wasm/jabr_mathlex";
 
-let initialization: Promise<void> | undefined;
+let initialization: Promise<unknown> | undefined;
 
 /** Initialize the Rust/WebAssembly parser once, then parse a plain-text expression. */
 export async function parseMathExpression(input: string): Promise<unknown> {
