@@ -6,7 +6,12 @@ fn serialize_expression(expression: mathlex::Expression) -> Result<String, Strin
 }
 
 fn parse_math_json(input: &str) -> Result<String, String> {
-    let expression = mathlex::parse(input).map_err(|error| error.to_string())?;
+    let config = mathlex::ParserConfig {
+        implicit_multiplication: true,
+        ..Default::default()
+    };
+    let expression =
+        mathlex::parse_with_config(input, &config).map_err(|error| error.to_string())?;
     serialize_expression(expression)
 }
 
@@ -54,6 +59,16 @@ mod tests {
         assert_eq!(ast["kind"], "Binary");
         assert_eq!(ast["value"]["op"]["kind"], "Add");
         assert_mathlex_wire_format(&json);
+    }
+
+    #[test]
+    fn accepts_implicit_multiplication_in_plain_text() {
+        let json = parse_math_json("2x + 3").expect("implicit multiplication should parse");
+        let ast: serde_json::Value =
+            serde_json::from_str(&json).expect("parser should return valid JSON");
+
+        assert_eq!(ast["kind"], "Binary");
+        assert_eq!(ast["value"]["op"]["kind"], "Add");
     }
 
     #[test]
