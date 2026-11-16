@@ -125,11 +125,11 @@ mod tests {
     fn serializes_a_versioned_math_ast_with_utf8_spans() {
         let span = SourceSpan {
             start_byte: 0,
-            end_byte: 6,
+            end_byte: 5,
             start_line: 0,
             start_column_byte: 0,
             end_line: 0,
-            end_column_byte: 6,
+            end_column_byte: 5,
         };
         let mut root = AstNode::new("n1", "binary").with_span(span);
         root.attributes.insert("operator".into(), Value::String("add".into()));
@@ -146,7 +146,7 @@ mod tests {
         assert_eq!(result["documentNode"], "math");
         assert_eq!(result["sourceOffsetEncoding"], "utf8-bytes");
         assert_eq!(result["ast"]["children"][0]["kind"], "number");
-        assert_eq!(result["ast"]["span"]["endByte"], 6);
+        assert_eq!(result["ast"]["span"]["endByte"], 5);
     }
 
     #[test]
