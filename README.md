@@ -12,25 +12,19 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 - WebAssembly via wasm-bindgen and wasm-pack
 - KaTeX and MathJax for browser-side mathematical typesetting
 - Vitest and Cargo tests
-- pnpm for JavaScript dependencies
+- Bun (preferred) or npm for JavaScript dependencies
 
 No React or frontend framework is used.
 
 ## Requirements
 
-- Node.js 20.19+ or 22.12+ (CI uses Node.js 24)
-- pnpm 10.34.5
+- Bun (recommended), or Node.js 20.19+ / 22.12+ with npm
+
+Install Bun using the official instructions at https://bun.sh/docs/installation. For the npm workflow, install Node.js from https://nodejs.org/; npm is included.
 - Rust toolchain (rustup and Cargo)
 - wasm-pack 0.15.1
 - cargo-audit (for Rust dependency security checks)
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
-
-Install pnpm using [Corepack](https://pnpm.io/installation#using-corepack):
-
-```bash
-corepack enable
-corepack prepare pnpm@10.34.5 --activate
-```
 
 Install the pinned wasm-pack release with Cargo:
 
@@ -46,14 +40,23 @@ cargo install cargo-audit --locked
 
 ## Getting started
 
+Bun (recommended):
+
 ```bash
-pnpm install
-pnpm dev
+bun install
+bun run dev
+```
+
+Or use npm:
+
+```bash
+npm install
+npm run dev
 ```
 
 ### Windows production build
 
-After installing the requirements above, run either `build.ps1` from PowerShell or `build.bat` from Command Prompt. Both scripts install the locked JavaScript dependencies, ensure the WebAssembly target is installed, and run the production build. The generated site is written to `dist/`.
+After installing the requirements above, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. To use npm, run `./build.ps1 -PackageManager npm` in PowerShell or `build.bat npm` in Command Prompt. Both scripts install dependencies from the matching lockfile, ensure the WebAssembly target is installed, and build the site into `dist/`.
 
 PowerShell may require allowing locally created scripts to run for the current user; if so, use `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` in an elevated or appropriately authorized PowerShell session.
 
@@ -62,7 +65,9 @@ Vite listens on all interfaces so its preview can be opened from GitHub Codespac
 The development server and production build generate the WebAssembly package first. To generate it manually:
 
 ```bash
-pnpm wasm:build
+bun run wasm:build
+# or
+npm run wasm:build
 ```
 
 ## Try the AST commands
@@ -105,16 +110,24 @@ The LaTeX source is available under each rendered expression. Both renderers are
 
 ## Tests and builds
 
+Bun:
+
 ```bash
-pnpm test
-pnpm typecheck
-pnpm build
-cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
-pnpm audit --audit-level=high
-cargo audit --file rust/mathlex-bridge/Cargo.lock
+bun run test
+bun run typecheck
+bun run build
 ```
 
-Both `pnpm-lock.yaml` and `rust/mathlex-bridge/Cargo.lock` are committed. CI enforces frozen/locked dependency resolution and runs JavaScript and Rust security audits.
+npm:
+
+```bash
+npm test
+npm run typecheck
+npm run build
+npm audit --audit-level=low
+```
+
+Both `bun.lock` and `package-lock.json` are committed. Use the lockfile corresponding to your package manager. CI installs dependencies and runs tests/builds with both Bun and npm, and also checks the Rust dependency lockfile and security audit.
 
 ## Project structure
 
