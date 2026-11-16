@@ -7,9 +7,9 @@ This guide explains how to build, test, and extend Jabr. Contributor process is 
 Jabr is a standalone laboratory for developing and testing a locally maintained copy of the Calcpad Rust calculation engine. It provides:
 
 - A simulated command terminal for the existing Mathlex experiment.
-- A minimal worksheet page for testing CivilKit.
+- A minimal worksheet page for testing the locally vendored Calcpad engine.
 - Native and WebAssembly build paths.
-- Tokenizer inspection using CivilKit's highlighter.
+- Tokenizer inspection using the locally vendored highlighter.
 - Independent Python regression checks.
 - A planned real-AST inspector.
 
@@ -94,7 +94,7 @@ The engine test page is deliberately minimal. It should help answer these questi
 
 1. Does the native engine build and execute the worksheet?
 2. Does the WASM engine accept the same worksheet?
-3. What tokens does the upstream highlighter produce?
+3. What tokens does the vendored highlighter produce?
 4. What structured data, diagnostics, and report output does the engine expose?
 5. Do native and WASM results agree?
 
@@ -106,7 +106,7 @@ The tokenizer identifies lexical units such as numbers, identifiers, operators, 
 
 These are different outputs and must remain different in code, UI, tests, and documentation.
 
-The current highlighter package provides tokenization. The existing WASM conversion path does not expose a standalone AST. Because Jabr owns the copied Rust source, the AST inspector should expose the actual internal parser tree through a Jabr-owned Rust DTO; it must not depend on an external CivilKit API. See [the API audit](CIVILKIT-API-AUDIT.md) and [tokenizer/AST design](TOKENIZER-AST-DESIGN.md).
+The vendored highlighter package provides tokenization. The local WASM conversion path does not expose a standalone AST. Because Jabr owns the copied Rust source, the AST inspector should expose the actual internal parser tree through a Jabr-owned Rust DTO; it must not depend on an external CivilKit API. See [the API audit](CIVILKIT-API-AUDIT.md) and [tokenizer/AST design](TOKENIZER-AST-DESIGN.md).
 
 ## 6. AST inspector target design
 
@@ -124,7 +124,7 @@ A node-details pane should show the node kind, operator/name/value, children, un
 ```text
 Worksheet source
     ↓
-CivilKit parser and AST inspection API
+Jabr's local Calcpad parser and AST inspection API
     ↓
 Versioned Rust DTO
     ↓
@@ -135,7 +135,7 @@ Jabr TypeScript adapter
     └── AST-to-LaTeX formatter
 ```
 
-The AST inspector should be a reusable frontend module, not coupled to terminal commands. The adapter must preserve engine semantics and source locations. Define offset units explicitly and convert Rust UTF-8 byte offsets to JavaScript UTF-16 positions before editor highlighting.
+The AST inspector should be a reusable frontend module, not coupled to terminal commands. The adapter must preserve Calcpad engine semantics and source locations. Define offset units explicitly and convert Rust UTF-8 byte offsets to JavaScript UTF-16 positions before editor highlighting.
 
 Do not copy AST Explorer application code; use its source/tree synchronization as an interaction reference. Keep the current frontend stack and review licenses before adding any tree or JSON-view dependency.
 
@@ -169,14 +169,14 @@ The authoritative milestone and acceptance-criteria list is [ENGINE-LAB-PLAN.md]
 
 Current high-level sequence:
 
-1. Copy the Calcpad Rust core and required supporting source into Jabr; remove submodule/API build dependencies.
+1. Vendor the Calcpad core, highlighter, and local WASM wrappers; remove submodule/API build dependencies. (source import and build-script migration implemented; verification pending)
 2. Establish a reproducible native/WASM baseline from the vendored source.
 3. Expose structured inspection outputs directly from the copied parser.
-3. Add golden tests and independent Python comparisons.
-4. Establish native/WASM parity.
-5. Stabilize the engine adapter contract.
-6. Hand off the adapter for integration into the separate notes application.
-7. Implement the AST inspector UI on top of the real AST API.
+4. Add golden tests and independent Python comparisons.
+5. Establish native/WASM parity.
+6. Stabilize the engine adapter contract.
+7. Hand off the adapter for integration into the separate notes application.
+8. Implement the AST inspector UI on top of the real AST API.
 
 Do not mark planned work complete until its acceptance criteria and tests are satisfied.
 
@@ -200,6 +200,6 @@ Always distinguish implemented behavior from planned work and known limitations.
 
 ## 12. Worksheet editor
 
-The CivilKit engine test page will use a minimal CodeMirror 6 editor for worksheet input. Keep the editor implementation isolated under `src/editor/`; the page reads the current document through a small editor API and remains responsible for invoking the CivilKit WASM engine. Do not couple CodeMirror to engine internals, AST DTOs, or the separate Mathlex terminal.
+The Calcpad engine test page will use a minimal CodeMirror 6 editor for worksheet input. Keep the editor implementation isolated under `src/editor/`; the page reads the current document through a small editor API and remains responsible for invoking the Jabr's local Calcpad WASM engine. Do not couple CodeMirror to engine internals, AST DTOs, or the separate Mathlex terminal.
 
 The initial feature set is automatic bracket/quote closing, bracket matching, indentation, undo/redo, and a compact completion popup for verified static mathematical names and Greek symbols. Worksheet-variable completion, units/constants catalogue generation, hover documentation, LSP, and AST-aware diagnostics are deferred. Keep package additions focused and maintain both Bun and npm lockfiles.
