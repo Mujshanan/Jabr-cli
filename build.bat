@@ -57,9 +57,8 @@ if errorlevel 1 (
     echo ERROR: wasm-pack was not found. Install wasm-pack 0.15.1.
     exit /b 1
 )
-if not exist "vendor\civilkit-calcs\Cargo.toml" (
-    echo ERROR: CivilKit submodule is missing.
-    echo Run: git submodule update --init --recursive
+if not exist "engine\calcpad-core\Cargo.toml" (
+    echo ERROR: Vendored Jabr Calcpad core is missing from engine\calcpad-core.
     exit /b 1
 )
 

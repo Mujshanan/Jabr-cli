@@ -1,6 +1,6 @@
 # Contributing to Jabr CLI
 
-Thank you for helping improve Jabr. This repository is an engine-testing laboratory for CivilKit/Calcpad, with a minimal browser terminal and a separate engine test page.
+Thank you for helping improve Jabr. This repository is an engine-testing laboratory for CivilKit/Calcpad, with a minimal browser terminal and a separate engine test page. The selected Calcpad source crates are vendored under `engine/`; no Git submodule is required.
 
 ## Project scope
 
@@ -28,18 +28,12 @@ Jabr is not the separate notes application. Features belonging exclusively to th
 
 ### Requirements
 
-- Git with submodule support.
+- Git.
 - Bun (preferred) or supported Node.js with npm.
 - Rust toolchain and Cargo.
 - wasm-pack 0.15.1.
 - `wasm32-unknown-unknown` Rust target.
 - Python 3.10+ for independent CLI checks.
-
-Initialize the repository:
-
-```bash
-git submodule update --init --recursive
-```
 
 Install JavaScript dependencies using one package manager:
 
@@ -75,13 +69,13 @@ See [README.md](README.md) for the full toolchain installation and Windows build
 - Do not add a frontend framework just for a single feature.
 - Keep UI state and rendering separate from parsing/evaluation logic.
 
-### Rust and CivilKit
+### Rust and vendored Calcpad
 
-- Prefer a narrow, documented extension over copying or reimplementing the parser.
+- Preserve the vendored source and its calculation semantics. Keep Jabr-specific changes narrow and documented.
 - Preserve calculation semantics and upstream behavior.
 - Keep public API additions deliberate and test them at the Rust boundary.
 - Preserve upstream license and NOTICE files.
-- Explain any required submodule revision change in the pull request.
+- Explain any upstream source update or change to the vendored revision in the pull request.
 
 ### AST and tokenizer
 
@@ -127,7 +121,7 @@ npm run engine:native
 python tests/python/run_civilkit_checks.py
 
 # Rust engine tests
-cargo test --locked --manifest-path vendor/civilkit-calcs/Cargo.toml -p civilkit-calcs-engine
+cargo test --manifest-path engine/Cargo.toml -p jabr-calcpad-core
 ```
 
 Use the repository's Windows scripts and CI for Windows-specific validation. If a command cannot be run, state why and identify the check that remains outstanding.

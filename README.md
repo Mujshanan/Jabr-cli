@@ -1,8 +1,8 @@
 # Jabr CLI
 
-Jabr is a lightweight browser-based application terminal built with Vanilla HTML, CSS, TypeScript and Vite. The repository contains the original Mathlex expression-parser terminal and a separate minimal test page for the CivilKit Rust calculation engine.
+Jabr is a lightweight browser-based application terminal built with Vanilla HTML, CSS, TypeScript and Vite. The repository contains the original Mathlex expression-parser terminal and a separate minimal test page for Jabr's locally vendored Calcpad Rust calculation engine.
 
-Jabr is an **engine laboratory** for developing a locally maintained Calcpad Rust engine fork before its eventual integration into a separate notes application through a custom calculation block. The current branch still contains the pinned CivilKit submodule; replacing it with copied, locally buildable Calcpad core source is a planned development milestone, not yet completed. It is not the notes application and its terminal UI is not intended to be embedded in that application.
+Jabr is an **engine laboratory** for developing a locally maintained Calcpad Rust engine fork before its eventual integration into a separate notes application through a custom calculation block. The repository currently vendors the Calcpad core, native runner, calculation WASM bindings, highlighter, and highlighter WASM bindings under `engine/`. This is a selected source import from CivilKit Calcs, not yet a copy of every crate and tool in the upstream repository. Jabr does not use a Git submodule or an external CivilKit API at build or runtime. It is not the notes application, and its terminal UI is not intended to be embedded in that application.
 
 Jabr CLI is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
 
@@ -19,8 +19,8 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 
 - Vanilla HTML and CSS
 - TypeScript and Vite (no React or frontend framework)
-- Calcpad Rust core, currently accessed through a pinned CivilKit submodule (planned: vendor required source directly into Jabr)
-- CivilKit's native worksheet CLI for native build/smoke testing
+- Locally vendored Calcpad Rust core and supporting crates under `engine/`
+- Jabr-owned native worksheet runner for native build/smoke testing
 - CivilKit WebAssembly engine via wasm-pack/wasm-bindgen
 - CivilKit tokenizer/highlighter WebAssembly package (upstream `calcpad-highlighter-wasm`)
 - Existing Mathlex parser bridge retained temporarily for the original terminal commands
@@ -31,7 +31,7 @@ Jabr CLI is a simulated application terminal, **not** an operating-system shell.
 
 ## Requirements
 
-- Git with submodule support
+- Git
 - Bun (recommended), or Node.js 20.19+ / 22.12+ with npm
 - Rust toolchain (rustup and Cargo)
 - wasm-pack **0.15.1**
@@ -46,17 +46,13 @@ Install the pinned wasm-pack release:
 cargo install wasm-pack --version 0.15.1 --locked
 ```
 
-The current baseline uses CivilKit source pinned to commit `97f4bb698cea3bd6a9a4fae46dbc28b0d3ca5ffc` in `vendor/civilkit-calcs`. This is transitional: the development plan now requires copying the required Calcpad Rust core and supporting crates into Jabr so the final build does not require a submodule or external CivilKit API. Until that migration is implemented, initialize the current submodule with:
-
-```bash
-git submodule update --init --recursive
-```
+The vendored source was imported from CivilKit Calcs revision `97f4bb698cea3bd6a9a4fae46dbc28b0d3ca5ffc`. See [`engine/UPSTREAM.md`](engine/UPSTREAM.md) for crate mapping, provenance, and licensing. The imported source is maintained directly in this repository; no submodule initialization is required.
 
 ## Build sequence
 
 The full build deliberately follows this order:
 
-1. **Native CLI:** compile CivilKit's native `Cli` binary and run a small worksheet smoke test.
+1. **Native runner:** compile Jabr's local `jabr-engine` binary and run a small worksheet smoke test.
 2. **WebAssembly:** compile CivilKit's `calcpad-wasm` and `calcpad-highlighter-wasm` crates for `wasm32-unknown-unknown` and generate browser bindings; then build the existing Mathlex compatibility bridge.
 3. **Vite:** type-check TypeScript and build both browser pages.
 
@@ -92,9 +88,9 @@ The existing terminal remains at `/`. It continues to use the Mathlex parser bri
 
 ## Native CLI smoke test
 
-The native build uses CivilKit's own CLI and a tiny fixture. With Bun, run `bun run engine:native:bun`; with npm, run `npm run engine:native`.
+The native build uses Jabr's local `jabr-engine` runner and a tiny fixture. With Bun, run `bun run engine:native:bun`; with npm, run `npm run engine:native`.
 
-The script builds `vendor/civilkit-calcs/calcpad-cli`, runs it against `tests/fixtures/civilkit-smoke.cpd`, and checks that the generated HTML contains the expected result.
+The script builds `engine/calcpad-core` and its `jabr-engine` binary, runs it against `tests/fixtures/civilkit-smoke.cpd`, and checks that the generated HTML contains the expected result.
 
 ## Independent Python checks
 
@@ -116,7 +112,7 @@ The initial standard-library test suite checks scalar arithmetic, variable evalu
 
 ## Windows build
 
-After installing the requirements and initializing the current submodule, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. For npm:
+After installing the requirements, run `build.ps1` from PowerShell or `build.bat` from Command Prompt. Bun is the default. For npm:
 
 ```powershell
 ./build.ps1 -PackageManager npm
@@ -130,7 +126,7 @@ build.bat npm
 
 PowerShell may require allowing locally created scripts to run for the current user; if so, use `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` where permitted.
 
-Vite listens on all interfaces so its development server can be opened from GitHub Codespaces. The production build writes both pages to `dist/`.
+Vite binds to `127.0.0.1` by default. It binds to `0.0.0.0` only in GitHub Codespaces so the development server can be forwarded. The production build writes both pages to `dist/`.
 
 ## Existing terminal commands
 
@@ -174,11 +170,11 @@ npm audit --audit-level=high
 Rust:
 
 ```bash
-cargo test --locked --manifest-path vendor/civilkit-calcs/Cargo.toml -p civilkit-calcs-engine
+cargo test --manifest-path engine/Cargo.toml -p jabr-calcpad-core
 cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
 ```
 
-CI builds the native CLI on Windows, runs independent Python CLI checks, tests the Rust engine, and builds the WebAssembly/Vite application with both Bun and npm.
+CI builds the native runner on Windows, runs independent Python checks, tests the vendored Rust crates, and builds the WebAssembly/Vite application with Bun and npm.
 
 ## Project structure
 
@@ -189,8 +185,7 @@ CI builds the native CLI on Windows, runs independent Python CLI checks, tests t
 ├── docs/
 │   ├── DEVELOPMENT.md        # Architecture and development workflow
 │   └── ENGINE-LAB-PLAN.md    # Engine lab scope, API plan and phases
-├── vendor/
-│   └── civilkit-calcs/       # Pinned CivilKit source submodule
+├── engine/                   # Locally vendored Calcpad crates, native runner, and WASM wrappers
 ├── rust/
 │   └── mathlex-bridge/       # Temporary parser bridge for the original terminal
 ├── scripts/
