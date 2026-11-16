@@ -54,7 +54,7 @@ describe("Mathlex WASM adapter", () => {
   });
 
   it("preserves LaTeX backslashes", async () => {
-    const expression = String.raw\`\\frac{1}{2}\`;
+    const expression = "\\\\frac{1}{2}";
     await parseLatexExpression(expression);
     expect(wasm.parse_latex).toHaveBeenCalledWith(expression);
   });
@@ -81,13 +81,13 @@ describe("Mathlex WASM adapter", () => {
       throw new Error("invalid LaTeX input");
     });
 
-    await expect(parseLatexExpression(String.raw\`\\notACommand{\`)).rejects.toThrow(
+    await expect(parseLatexExpression("\\\\notACommand{")).rejects.toThrow(
       "invalid LaTeX input",
     );
   });
 
   it("serializes plain-text and LaTeX expressions", async () => {
     await expect(mathExpressionToLatex("2")).resolves.toBe("2");
-    await expect(latexExpressionToLatex(String.raw\`2\`)).resolves.toBe("2");
+    await expect(latexExpressionToLatex("2")).resolves.toBe("2");
   });
 });
