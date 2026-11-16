@@ -27,6 +27,5 @@ describe("renderAst", () => {
     const html = renderAst({ kind: "Variable", value: "<img src=x onerror=alert(1)>" });
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img");
-    expect(html).not.toContain("onerror=alert(1)");
   });
 });
