@@ -8,7 +8,7 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #101318; }
-button, textarea { font: inherit; }
+button { font: inherit; }
 .engine-test { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 32px 0 48px; }
 .engine-test__header { display: flex; align-items: center; gap: 24px; justify-content: space-between; margin-bottom: 28px; }
 .engine-test__header h1 { margin: 0 0 5px; font-size: 22px; font-weight: 650; }
@@ -20,8 +20,11 @@ button, textarea { font: inherit; }
 .engine-test__workspace { display: grid; grid-template-columns: minmax(260px, .85fr) minmax(360px, 1.15fr); gap: 18px; align-items: start; }
 .engine-test__editor, .engine-test__result { min-width: 0; padding: 18px; border: 1px solid #2b323e; border-radius: 12px; background: #171c24; }
 .engine-test__editor label, .engine-test__result-heading label { display: block; margin-bottom: 12px; color: #c8d0dc; font-size: 13px; font-weight: 600; }
-#worksheet-source { display: block; width: 100%; min-height: 310px; resize: vertical; padding: 14px; border: 1px solid #343e4d; border-radius: 8px; outline: none; background: #0e1218; color: #e8edf4; font: 13px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 4; }
-#worksheet-source:focus { border-color: #729be8; }
+.worksheet-editor { overflow: hidden; min-height: 310px; border: 1px solid #343e4d; border-radius: 8px; background: #0e1218; }
+.worksheet-editor:focus-within { border-color: #729be8; }
+.worksheet-editor .cm-editor, .worksheet-editor .cm-scroller { min-height: 310px; }
+.engine-test__editor-hint { margin: 8px 0 2px; color: #7f8b9b; font-size: 10px; }
+kbd { padding: 2px 5px; border: 1px solid #343d48; border-radius: 4px; color: #aeb9c5; font: inherit; }
 .engine-test__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .engine-test__actions button { margin-top: 12px; padding: 10px 16px; border: 0; border-radius: 7px; background: #356ac4; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
 #run-worksheet:disabled, #inspect-tokens:disabled { opacity: .5; cursor: wait; }
@@ -42,6 +45,6 @@ button, textarea { font: inherit; }
   .engine-test__header { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
   .engine-test__header > div { order: 2; width: 100%; }
   .engine-test__workspace { grid-template-columns: 1fr; }
-  #worksheet-source { min-height: 220px; }
+  .worksheet-editor, .worksheet-editor .cm-editor, .worksheet-editor .cm-scroller { min-height: 220px; }
   #engine-report { height: 380px; }
 }

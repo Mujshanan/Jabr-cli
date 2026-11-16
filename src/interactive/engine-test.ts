@@ -1,7 +1,8 @@
-import initCivilKit, { convert, version } from "../engine/civilkit-wasm/civilkit_engine.js";
+import initCalcpad, { convert, version } from "../engine/civilkit-wasm/civilkit_engine.js";
 import initHighlighter, { highlight, version as highlighterVersion } from "../engine/civilkit-highlighter-wasm/civilkit_highlighter.js";
+import { createWorksheetEditor, type WorksheetEditor } from "../editor/create-editor";
 
-interface CivilKitError {
+interface CalcpadError {
   sourceLine?: number;
   outputLine?: number;
   message?: string;
@@ -9,7 +10,7 @@ interface CivilKitError {
 }
 interface ConvertResponse {
   html?: string;
-  errors?: CivilKitError[];
+  errors?: CalcpadError[];
   status?: number;
   error?: string;
 }
@@ -27,7 +28,7 @@ interface HighlightResponse {
   error?: string;
 }
 
-const source = document.querySelector<HTMLTextAreaElement>("#worksheet-source");
+const editorHost = document.querySelector<HTMLElement>("#worksheet-editor");
 const runButton = document.querySelector<HTMLButtonElement>("#run-worksheet");
 const tokenizeButton = document.querySelector<HTMLButtonElement>("#inspect-tokens");
 const status = document.querySelector<HTMLOutputElement>("#engine-status");
@@ -38,10 +39,13 @@ const errorsText = errorsPanel?.querySelector("pre");
 const tokenOutput = document.querySelector<HTMLElement>("#token-output");
 const tokenCount = document.querySelector<HTMLElement>("#token-count");
 
-if (!source || !runButton || !tokenizeButton || !status || !versionLabel || !report ||
+if (!editorHost || !runButton || !tokenizeButton || !status || !versionLabel || !report ||
     !errorsPanel || !errorsText || !tokenOutput || !tokenCount) {
-  throw new Error("CivilKit engine test page is missing required elements.");
+  throw new Error("Calcpad engine test page is missing required elements.");
 }
+
+const INITIAL_WORKSHEET = "a = 6\nb = 7\nanswer = a*b";
+let editor: WorksheetEditor | null = null;
 
 function setStatus(message: string, state: "loading" | "ready" | "error"): void {
   status.value = message;
@@ -56,7 +60,7 @@ function renderReport(html: string): void {
     "</head><body>" + html + "</body></html>";
   report.srcdoc = documentHtml;
 }
-function renderErrors(items: CivilKitError[]): void {
+function renderErrors(items: CalcpadError[]): void {
   if (items.length === 0) {
     errorsPanel.hidden = true;
     errorsText.textContent = "";
@@ -68,12 +72,16 @@ function renderErrors(items: CivilKitError[]): void {
     return line + (item.message ?? "Calculation message");
   }).join("\n");
 }
+function currentSource(): string {
+  return editor?.getValue() ?? "";
+}
 function inspectTokens(): void {
+  if (!editor) return;
   tokenizeButton.disabled = true;
   tokenOutput.textContent = "Tokenizing…";
   try {
     const response = JSON.parse(
-      highlight(JSON.stringify({ content: source.value, includeText: true })),
+      highlight(JSON.stringify({ content: currentSource(), includeText: true })),
     ) as HighlightResponse;
     if (response.status && response.status >= 400) {
       throw new Error(response.error ?? "Tokenizer returned status " + response.status);
@@ -89,15 +97,16 @@ function inspectTokens(): void {
   }
 }
 async function runWorksheet(): Promise<void> {
+  if (!editor) return;
   runButton.disabled = true;
   setStatus("Calculating…", "loading");
   renderErrors([]);
   try {
     const response = JSON.parse(
-      convert(JSON.stringify({ content: source.value, messageCodes: true }), true),
+      convert(JSON.stringify({ content: currentSource(), messageCodes: true }), true),
     ) as ConvertResponse;
     if (response.status && response.status >= 400) {
-      throw new Error(response.error ?? "CivilKit returned status " + response.status);
+      throw new Error(response.error ?? "Calcpad returned status " + response.status);
     }
     renderReport(response.html ?? "");
     renderErrors(response.errors ?? []);
@@ -112,23 +121,31 @@ async function runWorksheet(): Promise<void> {
 }
 async function start(): Promise<void> {
   try {
-    setStatus("Loading WebAssembly…", "loading");
-    await Promise.all([initCivilKit(), initHighlighter()]);
-    versionLabel.textContent = "CivilKit " + version() + " · Highlighter " + highlighterVersion();
+    setStatus("Loading editor and WebAssembly…", "loading");
+    const [worksheetEditor] = await Promise.all([
+      createWorksheetEditor(
+        editorHost,
+        INITIAL_WORKSHEET,
+        () => { tokenCount.textContent = "Source changed — tokenize to refresh"; },
+        () => { if (!runButton.disabled) void runWorksheet(); },
+      ),
+      initCalcpad(),
+      initHighlighter(),
+    ]);
+    editor = worksheetEditor;
+    versionLabel.textContent = "Calcpad " + version() + " · Highlighter " + highlighterVersion();
     runButton.disabled = false;
     tokenizeButton.disabled = false;
     setStatus("Ready", "ready");
     inspectTokens();
     await runWorksheet();
+    editor.focus();
   } catch (error) {
-    setStatus("Engine failed to load", "error");
+    setStatus("Editor or engine failed to load", "error");
     errorsPanel.hidden = false;
     errorsText.textContent = error instanceof Error ? error.message : String(error);
   }
 }
 runButton.addEventListener("click", () => void runWorksheet());
 tokenizeButton.addEventListener("click", inspectTokens);
-source.addEventListener("input", () => {
-  tokenCount.textContent = "Source changed — tokenize to refresh";
-});
 void start();

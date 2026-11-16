@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#101318" />
-    <meta name="description" content="Minimal CivilKit Rust calculation engine test harness for Jabr." />
-    <title>Jabr · CivilKit Engine Test</title>
+    <meta name="description" content="Minimal Calcpad Rust calculation engine test harness for Jabr." />
+    <title>Jabr · Calcpad Engine Test</title>
     <link rel="stylesheet" href="/src/interactive/engine-test.css" />
   </head>
   <body>
@@ -13,17 +13,16 @@
       <header class="engine-test__header">
         <a href="/" class="engine-test__back">← Jabr terminal</a>
         <div>
-          <h1>CivilKit engine test</h1>
-          <p>Minimal worksheet runner · Rust compiled to WebAssembly</p>
+          <h1>Calcpad engine test</h1>
+          <p>Minimal worksheet runner · locally maintained Rust engine</p>
         </div>
         <output id="engine-status" class="engine-status" aria-live="polite">Loading engine…</output>
       </header>
       <section class="engine-test__workspace" aria-label="Calculation test">
         <div class="engine-test__editor">
-          <label for="worksheet-source">Worksheet source</label>
-          <textarea id="worksheet-source" spellcheck="false" autocapitalize="off">a = 6
-b = 7
-answer = a*b</textarea>
+          <label for="worksheet-editor">Worksheet source</label>
+          <div id="worksheet-editor" class="worksheet-editor" aria-label="Worksheet source editor"></div>
+          <p class="engine-test__editor-hint"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> run worksheet · <kbd>Tab</kbd> indent</p>
           <div class="engine-test__actions">
             <button id="run-worksheet" type="button" disabled>Run worksheet</button>
             <button id="inspect-tokens" type="button" disabled>Tokenize source</button>
@@ -36,13 +35,13 @@ answer = a*b</textarea>
           </section>
           <section class="engine-inspector" aria-label="AST output">
             <div class="engine-inspector__heading"><h2>AST</h2><span class="engine-inspector__status">Pending Rust API extension</span></div>
-            <pre id="ast-output">CivilKit has an internal Expr tree, but its RPN-to-AST methods are crate-private. A versioned inspection API is the next Rust milestone.</pre>
+            <pre id="ast-output">The engine AST inspection API is not exposed yet. This panel will be connected to the versioned Jabr AST DTO.</pre>
           </section>
           <div class="engine-test__result-heading">
             <label for="engine-report">Calculation report</label>
             <span id="engine-version"></span>
           </div>
-          <iframe id="engine-report" title="CivilKit calculation report" sandbox="" referrerpolicy="no-referrer"></iframe>
+          <iframe id="engine-report" title="Calcpad calculation report" sandbox="" referrerpolicy="no-referrer"></iframe>
           <section id="engine-errors" class="engine-errors" aria-live="polite" hidden>
             <h2>Calculation messages</h2>
             <pre></pre>
