@@ -9,6 +9,10 @@ description = "Vendored CalcpadCE-compatible worksheet calculation core maintain
 [lib]
 name = "calcpad_core"
 
+[[bin]]
+name = "jabr-engine"
+path = "src/bin/jabr-engine.rs"
+
 [features]
 xunit_vm = []
 
