@@ -24,6 +24,8 @@ No React or frontend framework is used.
 - cargo-audit (for Rust dependency security checks)
 - WebAssembly target: `rustup target add wasm32-unknown-unknown`
 
+Install Bun using the official instructions at https://bun.sh/docs/installation. For the npm workflow, install Node.js from https://nodejs.org/; npm is included.
+
 Install the pinned wasm-pack release with Cargo:
 
 ```bash
