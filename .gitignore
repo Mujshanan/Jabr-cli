@@ -3,3 +3,5 @@ dist/
 coverage/
 *.local
 src/engine/wasm/
+mcp-server/node_modules/
+mcp-server/wasm/

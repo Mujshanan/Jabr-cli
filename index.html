@@ -32,7 +32,10 @@
           <span class="control control-maximize"></span>
         </div>
         <div class="terminal-title">Jabr CLI <span>v0.1.0</span></div>
-        <div></div>
+        <div class="terminal-header__actions">
+          <button id="load-script" class="script-load-button" type="button">Load .jabr</button>
+          <input id="script-file" type="file" accept=".jabr,text/plain" hidden />
+        </div>
       </header>
       <section id="terminal-output" class="terminal-output" aria-live="polite" aria-label="Terminal output"></section>
       <form id="terminal-form" class="terminal-prompt" autocomplete="off">
@@ -43,7 +46,7 @@
       </form>
       <footer class="terminal-footer">
         <span>Jabr CLI · Application command interface</span>
-        <span><kbd>↑</kbd> <kbd>↓</kbd> history · <kbd>Ctrl</kbd>+<kbd>L</kbd> clear · <kbd>help</kbd></span>
+        <span><kbd>↑</kbd> <kbd>↓</kbd> history · <kbd>Ctrl</kbd>+<kbd>L</kbd> clear · <kbd>;</kbd> sequence · <kbd>&amp;&amp;</kbd> on success</span>
       </footer>
     </main>
     <script type="module" src="/src/interactive/main.ts"></script>

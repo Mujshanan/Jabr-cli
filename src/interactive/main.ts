@@ -9,7 +9,9 @@ import { createMathOutput, renderMathOutput } from "./math-renderer";
 const output = document.querySelector<HTMLElement>("#terminal-output");
 const form = document.querySelector<HTMLFormElement>("#terminal-form");
 const input = document.querySelector<HTMLInputElement>("#terminal-input");
-if (!output || !form || !input) {
+const loadScriptButton = document.querySelector<HTMLButtonElement>("#load-script");
+const scriptFileInput = document.querySelector<HTMLInputElement>("#script-file");
+if (!output || !form || !input || !loadScriptButton || !scriptFileInput) {
   throw new Error("Terminal elements are missing from index.html.");
 }
 const terminalOutput = output;
@@ -96,6 +98,31 @@ const registry = new CommandRegistry();
 registerCommands(registry);
 const dispatcher = new CommandDispatcher(registry, context);
 const history = new CommandHistory();
+
+loadScriptButton.addEventListener("click", () => scriptFileInput.click());
+
+scriptFileInput.addEventListener("change", async () => {
+  const file = scriptFileInput.files?.[0];
+  scriptFileInput.value = "";
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith(".jabr")) {
+    print("Only .jabr script files are supported.", "error");
+    return;
+  }
+  if (file.size > 1024 * 1024) {
+    print("Script exceeds the 1 MiB size limit.", "error");
+    return;
+  }
+
+  try {
+    const source = await file.text();
+    print(`Loading script: ${file.name}`, "command");
+    await dispatcher.dispatchScript(source);
+  } catch (error) {
+    print(error instanceof Error ? error.message : "Could not read script file.", "error");
+  }
+  input.focus();
+});
 
 print("Welcome to Jabr CLI v0.1.0.", "success");
 print('Type "help" to see available commands.', "muted");
