@@ -19,7 +19,7 @@ test("plain-text parser returns the documented Mathlex AST shape", () => {
 });
 
 test("LaTeX parser accepts fractions", () => {
-  const ast = JSON.parse(parse_latex(String.raw\`\\frac{1}{2}\`));
+  const ast = JSON.parse(parse_latex("\\frac{1}{2}"));
   assert.equal(typeof ast.kind, "string");
   assert.ok(Object.hasOwn(ast, "value"));
 });
@@ -31,8 +31,8 @@ test("plain-text serializer returns LaTeX", () => {
 });
 
 test("LaTeX serializer normalizes fractions", () => {
-  const latex = latex_to_latex(String.raw\`\\frac{1}{2}\`);
-  assert.match(latex, /\\frac/);
+  const latex = latex_to_latex("\\frac{1}{2}");
+  assert.match(latex, /\\\\frac/);
 });
 
 test("invalid expressions are rejected", () => {
