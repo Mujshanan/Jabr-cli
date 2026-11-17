@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import initSync, {
+import { initSync,
   parse_math,
   parse_latex,
   math_to_latex,
