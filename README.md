@@ -89,6 +89,44 @@ Each mathematical output block has a renderer switch:
 
 The LaTeX source is available under each rendered expression. Both renderers are loaded from pinned jsDelivr CDN URLs in index.html, so this first version requires an internet connection to load their scripts, CSS and fonts. The parser and Rust/WASM engine remain local. A later packaging step can vendor the renderer assets for fully offline use.
 
+## Command automation
+
+Jabr supports command sequences and user-selected `.jabr` scripts. The terminal accepts:
+
+```text
+echo "Starting"; math "2*x + 3" && ast "2*x + 3"
+```
+
+- `;` runs the next command regardless of the previous command's result.
+- `&&` runs the next command only when the previous command succeeds.
+- Quoted separators are treated as ordinary argument text.
+- Load a `.jabr` file with the **Load .jabr** button. Scripts run sequentially, ignore blank lines and `#` comments, and stop at the first failed command.
+- Script files are limited to 1 MiB and are read only after the user selects them.
+
+Example `examples/parser-check.jabr`:
+
+```text
+# Basic parser smoke test
+echo "Checking Mathlex"
+ast "2*x + sin(y)^2"
+math "2*x + sin(y)^2"
+echo "Finished"
+```
+
+## AI integration (MCP)
+
+Jabr includes a separate local MCP server in `mcp-server/`. MCP-compatible AI hosts can call Jabr's parser without embedding an AI provider or exposing the browser terminal as a shell.
+
+Available tools:
+
+- `jabr_parse_math`
+- `jabr_parse_latex`
+- `jabr_math_to_latex`
+- `jabr_latex_to_latex`
+- `jabr_capabilities`
+
+See [mcp-server/README.md](mcp-server/README.md) for build instructions and host configuration. The server uses stdio transport and writes diagnostics to stderr only.
+
 ## Commands
 
 | Command | Description |
@@ -105,14 +143,26 @@ The LaTeX source is available under each rendered expression. Both renderers are
 
 ## Tests and builds
 
+Run the full local verification sequence:
+
+```bash
+pnpm verify
+```
+
+It runs TypeScript tests and typechecking, Rust tests, the production build, then installs and tests the MCP server and its Node-compatible WebAssembly build.
+
+For individual checks:
+
 ```bash
 pnpm test
 pnpm typecheck
 pnpm build
 cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
-pnpm audit --audit-level=high
-cargo audit --file rust/mathlex-bridge/Cargo.lock
+pnpm mcp:verify
+pnpm verify:security
 ```
+
+On Windows, use `./verify.ps1` from PowerShell.
 
 Both `pnpm-lock.yaml` and `rust/mathlex-bridge/Cargo.lock` are committed. CI enforces frozen/locked dependency resolution and runs JavaScript and Rust security audits.
 
@@ -122,10 +172,12 @@ Both `pnpm-lock.yaml` and `rust/mathlex-bridge/Cargo.lock` are committed. CI enf
 .
 ├── rust/
 │   └── mathlex-bridge/  # Rust Mathlex parser exposed to JavaScript through WASM
+├── mcp-server/         # Local MCP server for AI tool access
 ├── src/
-│   ├── engine/          # Command parsing, Mathlex bridge and shared types
+│   ├── engine/          # Command parsing, sequences, Mathlex bridge and shared types
 │   ├── command/         # Built-in application commands
 │   └── interactive/     # Terminal UI, AST tree and math output renderers
+├── verify.ps1           # Windows full verification entry point
 ├── index.html
 ├── package.json
 └── vite.config.ts
@@ -149,4 +201,4 @@ The `ast` and `ast-latex` commands exercise the parser APIs. The `math` and `mat
 
 ## Safety boundary
 
-Jabr CLI is an application command interface, not a system shell. Input is dispatched only to registered commands. It does not use `eval()` or run operating-system processes.
+Jabr CLI is an application command interface, not a system shell. Input is dispatched only to registered commands. It does not use `eval()` or run operating-system processes. User-selected `.jabr` files contain only registered Jabr commands. The MCP server exposes explicit parser operations only and does not expose arbitrary shell execution.
