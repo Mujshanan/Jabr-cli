@@ -14,7 +14,13 @@
     "build": "pnpm run typecheck && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "mcp:install": "npm install --prefix mcp-server --no-audit --no-fund --package-lock=false",
+    "mcp:wasm": "pnpm --dir mcp-server build:wasm",
+    "mcp:start": "pnpm --dir mcp-server start",
+    "mcp:verify": "pnpm mcp:install && pnpm mcp:wasm && pnpm --dir mcp-server test",
+    "verify": "pnpm test && pnpm typecheck && cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml && pnpm build && pnpm mcp:verify",
+    "verify:security": "pnpm audit --audit-level=high && cargo audit --file rust/mathlex-bridge/Cargo.lock"
   },
   "devDependencies": {
     "typescript": "5.9.3",
