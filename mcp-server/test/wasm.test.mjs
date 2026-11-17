@@ -32,7 +32,7 @@ test("plain-text serializer returns LaTeX", () => {
 
 test("LaTeX serializer normalizes fractions", () => {
   const latex = latex_to_latex("\\frac{1}{2}");
-  assert.match(latex, /\\\\frac/);
+  assert.match(latex, /\\frac/);
 });
 
 test("invalid expressions are rejected", () => {
