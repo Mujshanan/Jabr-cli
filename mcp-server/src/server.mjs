@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { z } from "zod";
-import { initSync,
+import {
+  initSync,
   parse_math,
   parse_latex,
   math_to_latex,
@@ -107,8 +109,10 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch((error) => {
-  // MCP stdio reserves stdout for protocol messages.
-  console.error("Jabr MCP server failed:", error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    // MCP stdio reserves stdout for protocol messages.
+    console.error("Jabr MCP server failed:", error);
+    process.exitCode = 1;
+  });
+}
