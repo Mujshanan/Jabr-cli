@@ -51,7 +51,22 @@ pnpm install
 pnpm dev
 ```
 
-### Windows production build
+### GitHub Pages hosting
+
+The static browser terminal can be hosted on GitHub Pages. The deployment workflow builds the Rust/WASM parser and Vite site, then publishes `dist/` whenever changes reach `main`.
+
+To enable publishing in the repository:
+1. Open **Settings → Pages**.
+2. Under **Build and deployment**, choose **GitHub Actions** as the source.
+3. Merge the deployment workflow into `main` (or run **Deploy GitHub Pages** manually after it is on `main`).
+
+The project-site URL will be:
+
+`https://mujshanan.github.io/Jabr-math/`
+
+The browser renderer scripts (KaTeX, MathJax and Mermaid) currently load from pinned CDN URLs, so the hosted site needs an internet connection for those libraries. The MCP server is not deployed to Pages; it runs separately on a machine or host that supports Node.js.
+
+## Windows production build
 
 After installing the requirements above, run either `build.ps1` from PowerShell or `build.bat` from Command Prompt. Both scripts install the locked JavaScript dependencies, ensure the WebAssembly target is installed, and run the production build. The generated site is written to `dist/`.
 
