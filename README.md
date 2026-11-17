@@ -51,7 +51,17 @@ pnpm install
 pnpm dev
 ```
 
-### Windows production build
+### GitHub Pages deployment
+
+Jabr CLI can be hosted as a static site on GitHub Pages. The deployment workflow builds the Rust/WebAssembly parser and Vite application, then publishes the generated `dist/` directory when changes reach `main`.
+
+Before the first deployment, open **Settings → Pages → Build and deployment** and select **GitHub Actions** as the source. After the deployment workflow is merged into `main`, pushes to `main` publish the site automatically.
+
+Project site URL: [https://mujshanan.github.io/Jabr-math/](https://mujshanan.github.io/Jabr-math/).
+
+The site is static; the local MCP server is not deployed to GitHub Pages.
+
+## Windows production build
 
 After installing the requirements above, run either `build.ps1` from PowerShell or `build.bat` from Command Prompt. Both scripts install the locked JavaScript dependencies, ensure the WebAssembly target is installed, and run the production build. The generated site is written to `dist/`.
 
