@@ -1,0 +1,5 @@
+# Basic Mathlex parser smoke test
+echo "Checking Mathlex"
+ast "2*x + sin(y)^2"
+math "2*x + sin(y)^2"
+echo "Finished"
