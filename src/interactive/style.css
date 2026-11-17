@@ -176,3 +176,8 @@ kbd { padding: 2px 5px; border: 1px solid #343d48; border-radius: 4px; color: #a
 .math-output__source code { display: block; overflow-x: auto; margin-top: 6px; padding: 8px; border-radius: 5px; background: #0b1016; color: #e6bd78; font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .math-output__caption { margin-top: 8px; color: #778797; font-size: 10px; overflow-wrap: anywhere; }
 .math-output__error { color: #ff9999; font-size: 11px; text-align: center; }
+
+.terminal-header__actions { display: flex; justify-content: flex-end; }
+.script-load-button { padding: 5px 9px; border: 1px solid #354252; border-radius: 5px; background: #19232e; color: #aebdcb; cursor: pointer; font: inherit; font-size: 10px; }
+.script-load-button:hover { border-color: #6b879e; color: #f1f5f9; background: #223141; }
+@media (max-width: 560px) { .script-load-button { padding: 4px 6px; font-size: 9px; } }
