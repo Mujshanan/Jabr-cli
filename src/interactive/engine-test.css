@@ -48,3 +48,8 @@ kbd { padding: 2px 5px; border: 1px solid #343d48; border-radius: 4px; color: #a
   .worksheet-editor, .worksheet-editor .cm-editor, .worksheet-editor .cm-scroller { min-height: 220px; }
   #engine-report { height: 380px; }
 }
+
+.engine-examples{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
+.engine-examples span{width:100%;color:#788797;font-size:9px;font-weight:700;letter-spacing:.1em}
+.engine-examples button{padding:5px 8px;border:1px solid #344553;border-radius:5px;background:#18232e;color:#b9c8d4;font:inherit;font-size:10px;cursor:pointer}
+.engine-examples button:hover{border-color:#7297b0;background:#203242;color:#f2f6fa}
