@@ -2,6 +2,8 @@
 
 > **Jabr ecosystem ownership update (2026-11-18):** This repository is the Math implementation/workbench, not the worksheet orchestrator. Math owns expression syntax, parsing, AST, values, quantities, units, dimensional semantics, and evaluation. Jabr-engine (planned; repository not yet created) owns graph construction, node/port mapping, dependency resolution, scheduling, and result lifecycle. Kernel owns only generic primitives including Revision, Snapshot<T>, ResultStore<V> keyed by NodeId, graph primitives, diagnostics and spans. Table stores authored cell text and structure; Math parses cell text. UI owns BlockSuite/Yjs authored document state and presentation. The Math facade may expose evaluation requests/results but must not mutate Kernel state or orchestrate the worksheet graph. This ownership note is authoritative over earlier API/architecture wording below.
 
+> **Binary naming clarification:** the local `jabr-engine` executable under `engine/calcpad-core` is only this repository's native Calcpad smoke-test runner. It is not the separate Jabr-engine orchestration subsystem/repository planned by the ecosystem architecture.
+
 ## Purpose
 
 Jabr is an isolated laboratory for developing and testing a locally maintained copy of the Calcpad Rust calculation engine before it is integrated into the separate notes application through a future custom block. The required engine source must live inside Jabr's repository; Jabr must not require the CivilKit API or a Git submodule at build or runtime. Jabr's UI remains deliberately small: enter a worksheet, execute it, and inspect every useful representation returned by the engine.
