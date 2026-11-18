@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "result": {
+    "payload_schema_version": 1,
+    "operation": "evaluate_blocks",
+    "request_id": "req-000042",
+    "document_id": "doc-001",
+    "source_revision": "18446744073709551614",
+    "blocks": [
+      {
+        "block_id": 42,
+        "status": "completed",
+        "value": {
+          "kind": "complex",
+          "real": {
+            "kind": "finite",
+            "encoding": "f64",
+            "value": "3.0"
+          },
+          "imaginary": {
+            "kind": "finite",
+            "encoding": "f64",
+            "value": "4.0"
+          },
+          "unit": null
+        },
+        "definitions": [],
+        "reads": [],
+        "diagnostics": []
+      }
+    ]
+  },
+  "diagnostics": []
+}
