@@ -11,7 +11,7 @@
   <body>
     <main class="engine-test">
       <header class="engine-test__header">
-        <a href="/" class="engine-test__back">← Jabr terminal</a>
+        <a href="/" class="engine-test__back" aria-label="Jabr Math engine workbench">Jabr <b>Math</b></a>
         <div>
           <h1>Calcpad engine test</h1>
           <p>Minimal worksheet runner · locally maintained Rust engine</p>
@@ -21,6 +21,12 @@
       <section class="engine-test__workspace" aria-label="Calculation test">
         <div class="engine-test__editor">
           <label for="worksheet-editor">Worksheet source</label>
+          <div class="engine-examples" aria-label="Load a sample worksheet">
+            <span>EXAMPLES</span>
+            <button type="button" data-example="scalar">Scalar arithmetic</button>
+            <button type="button" data-example="units">Units and dimensions</button>
+            <button type="button" data-example="functions">Functions</button>
+          </div>
           <div id="worksheet-editor" class="worksheet-editor" aria-label="Worksheet source editor"></div>
           <p class="engine-test__editor-hint"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> run worksheet · <kbd>Tab</kbd> indent</p>
           <div class="engine-test__actions">
