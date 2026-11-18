@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "result": {
+    "payload_schema_version": 1,
+    "operation": "evaluate_blocks",
+    "request_id": "req-000042",
+    "document_id": "doc-001",
+    "source_revision": "18446744073709551614",
+    "blocks": [
+      {
+        "block_id": 42,
+        "status": "completed",
+        "value": {
+          "kind": "vector",
+          "length": 3,
+          "elements": [
+            {
+              "kind": "real",
+              "number": {
+                "kind": "nan"
+              },
+              "unit": null
+            },
+            {
+              "kind": "real",
+              "number": {
+                "kind": "positive_infinity"
+              },
+              "unit": null
+            },
+            {
+              "kind": "real",
+              "number": {
+                "kind": "negative_infinity"
+              },
+              "unit": null
+            }
+          ]
+        },
+        "definitions": [],
+        "reads": [],
+        "diagnostics": []
+      }
+    ]
+  },
+  "diagnostics": []
+}
