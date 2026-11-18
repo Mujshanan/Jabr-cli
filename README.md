@@ -7,14 +7,14 @@ The vendored Calcpad source is maintained locally under engine/. It is a selecte
 ## Ecosystem architecture boundary
 
 - **Jabr Math owns:** mathematical syntax, parsing, AST, values, quantities, units, dimensional rules, and expression evaluation.
-- **Jabr-engine owns:** worksheet node mapping, graph construction, binding, dependency resolution, recalculation scheduling, and calculation-result lifecycle. The repository is planned but does not yet exist.
-- **Jabr-kernel owns:** generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, dependency-graph primitives, diagnostics and spans. It does not own Math values or variable semantics.
+- **Jabr Engine owns:** worksheet state, node/port mapping, cross-block binding, graph construction, scheduling, recalculation, revisions/snapshots, result storage, and calculation-result lifecycle. Its repository is planned but does not yet exist.
+- **Jabr Kernel owns:** generic NodeId/NodeIdAllocator, Port, dependency-graph primitives and topological ordering, Span/Location, Diagnostic/Severity, and versioned Envelope<T>. Kernel 0.1 does not ship Revision, Snapshot<T>, or ResultStore<V>, and does not own worksheet state or calculation-result lifecycle.
 - **Jabr-table owns:** table structure, stable row/column IDs, authored cell text and metadata. Math parses cell text; Table never stores or interprets Math evaluation values.
 - **Jabr-UI owns:** the complete BlockSuite/MathLive product experience and authored document persistence. Computed results remain derived/transient and are not written into Yjs.
 
-Math must expose a stable, independently testable facade. It must not become the worksheet orchestrator or own cross-engine scheduling. Its current Calcpad workbench and Mathlex terminal remain development tools, not a second product UI.
+Math must expose a stable, independently testable facade. It must not become the worksheet coordinator or own cross-engine scheduling. Its current Calcpad workbench and Mathlex terminal remain development tools, not a second product UI.
 
-**Naming note:** the `jabr-engine` binary built inside `engine/calcpad-core` is the native Calcpad worksheet test runner for this repository. It is not the separate, planned `Jabr-engine` worksheet orchestration repository listed above.
+**Naming note:** the `jabr-engine` binary built inside `engine/calcpad-core` is the native Calcpad worksheet test runner for this repository. It is not the separate, planned Jabr Engine worksheet orchestration repository listed above.
 
 
 
