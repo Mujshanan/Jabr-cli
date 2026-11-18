@@ -16,7 +16,7 @@ The initial facade exposes only capabilities the implementation can currently pr
 
 - `EngineInfo`: API version and engine version.
 - `EvaluateRequest`: request ID, document ID, source revision and authored source text.
-- `EvaluateResponse`: matching request/document/source revision, evaluation outcome, normalized diagnostics and the supported report output.
+- `EvaluateResponse`: matching request/document/source revision, evaluation outcome, Calcpad report HTML and the current MathDiagnostic values.
 - `MathDiagnostic`: the current facade's Calcpad line/output-line/message diagnostic. It is not yet the normalized cross-engine Kernel diagnostic; Engine/UI adapters must map it to the shared UI diagnostic DTO.
 
 Do not expose `MathParser`, `VarRef`, `Rc<RefCell<_>>`, parser token internals, Calcpad DTOs or generated WASM classes as public application contracts.
@@ -44,6 +44,11 @@ pub struct MathDiagnostic {
     pub message: String,
 }
 
+pub enum EvaluationOutcome {
+    Completed,
+    CompletedWithDiagnostics,
+}
+
 pub struct EvaluateResponse {
     pub request_id: String,
     pub document_id: String,
@@ -60,7 +65,7 @@ The final names, serialization and method signatures must be proven by public AP
 
 1. The caller supplies authored source and its source revision.
 2. Math evaluates the supplied source using its own parser, evaluator, language symbols and mathematical semantics.
-3. The current facade returns report output and normalized diagnostics. It does not yet accept an Engine-owned variable snapshot or return structured assignment changes.
+3. The current facade returns Calcpad report HTML and line-oriented MathDiagnostic values. It does not yet accept an Engine-owned variable snapshot or return structured assignment changes.
 4. Math must not mutate Kernel or Engine state. Any future assignment/result proposal is returned as data; Engine decides how it participates in worksheet state and recalculation.
 5. Every response echoes the exact request ID, document ID and source revision used for evaluation.
 6. Engine/UI discard responses whose source or input revisions are stale.
@@ -75,7 +80,7 @@ Kernel 0.1 provides generic infrastructure only:
 - Generic `Snapshot<T>`.
 - Opaque `ResultStore<V>` keyed by `NodeId`.
 - Generic dependency-graph primitives and deterministic topological ordering.
-- Renderer-neutral `MathDiagnostic`, validated `Span` and versioned `Envelope<T>`.
+- Renderer-neutral `Diagnostic`, validated `Span` and versioned `Envelope<T>`.
 
 Kernel does not own Math values, language symbols, variable scopes, worksheet bindings, assignment transactions, calculation scheduling or evaluation. Its generic payloads are opaque to Kernel.
 
