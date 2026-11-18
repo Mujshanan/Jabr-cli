@@ -1,4 +1,4 @@
-use calcpad_core::{evaluate, Diagnostic, EngineInfo, EvaluateRequest, EvaluateResponse, EvaluationOutcome};
+use calcpad_core::{evaluate, MathDiagnostic, EngineInfo, EvaluateRequest, EvaluateResponse, EvaluationOutcome};
 
 // This integration test compiles against only the crate's public facade. It is deliberately
 // unable to name internal Calcpad parser/AST/value implementation types.
@@ -11,6 +11,6 @@ fn public_api_is_constructible_and_revision_preserving() {
     assert_eq!(response.document_id, "doc-1");
     assert_eq!(response.request_id, "req-1");
     assert_eq!(response.source_revision, 42);
-    assert!(matches!(response.outcome, EvaluationOutcome::Completed | EvaluationOutcome::CompletedWithDiagnostics));
-    let _: Vec<Diagnostic> = response.diagnostics;
+    assert!(matches!(response.outcome, EvaluationOutcome::Completed | EvaluationOutcome::CompletedWithMathDiagnostics));
+    let _: Vec<MathDiagnostic> = response.diagnostics;
 }
