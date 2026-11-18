@@ -139,9 +139,9 @@ Changes to a block's definitions or reads cause Engine to rebuild the affected b
 
 ## 8. Integration with typed results
 
-The `BlockResult` described in [STRUCTURED-BLOCK-RESULTS.md](STRUCTURED-BLOCK-RESULTS.md) carries a `BlockDependencies` summary plus typed `AssignmentResult` values. Each assignment result correlates with its `SymbolDefinition` by canonical symbol and event_index; this avoids maintaining two competing definition schemas. The dependency summary is available even when evaluation fails, if parsing/analysis reached the relevant statements. Do not infer definitions or reads from the final value list alone.
+The `BlockResult` described in [STRUCTURED-BLOCK-RESULTS.md](STRUCTURED-BLOCK-RESULTS.md) inlines the same dependency fields (`definitions`, `reads`, and `analysis_complete`) and enriches each definition with its typed value and assignment operation. The standalone analysis operation returns the same dependency metadata without evaluated values. The dependency summary is available even when evaluation fails, if parsing/analysis reached the relevant statements. Do not infer definitions or reads from the final value list alone.
 
-A successful assignment event must include its symbol, event order, assignment kind, and typed value. Its `SymbolDefinition` metadata and `AssignmentResult` are correlated by symbol and event_index. A failed or skipped assignment must not be reported as an available definition.
+A successful assignment event must include its symbol, event order, assignment kind, and typed value. A failed or skipped assignment must not be reported as an available definition.
 
 ## 9. Acceptance tests
 
