@@ -17,7 +17,7 @@ The initial facade exposes only capabilities the implementation can currently pr
 - `EngineInfo`: API version and engine version.
 - `EvaluateRequest`: request ID, document ID, source revision and authored source text.
 - `EvaluateResponse`: matching request/document/source revision, evaluation outcome, normalized diagnostics and the supported report output.
-- `Diagnostic`: stable code/severity/message and source location when the engine can provide it.
+- `MathDiagnostic`: the current facade's Calcpad line/output-line/message diagnostic. It is not yet the normalized cross-engine Kernel diagnostic; Engine/UI adapters must map it to the shared UI diagnostic DTO.
 
 Do not expose `MathParser`, `VarRef`, `Rc<RefCell<_>>`, parser token internals, Calcpad DTOs or generated WASM classes as public application contracts.
 
@@ -28,7 +28,7 @@ Structured mathematical values, AST, LaTeX, unit metadata, and an explicit varia
 ```rust
 pub struct EngineInfo {
     pub api_version: u32,
-    pub engine_version: String,
+    pub engine_version: &'static str,
 }
 
 pub struct EvaluateRequest {
@@ -38,13 +38,19 @@ pub struct EvaluateRequest {
     pub source: String,
 }
 
+pub struct MathDiagnostic {
+    pub source_line: i32,
+    pub output_line: i32,
+    pub message: String,
+}
+
 pub struct EvaluateResponse {
     pub request_id: String,
     pub document_id: String,
     pub source_revision: u64,
     pub outcome: EvaluationOutcome,
-    pub diagnostics: Vec<Diagnostic>,
-    pub report: String,
+    pub html: String,
+    pub diagnostics: Vec<MathDiagnostic>,
 }
 ```
 
@@ -69,7 +75,7 @@ Kernel 0.1 provides generic infrastructure only:
 - Generic `Snapshot<T>`.
 - Opaque `ResultStore<V>` keyed by `NodeId`.
 - Generic dependency-graph primitives and deterministic topological ordering.
-- Renderer-neutral `Diagnostic`, validated `Span` and versioned `Envelope<T>`.
+- Renderer-neutral `MathDiagnostic`, validated `Span` and versioned `Envelope<T>`.
 
 Kernel does not own Math values, language symbols, variable scopes, worksheet bindings, assignment transactions, calculation scheduling or evaluation. Its generic payloads are opaque to Kernel.
 
