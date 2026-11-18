@@ -1,8 +1,10 @@
 //! Stable Jabr-owned facade over the vendored Calcpad worksheet engine.
 //!
 //! This layer intentionally exposes no Calcpad parser, AST, VarRef or WASM types.
+//! Shared diagnostics and operation envelopes come from Jabr Kernel 0.1.
 
 use crate::parsers::expression_parser::ExpressionParser;
+use jabr_kernel::{Diagnostic, Envelope, Severity};
 
 /// Version and identity information for the Jabr Math facade.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -29,24 +31,11 @@ pub struct EvaluateRequest {
     pub document_id: String,
     /// Caller-generated request identifier.
     pub request_id: String,
-    /// Source revision evaluated by this request.
+    /// Source revision evaluated by this request. This is correlation metadata,
+    /// not a Kernel revision or persistent worksheet-state version.
     pub source_revision: u64,
     /// Authored worksheet source.
     pub source: String,
-}
-
-/// A diagnostic emitted by the current Calcpad-backed Math facade.
-///
-/// This line-oriented representation is provisional and must be mapped to the
-/// normalized cross-engine diagnostic DTO at the Engine/UI adapter boundary.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MathDiagnostic {
-    /// Source line reported by the Calcpad parser.
-    pub source_line: i32,
-    /// Output line associated with the diagnostic.
-    pub output_line: i32,
-    /// Human-readable message.
-    pub message: String,
 }
 
 /// Outcome of a worksheet source evaluation.
@@ -71,15 +60,14 @@ pub struct EvaluateResponse {
     pub outcome: EvaluationOutcome,
     /// Calcpad report HTML. This is report output, not a structured value API.
     pub html: String,
-    /// Diagnostics emitted by the Calcpad parser.
-    pub diagnostics: Vec<MathDiagnostic>,
 }
 
 /// Evaluate a worksheet using an isolated parser instance.
 ///
 /// The source revision is echoed, never mutated. Persistence, worksheet state
-/// transitions and assignment commits belong to Jabr-engine.
-pub fn evaluate(request: EvaluateRequest) -> EvaluateResponse {
+/// transitions and assignment commits belong to Jabr Engine. The outer Kernel
+/// envelope carries the shared diagnostic representation.
+pub fn evaluate(request: EvaluateRequest) -> Envelope<EvaluateResponse> {
     let mut parser = ExpressionParser::new();
     parser.debug = true;
     parser.capture_values = true;
@@ -88,10 +76,14 @@ pub fn evaluate(request: EvaluateRequest) -> EvaluateResponse {
     let diagnostics = parser
         .errors_list
         .iter()
-        .map(|error| MathDiagnostic {
-            source_line: error.source_line,
-            output_line: error.output_line,
-            message: error.message.clone(),
+        .map(|error| {
+            // The current Calcpad error model supplies line numbers but not an
+            // exact UTF-8 source byte range. Do not fabricate a Kernel Span.
+            let message = format!(
+                "{} (source line {}, output line {})",
+                error.message, error.source_line, error.output_line
+            );
+            Diagnostic::new("math.calcpad.error", Severity::Error, message)
         })
         .collect::<Vec<_>>();
 
@@ -101,12 +93,17 @@ pub fn evaluate(request: EvaluateRequest) -> EvaluateResponse {
         EvaluationOutcome::CompletedWithDiagnostics
     };
 
-    EvaluateResponse {
+    let response = EvaluateResponse {
         document_id: request.document_id,
         request_id: request.request_id,
         source_revision: request.source_revision,
         outcome,
         html: parser.html_result,
-        diagnostics,
-    }
+    };
+
+    diagnostics
+        .into_iter()
+        .fold(Envelope::success(response), |envelope, diagnostic| {
+            envelope.with_diagnostic(diagnostic)
+        })
 }
