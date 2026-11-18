@@ -49,7 +49,7 @@ pub enum BlockStatus {
 }
 ```
 
-This is an illustrative Rust shape, not a frozen ABI. The JSON representation is specified in the wire-format design. The outer Kernel envelope carries operation-level diagnostics; block-local diagnostics are attached to the block result so Engine can associate failures with the responsible node. Avoid duplicating the same diagnostic at both levels unless the operation itself also failed.
+This is an illustrative Rust shape, not a frozen ABI. The dependency metadata types and their symbol-resolution rules are specified in [BLOCK-DEPENDENCY-EXTRACTION.md](BLOCK-DEPENDENCY-EXTRACTION.md); the JSON representation is specified in [VERSIONED-WIRE-PROTOCOL.md](VERSIONED-WIRE-PROTOCOL.md). The outer Kernel envelope carries operation-level diagnostics; block-local diagnostics are attached to the block result so Engine can associate failures with the responsible node. Avoid duplicating the same diagnostic at both levels unless the operation itself also failed.
 
 A block may produce a primary expression value, zero or more named definition results, and a dependency summary. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation.
 
