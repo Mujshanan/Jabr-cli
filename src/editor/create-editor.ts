@@ -20,6 +20,7 @@ interface EditorViewInstance {
   readonly state: EditorViewState;
   readonly dom: HTMLElement;
   focus(): void;
+  setValue(value: string): void;
   destroy(): void;
 }
 interface EditorViewConfig {
@@ -42,6 +43,7 @@ interface CodeMirrorModule {
 export interface WorksheetEditor {
   getValue(): string;
   focus(): void;
+  setValue(value: string): void;
   destroy(): void;
 }
 
@@ -103,6 +105,9 @@ export function mountWorksheetEditor(
   return {
     getValue: () => view.state.doc.toString(),
     focus: () => view.focus(),
+    setValue: (value: string) => view.dispatch({
+      changes: { from: 0, to: view.state.doc.toString().length, insert: value },
+    }),
     destroy: () => {
       view.dom.removeEventListener("keydown", handleKeyDown);
       view.destroy();
