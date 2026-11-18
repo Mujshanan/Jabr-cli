@@ -8,11 +8,11 @@ impl Default for EngineInfo { fn default()->Self { Self { api_version:1, engine_
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EvaluateRequest { pub document_id:String, pub request_id:String, pub source_revision:u64, pub source:String }
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Diagnostic { pub source_line:i32, pub output_line:i32, pub message:String }
+pub struct MathDiagnostic { pub source_line:i32, pub output_line:i32, pub message:String }
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum EvaluationOutcome { Completed, CompletedWithDiagnostics }
+pub enum EvaluationOutcome { Completed, CompletedWithMathDiagnostics }
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EvaluateResponse { pub document_id:String, pub request_id:String, pub source_revision:u64, pub outcome:EvaluationOutcome, pub html:String, pub diagnostics:Vec<Diagnostic> }
+pub struct EvaluateResponse { pub document_id:String, pub request_id:String, pub source_revision:u64, pub outcome:EvaluationOutcome, pub html:String, pub diagnostics:Vec<MathDiagnostic> }
 
 /// Evaluate a worksheet using an isolated parser instance. The revision is echoed, never
 /// mutated: persistence, worksheet state transitions and assignment commits belong to Jabr-engine.
@@ -21,7 +21,7 @@ pub fn evaluate(request: EvaluateRequest) -> EvaluateResponse {
     parser.debug=true;
     parser.capture_values=true;
     parser.parse(&request.source,true);
-    let diagnostics=parser.errors_list.iter().map(|e|Diagnostic{source_line:e.source_line,output_line:e.output_line,message:e.message.clone()}).collect::<Vec<_>>();
-    let outcome=if diagnostics.is_empty(){EvaluationOutcome::Completed}else{EvaluationOutcome::CompletedWithDiagnostics};
+    let diagnostics=parser.errors_list.iter().map(|e|MathDiagnostic{source_line:e.source_line,output_line:e.output_line,message:e.message.clone()}).collect::<Vec<_>>();
+    let outcome=if diagnostics.is_empty(){EvaluationOutcome::Completed}else{EvaluationOutcome::CompletedWithMathDiagnostics};
     EvaluateResponse{document_id:request.document_id,request_id:request.request_id,source_revision:request.source_revision,outcome,html:parser.html_result,diagnostics}
 }
