@@ -17,5 +17,6 @@ path = "src/bin/jabr-engine.rs"
 xunit_vm = []
 
 [dependencies]
+jabr-kernel = { git = "https://github.com/Mujshanan/Jabr-kernel", rev = "7146f3151dd742ccded92c2e580f9b662d814b59", features = ["serde"] }
 miniz_oxide = "0.8"
 serde_json = "1"
