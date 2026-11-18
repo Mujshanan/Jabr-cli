@@ -20,7 +20,7 @@ interface EditorViewInstance {
   readonly state: EditorViewState;
   readonly dom: HTMLElement;
   focus(): void;
-  setValue(value: string): void;
+  dispatch(spec: { changes: { from: number; to: number; insert: string } }): void;
   destroy(): void;
 }
 interface EditorViewConfig {
