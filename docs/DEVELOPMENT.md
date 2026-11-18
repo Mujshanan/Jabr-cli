@@ -1,7 +1,5 @@
 # Jabr Development Guide
 
-> **Architecture baseline (2026-11-18):** Jabr Math owns mathematical parsing, AST, values, units, and evaluation. Jabr-engine (a planned, not-yet-created repository) owns worksheet graph construction, dependency resolution, scheduling, bindings, and calculation-result lifecycle. Jabr-kernel supplies only generic primitives: NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, generic graph, diagnostics, and spans. Jabr-table stores table structure and authored cell text; Math parses that text. Jabr-UI owns the product UI and authored BlockSuite/Yjs document. This baseline supersedes older references to Kernel-owned variable state or a separate Jabr API owning recalculation.
-
 This guide explains how to build, test, and extend Jabr. Contributor process is documented in [CONTRIBUTING.md](../CONTRIBUTING.md); repository-wide coding-agent rules are in [AGENTS.md](../AGENTS.md).
 
 ## 1. What this repository is
@@ -232,3 +230,9 @@ The initial feature set is automatic bracket/quote closing, bracket matching, in
 ## Repository structure
 
 The audited current tree, ownership boundaries, target package layout, and safe migration sequence are documented in [REPOSITORY-STRUCTURE.md](REPOSITORY-STRUCTURE.md). That document is additive: it does not authorize moving vendored Calcpad source, changing the Vanilla TypeScript/Vite workbench, or altering existing CI policy.
+
+
+## Public API and Kernel boundary
+
+See [PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md](api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md) for the current Jabr-owned source-evaluation facade and the generic Kernel/Engine ownership boundary. The facade is additive over the vendored Calcpad engine. It does not yet expose variable snapshots, structured Math values, or a browser wire protocol.
+

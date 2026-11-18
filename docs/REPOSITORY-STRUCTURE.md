@@ -5,11 +5,6 @@
 
 ## 1. Current audited structure
 
-### Ecosystem ownership correction (2026-11-18)
-
-This repository is Jabr Math. It owns mathematical language and calculation semantics: parser, AST, mathematical values/quantities, units, dimensional rules and evaluation. It does not own worksheet graph construction, dependency scheduling or the result lifecycle; those belong to the planned Jabr-engine repository (not yet created). Kernel provides only generic infrastructure, including NodeId/Port, Revision, Snapshot<T>, ResultStore<V> and generic graph/diagnostic primitives. Table stores authored cell text and structure; Math parses that text. Jabr-UI owns the complete product UI and authored BlockSuite/Yjs state.
-
-
 The default branch contains 434 Git tree entries (including directories) and the following major areas:
 
 ```text
@@ -61,13 +56,19 @@ The frontend is intentionally Vanilla HTML/CSS + TypeScript + Vite. Bun is canon
 
 The current `AGENTS.md` explicitly requires preserving the Vanilla TypeScript/Vite stack and forbids introducing React solely to implement a feature. This standardization change does not override that constraint.
 
-## 3. Target package boundaries (incremental; not created by this change)
+## 3. Public API and Kernel boundary
 
-The long-term Math subsystem may expose these logical packages:
+The Jabr-owned source-evaluation facade and generic Kernel/Engine boundary are documented in [PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md](api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md). The current facade is additive over the existing engine; variable-context transport and cross-repository integration remain future work.
+
+Kernel owns only generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, dependency-graph primitives, diagnostics, spans and envelopes. It does not own Math values, language scopes, variable state or assignment transactions. Math owns mathematical values, parsing, AST, units and evaluation. The planned Jabr-engine layer owns worksheet graph construction, cross-block bindings, scheduling and result lifecycle; it composes Kernel primitives with domain-engine APIs.
+
+## 4. Target package boundaries (incremental; not created by this change)
+
+The long-term subsystem may expose these logical packages:
 
 | Logical package | Intended responsibility | Current status |
 |---|---|---|
-| Math engine | Parser, AST, evaluator, values, units and calculation semantics | Existing vendored Rust core; Jabr-owned facade in progress |
+| Math engine | Parser, AST, evaluator, values, units and calculation semantics | Existing vendored Rust core; Jabr API still being stabilized |
 | Math library | Stable application-independent Rust API and Kernel integration | Not yet a separate crate |
 | Math WASM adapter | Versioned browser bridge | Existing vendored WASM crates; Jabr contract remains in progress |
 | Math React components | Reusable React presentation, if/when a React package is justified | Not present; do not replace the current Vanilla workbench |
@@ -75,7 +76,7 @@ The long-term Math subsystem may expose these logical packages:
 
 Do not rename, move, split or wrap the vendored Calcpad crates merely to make directory names match this conceptual table. First stabilize the Jabr-owned API and prove the boundary with tests.
 
-## 4. Standard repository conventions
+## 5. Standard repository conventions
 
 Use these shared conventions where they add real value:
 
@@ -93,7 +94,7 @@ Use these shared conventions where they add real value:
 
 Do not create empty directories or placeholder packages. Add a directory when it contains a maintained artifact.
 
-## 5. CI and validation ownership
+## 6. CI and validation ownership
 
 Preserve the existing independent jobs in `.github/workflows/test.yml`:
 
@@ -108,7 +109,7 @@ A documentation or directory-standardization PR must not weaken these jobs, chan
 
 1. Keep the vendored source and existing harness in place.
 2. Define and test a Jabr-owned engine API/DTO contract.
-3. Integrate the generic Kernel primitives through a Math/Engine adapter; Math remains responsible for parsing and evaluating expressions, while Engine owns graph construction, scheduling and result storage.
+3. Integrate generic Kernel primitives through the planned Engine adapter; Math remains responsible for parsing and evaluating expressions, while Engine owns worksheet state transitions and result lifecycle.
 4. Extract a stable Rust library only when its public API and dependency boundary are clear.
 5. Keep WASM bindings as a target-specific adapter over the same core API.
 6. Consider React components as a separate package only after a concrete consumer and ownership boundary are demonstrated.
