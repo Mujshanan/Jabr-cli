@@ -46,7 +46,7 @@ pub enum BlockStatus {
 
 This is an illustrative Rust shape, not a frozen ABI. The JSON representation is specified in the wire-format design. The outer Kernel envelope carries operation-level diagnostics; block-local diagnostics are attached to the block result so Engine can associate failures with the responsible node. Avoid duplicating the same diagnostic at both levels unless the operation itself also failed.
 
-A block may produce a primary expression value, zero or more named assignment results, and a dependency summary. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation.
+A block may produce a primary expression value, zero or more named assignment results, and a dependency summary. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation.
 
 ## 3. MathValue tagged union
 
