@@ -1,6 +1,6 @@
 # Jabr Math Public Rust API and Kernel Boundary
 
-**Status:** Architecture contract aligned with Jabr Kernel 0.1. The current Rust source-evaluation facade now uses Kernel Diagnostic/Severity and Envelope<T>. Typed block results, dependency extraction, and the versioned cross-target protocol have design documents and fixtures but are not yet implemented.
+**Status:** Architecture contract aligned with Jabr Kernel 0.1. The shared-type migration for the Rust source-evaluation facade is proposed in PR #24 and is not yet merged. Typed block results, dependency extraction, and the versioned cross-target protocol have design documents and fixtures but are not yet implemented.
 
 ## Goals
 
@@ -29,7 +29,7 @@ Kernel 0.1 does **not** ship `Revision`, `Snapshot<T>`, or `ResultStore<V>`. It 
 
 ### Diagnostics and spans
 
-Math uses Kernel's `Diagnostic` and `Severity` as its public diagnostic representation; the facade migration is implemented and the parallel public `MathDiagnostic` DTO has been removed. Kernel `Span` is re-exported for the block API, but the current Calcpad error model supplies line numbers rather than exact UTF-8 byte ranges, so current diagnostics carry `span: None`.
+Math's accepted public diagnostic representation is Kernel `Diagnostic` and `Severity`; PR #24 implements this migration and removes the parallel public `MathDiagnostic` DTO. Until PR #24 merges, main still contains the old DTO. Kernel `Span` is re-exported for the block API, but the current Calcpad error model supplies line numbers rather than exact UTF-8 byte ranges, so current diagnostics carry `span: None`.
 
 - Math owns diagnostic codes (for example, `math.parse.invalid`, `math.evaluate.domain_error`) and their semantics.
 - Kernel owns only the generic fields: code, severity, human-readable message, and optional source span.
@@ -49,7 +49,7 @@ Existing external `request_id` and `document_id` strings may remain opaque reque
 
 ### JSON envelope
 
-Use Kernel `Envelope<T>` as the outer operation result/diagnostics container. The current Rust facade already returns `Envelope<EvaluateResponse>`; the versioned WASM/browser serialization adapter remains pending. Do not introduce a parallel Math envelope with a second schema-version field.
+Use Kernel `Envelope<T>` as the outer operation result/diagnostics container. PR #24 changes the Rust facade to return `Envelope<EvaluateResponse>`; that implementation is awaiting merge. The versioned WASM/browser serialization adapter remains pending. Do not introduce a parallel Math envelope with a second schema-version field.
 
 The envelope's `schema_version` is `ENVELOPE_SCHEMA_VERSION` (currently 1). Its `result` contains a Math-owned, explicitly versioned payload DTO; `diagnostics` contains Kernel `Diagnostic` values. The envelope version governs the outer shape; the payload's own `value_schema_version` governs Math value semantics. These are distinct compatibility boundaries.
 
@@ -70,7 +70,7 @@ Math, Table, and Diagram remain independently developable/testable domain compon
 
 1. Caller supplies authored source and correlation metadata.
 2. Math evaluates using its own parser, evaluator, symbols, and mathematical semantics.
-3. The current facade returns `Envelope<EvaluateResponse>` containing report HTML plus Kernel diagnostics. HTML is presentation output, not a machine-readable calculation result. Calcpad line/output-line context is retained in the diagnostic message because the current parser does not expose exact source byte spans.
+3. The current main-branch facade returns report HTML and line-oriented MathDiagnostic values. PR #24 proposes returning `Envelope<EvaluateResponse>` with Kernel diagnostics instead. HTML is presentation output, not a machine-readable calculation result. The current parser does not expose exact source byte spans.
 4. Math does not mutate Engine or Kernel state. Any future block values, definitions, reads, or proposed assignment outputs are returned as data; Engine decides whether and when to commit them.
 5. Every response echoes request/document/source correlation metadata.
 6. Engine rejects results produced for stale source or stale inputs.
@@ -108,7 +108,7 @@ Retain [engine/LICENSE](../../engine/LICENSE), [engine/NOTICE](../../engine/NOTI
 
 ## Required acceptance tests
 
-1. Public API tests prove that facade diagnostics use Kernel `Diagnostic`/`Severity`, the result uses Kernel `Envelope<T>`, and no parallel public `MathDiagnostic` remains (implemented in PR #24).
+1. Public API tests prove that facade diagnostics use Kernel `Diagnostic`/`Severity`, the result uses Kernel `Envelope<T>`, and no parallel public `MathDiagnostic` remains (covered by PR #24; awaiting merge).
 2. Identity tests must prove Kernel `NodeId`/`Port` are used for cross-boundary block identity and endpoints.
 3. Envelope tests must prove schema version 1 round-trips and unsupported versions fail closed.
 4. Typed-value tests cover numeric exactness, approximate values, units, complex values, vectors/matrices, and typed errors.
@@ -119,7 +119,7 @@ Retain [engine/LICENSE](../../engine/LICENSE), [engine/NOTICE](../../engine/NOTI
 ## Migration sequence
 
 1. Align this document with Kernel 0.1 and the Engine naming decision (completed in PR #20).
-2. Migrate the current facade to Kernel Diagnostic/Severity and Envelope<T> (implemented in PR #24); exact source spans and block NodeId usage follow with the block API.
+2. Migrate the current facade to Kernel Diagnostic/Severity and Envelope<T> (proposed in PR #24; awaiting merge); exact source spans and block NodeId usage follow with the block API.
 3. Specify and implement typed results and dependency extraction in Math (designs in PRs #21 and #22; implementation pending).
 4. Freeze the shared versioned payload/envelope schema and run the same golden fixtures on native and WASM (design and fixtures in PR #23; adapter/parity tests pending).
 5. Keep the Engine contract and implementation in the separate Jabr Engine repository; do not add worksheet scheduling or persistent result storage to Math.
