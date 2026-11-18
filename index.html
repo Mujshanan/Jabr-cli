@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101318" />
-    <meta name="description" content="Jabr CLI — a simple command interface for your application." />
-    <title>Jabr CLI</title>
+    <meta name="theme-color" content="#101923" />
+    <meta name="description" content="Jabr Math engine workbench for parser, AST and mathematical rendering experiments." />
+    <title>Jabr Math — Engine Workbench</title>
     <link rel="stylesheet" href="/src/interactive/style.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
@@ -13,8 +13,8 @@
       window.MathJax = {
         startup: { typeset: false },
         tex: {
-          inlineMath: [["\\(", "\\)"]],
-          displayMath: [["\\[", "\\]"]]
+          inlineMath: [["\\\\(", "\\\\)"]],
+          displayMath: [["\\\\[", "\\\\]"]]
         },
         options: {
           skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
@@ -24,25 +24,31 @@
     <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4.0.0/tex-chtml.js"></script>
   </head>
   <body>
-    <main class="terminal-shell" aria-label="Jabr CLI terminal">
+    <main class="terminal-shell" aria-label="Jabr Math engine workbench">
       <header class="terminal-header">
-        <div class="window-controls" aria-hidden="true">
-          <span class="control control-close"></span>
-          <span class="control control-minimize"></span>
-          <span class="control control-maximize"></span>
-        </div>
-        <div class="terminal-title">Jabr CLI <span>v0.1.0</span></div>
-        <div></div>
+        <div class="brand-lockup"><span class="brand-mark">J</span><span>Jabr <b>Math</b><small>ENGINE WORKBENCH</small></span></div>
+        <div class="engine-status"><span class="status-dot"></span> Mathlex · Rust / WebAssembly <span class="status-divider"></span><span class="status-limited">Parser only · no evaluation</span></div>
+        <span class="version-label">v0.1.0</span>
       </header>
-      <section id="terminal-output" class="terminal-output" aria-live="polite" aria-label="Terminal output"></section>
+      <section class="workbench-intro">
+        <div><div class="eyebrow">DEVELOPER HARNESS</div><h1>Explore the math engine</h1><p>Test parsing, inspect the AST and compare mathematical renderers. Worksheet evaluation is intentionally outside this engine prototype.</p></div>
+        <div class="quick-commands" aria-label="Example commands">
+          <span>TRY AN EXAMPLE</span>
+          <button type="button" data-command='math "2*x + sin(y)^2"'>Expression</button>
+          <button type="button" data-command='math-latex "\\frac{1}{2}"'>LaTeX</button>
+          <button type="button" data-command='ast "2*x + sin(y)^2"'>AST tree</button>
+          <button type="button" data-command="help">Help</button>
+        </div>
+      </section>
+      <section id="terminal-output" class="terminal-output" aria-live="polite" aria-label="Engine output"></section>
       <form id="terminal-form" class="terminal-prompt" autocomplete="off">
-        <label class="prompt-label" for="terminal-input">guest@jabr:~$</label>
+        <label class="prompt-label" for="terminal-input">jabr.math &gt;</label>
         <input id="terminal-input" class="terminal-input" type="text"
           spellcheck="false" autocapitalize="off" autocomplete="off"
-          aria-label="Enter a command" autofocus />
+          aria-label="Enter an engine command" autofocus />
       </form>
       <footer class="terminal-footer">
-        <span>Jabr CLI · Application command interface</span>
+        <span>Jabr Math · Parser and AST inspection harness</span>
         <span><kbd>↑</kbd> <kbd>↓</kbd> history · <kbd>Ctrl</kbd>+<kbd>L</kbd> clear · <kbd>help</kbd></span>
       </footer>
     </main>
