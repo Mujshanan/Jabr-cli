@@ -7,8 +7,8 @@ The vendored Calcpad source is maintained locally under engine/. It is a selecte
 ## Ecosystem architecture boundary
 
 - **Jabr Math owns:** mathematical syntax, parsing, AST, values, quantities, units, dimensional rules, and expression evaluation.
-- **Jabr-engine owns:** worksheet node mapping, graph construction, binding, dependency resolution, recalculation scheduling, and calculation-result lifecycle. The repository is planned but does not yet exist.
-- **Jabr-kernel owns:** generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, dependency-graph primitives, diagnostics and spans. It does not own Math values or variable semantics.
+- **Jabr-engine owns:** sequential worksheet interpretation, execution order, variable environment, assignment/scope/control-flow semantics, revisions, execution generations, immutable snapshots, recalculation and result lifecycle. V1 prohibits forward references and reruns the worksheet from the top. The repository is planned but does not yet exist.
+- **Jabr-kernel owns:** generic identifiers/ports, dependency-graph primitives and algorithms, source spans/locations, structured diagnostics, and versioned envelopes. It does not own worksheet or variable state, revisions, snapshots, result storage, caching, or scheduling.
 - **Jabr-table owns:** table structure, stable row/column IDs, authored cell text and metadata. Math parses cell text; Table never stores or interprets Math evaluation values.
 - **Jabr-UI owns:** the complete BlockSuite/MathLive product experience and authored document persistence. Computed results remain derived/transient and are not written into Yjs.
 
