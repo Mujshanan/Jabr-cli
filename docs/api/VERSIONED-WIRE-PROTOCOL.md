@@ -74,6 +74,8 @@ The response JSON has this shape:
       "diagnostics": []
     }
 
+The block-level analysis_complete flag defaults to true when omitted by older v1 payloads. New Math implementations must always emit it explicitly; dynamic/unanalysable symbol resolution must set it to false.
+
 The response's outer schema_version belongs to Kernel's envelope. payload_schema_version belongs to Math's payload. They are separate compatibility boundaries. A response must echo all request correlation fields exactly.
 
 The example values illustrate field structure; actual block values, definitions, reads, and diagnostics come from Math evaluation.
