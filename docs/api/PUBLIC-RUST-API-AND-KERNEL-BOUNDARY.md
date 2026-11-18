@@ -92,11 +92,11 @@ Do not expose Calcpad `Value`, `RealValue`, `Unit`, `Rc`, `RefCell`, parser, AST
 
 For every independently evaluable block, Math reports definitions and reads using normalized, case/Unicode-aware symbol identities consistent with Math's own language rules. Engine maps cross-block definitions to consumers and constructs the worksheet dependency graph. Math does not choose worksheet execution order.
 
-The detailed value schema is specified in [STRUCTURED-BLOCK-RESULTS.md](STRUCTURED-BLOCK-RESULTS.md), and dependency extraction is specified in [BLOCK-DEPENDENCY-EXTRACTION.md](BLOCK-DEPENDENCY-EXTRACTION.md). Both remain design-only and must be implemented and tested before the Engine repository starts.
+The detailed value schema and dependency extraction are being specified in separate focused documents in PRs #21 and #22. Both remain design-only and must be implemented and tested before the Engine repository starts.
 
 ## Wire compatibility
 
-Native and WASM adapters must implement one versioned protocol over the same Jabr-owned DTOs. The outer result uses Kernel `Envelope<T>`; payload DTOs remain Math-owned. The v1 shape and ten shared golden fixtures are specified in [VERSIONED-WIRE-PROTOCOL.md](VERSIONED-WIRE-PROTOCOL.md). The current Rust facade and legacy WASM convert API have not yet been migrated, and fixture-driven native/WASM parity tests remain pending.
+Native and WASM adapters must implement one versioned protocol over the same Jabr-owned DTOs. The outer result uses Kernel `Envelope<T>`; payload DTOs remain Math-owned. The v1 shape and ten shared golden fixtures are specified in PR #23. The current Rust facade and legacy WASM convert API have not yet been migrated, and fixture-driven native/WASM parity tests remain pending.
 
 Do not treat generated wasm-bindgen classes, HTML, or the current Rust struct layout as the browser wire contract. Browser-facing functions should accept/return the agreed serialized envelope and keep target-specific initialization and panic containment inside the adapter.
 
