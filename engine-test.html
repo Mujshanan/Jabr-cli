@@ -21,6 +21,12 @@
       <section class="engine-test__workspace" aria-label="Calculation test">
         <div class="engine-test__editor">
           <label for="worksheet-editor">Worksheet source</label>
+          <div class="engine-examples" aria-label="Load a sample worksheet">
+            <span>EXAMPLES</span>
+            <button type="button" data-example="scalar">Scalar arithmetic</button>
+            <button type="button" data-example="units">Units and dimensions</button>
+            <button type="button" data-example="functions">Functions</button>
+          </div>
           <div id="worksheet-editor" class="worksheet-editor" aria-label="Worksheet source editor"></div>
           <p class="engine-test__editor-hint"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> run worksheet · <kbd>Tab</kbd> indent</p>
           <div class="engine-test__actions">
