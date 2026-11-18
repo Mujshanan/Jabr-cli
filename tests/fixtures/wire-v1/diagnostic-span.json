@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "result": {
+    "payload_schema_version": 1,
+    "operation": "evaluate_blocks",
+    "request_id": "req-000042",
+    "document_id": "doc-001",
+    "source_revision": "18446744073709551614",
+    "blocks": [
+      {
+        "block_id": 42,
+        "status": "failed",
+        "value": null,
+        "definitions": [],
+        "reads": [],
+        "diagnostics": [
+          {
+            "code": "math.parse.invalid",
+            "severity": "error",
+            "message": "Expected an expression",
+            "span": {
+              "start": 12,
+              "end": 13
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "diagnostics": []
+}
