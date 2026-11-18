@@ -60,7 +60,7 @@ The current `AGENTS.md` explicitly requires preserving the Vanilla TypeScript/Vi
 
 The Jabr-owned source-evaluation facade and generic Kernel/Engine boundary are documented in [PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md](api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md). The current facade is additive over the existing engine; variable-context transport and cross-repository integration remain future work.
 
-Kernel owns only generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, dependency-graph primitives, diagnostics, spans and envelopes. It does not own Math values, language scopes, variable state or assignment transactions. Math owns mathematical values, parsing, AST, units and evaluation. The planned Jabr-engine layer owns worksheet graph construction, cross-block bindings, scheduling and result lifecycle; it composes Kernel primitives with domain-engine APIs.
+Kernel 0.1 owns only NodeId/NodeIdAllocator, Port, generic dependency-graph primitives and topological ordering, Span/Location, Diagnostic/Severity, and versioned Envelope<T>. It does not ship Revision, Snapshot<T>, or ResultStore<V>, and does not own Math values, language scopes, worksheet state, scheduling, or result lifecycle. Math owns mathematical values, parsing, AST, units, evaluation, typed block results, and per-block dependency extraction. The planned Jabr Engine layer owns worksheet state, cross-block binding, graph construction, scheduling, recalculation, revisions/snapshots, result storage, and result lifecycle; it composes Kernel primitives with domain-engine APIs.
 
 ## 4. Target package boundaries (incremental; not created by this change)
 
