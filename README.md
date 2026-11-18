@@ -14,6 +14,8 @@ The vendored Calcpad source is maintained locally under engine/. It is a selecte
 
 Math must expose a stable, independently testable facade. It must not become the worksheet orchestrator or own cross-engine scheduling. Its current Calcpad workbench and Mathlex terminal remain development tools, not a second product UI.
 
+**Naming note:** the `jabr-engine` binary built inside `engine/calcpad-core` is the native Calcpad worksheet test runner for this repository. It is not the separate, planned `Jabr-engine` worksheet orchestration repository listed above.
+
 
 
 The legacy terminal is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
