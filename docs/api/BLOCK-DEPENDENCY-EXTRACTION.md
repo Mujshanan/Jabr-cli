@@ -74,7 +74,7 @@ pub enum ReadCertainty {
 }
 ```
 
-Illustrative types only; the JSON DTO is frozen with the shared [VERSIONED-WIRE-PROTOCOL.md](VERSIONED-WIRE-PROTOCOL.md). `SymbolId` is Math-owned and canonical according to Math's language rules. Its namespace separates variable, function, and unit symbol spaces; its canonical name follows the evaluator's exact name-resolution rules. It is not a Kernel `NodeId`. The containing block is identified by Kernel `NodeId`. A `BlockResult` embeds this summary and carries typed assignment values separately; assignment values correlate with definitions by symbol and event_index. Block-level diagnostics remain on `BlockResult`, avoiding duplicate diagnostic lists.
+Illustrative types only; the JSON DTO is frozen with the shared the versioned wire contract in PR #23. `SymbolId` is Math-owned and canonical according to Math's language rules. Its namespace separates variable, function, and unit symbol spaces; its canonical name follows the evaluator's exact name-resolution rules. It is not a Kernel `NodeId`. The containing block is identified by Kernel `NodeId`. A `BlockResult` embeds this summary and carries typed assignment values separately; assignment values correlate with definitions by symbol and event_index. Block-level diagnostics remain on `BlockResult`, avoiding duplicate diagnostic lists.
 
 ## 3. Symbol identity and name resolution
 
@@ -139,7 +139,7 @@ Changes to a block's definitions or reads cause Engine to rebuild the affected b
 
 ## 8. Integration with typed results
 
-The `BlockResult` described in [STRUCTURED-BLOCK-RESULTS.md](STRUCTURED-BLOCK-RESULTS.md) inlines the same dependency fields (`definitions`, `reads`, and `analysis_complete`) and enriches each definition with its typed value and assignment operation. The standalone analysis operation returns the same dependency metadata without evaluated values. The dependency summary is available even when evaluation fails, if parsing/analysis reached the relevant statements. Do not infer definitions or reads from the final value list alone.
+The `BlockResult` described in the structured result contract in PR #21 inlines the same dependency fields (`definitions`, `reads`, and `analysis_complete`) and enriches each definition with its typed value and assignment operation. The standalone analysis operation returns the same dependency metadata without evaluated values. The dependency summary is available even when evaluation fails, if parsing/analysis reached the relevant statements. Do not infer definitions or reads from the final value list alone.
 
 A successful assignment event must include its symbol, event order, assignment kind, and typed value. A failed or skipped assignment must not be reported as an available definition.
 
