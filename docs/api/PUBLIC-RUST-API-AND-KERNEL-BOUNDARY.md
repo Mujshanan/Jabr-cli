@@ -6,7 +6,7 @@
 
 - Keep the locally maintained Calcpad implementation and its upstream-shaped types internal.
 - Expose a small Jabr-owned Rust API for native applications and a future versioned WASM adapter.
-- Make each evaluation a deterministic operation over explicit source input; never mutate shared worksheet state from Math.
+- Make each expression evaluation a deterministic operation over explicit source and bindings; never mutate shared worksheet state from Math.
 - Keep Kernel independent of Math, Diagram, Table, AFFiNE, BlockSuite and UI frameworks.
 - Preserve the current Vanilla TypeScript/Vite workbench and all existing native/WASM entry points.
 
@@ -69,7 +69,7 @@ The final names, serialization and method signatures must be proven by public AP
 4. Math must not mutate Kernel or Engine state. Any future assignment/result proposal is returned as data; Engine decides how it participates in worksheet state and recalculation.
 5. Every response echoes the exact request ID, document ID and source revision used for evaluation.
 6. Engine/UI discard responses whose source or input revisions are stale.
-7. Language-local variables, functions and solver state follow Math language semantics; cross-block worksheet bindings and scheduling belong to Engine.
+7. Math evaluates expressions and applies mathematical function semantics; worksheet-level variable availability, assignment order and control flow belong to Engine's sequential interpreter.
 
 ## Kernel and Engine integration contract
 
@@ -82,7 +82,7 @@ Kernel 0.1 provides generic infrastructure only:
 
 Kernel does not own worksheet or variable state, language scopes, worksheet bindings, assignment transactions, document/node/source revisions, snapshots/history, result storage/cache, calculation scheduling, or evaluation. Its graph and envelope operations do not trigger application behavior.
 
-Jabr Math owns mathematical values, quantities, units, parsing, AST, language-level scopes, expression-dependency interpretation and evaluation. Jabr-engine (planned; no repository yet) owns worksheet state and calculation records, worksheet node/port mapping, cross-block bindings, graph construction, revisions, snapshots, result storage/cache, scheduling/recalculation orchestration and calculation-result lifecycle. Engine composes generic Kernel graph/transport primitives with Math-owned values without making Kernel depend on Math.
+Jabr Math owns mathematical values, quantities, units, parsing, AST, mathematical symbol semantics and individual expression evaluation. The planned Jabr-engine owns the sequential worksheet interpreter, execution order, worksheet variable environment, assignment updates, worksheet scopes/control flow, revisions, execution generations, snapshots, result storage/cache and recalculation lifecycle. V1 executes statements in document order, prohibits forward references, and supplies Math with explicit bindings from the current Engine environment. Generic Kernel graph primitives are not the V1 worksheet scheduler.
 
 A future cross-boundary value DTO may use an opaque tagged envelope:
 
@@ -128,7 +128,7 @@ For the current facade:
 
 Before adding variable/evaluation context or browser transport, separately test:
 
-1. Engine-owned input snapshot construction and revision preservation.
+1. Engine-owned sequential environment construction and execution-generation preservation.
 2. Exact value serialization and round-trip, including full-width revisions.
 3. Explicit proposed assignment/result output without mutating Engine state.
 4. Unknown type/version behavior at the adapter boundary.
