@@ -76,15 +76,13 @@ The final names, serialization and method signatures must be proven by public AP
 Kernel 0.1 provides generic infrastructure only:
 
 - `NodeId` and `Port` identity primitives.
-- Checked `Revision`.
-- Generic `Snapshot<T>`.
-- Opaque `ResultStore<V>` keyed by `NodeId`.
 - Generic dependency-graph primitives and deterministic topological ordering.
-- Renderer-neutral `Diagnostic`, validated `Span` and versioned `Envelope<T>`.
+- Source-independent spans/locations and renderer-neutral structured diagnostics.
+- A versioned generic `Envelope<T>` whose domain payload remains opaque to Kernel.
 
-Kernel does not own Math values, language symbols, variable scopes, worksheet bindings, assignment transactions, calculation scheduling or evaluation. Its generic payloads are opaque to Kernel.
+Kernel does not own worksheet or variable state, language scopes, worksheet bindings, assignment transactions, document/node/source revisions, snapshots/history, result storage/cache, calculation scheduling, or evaluation. Its graph and envelope operations do not trigger application behavior.
 
-Jabr Math owns mathematical values, quantities, units, parsing, AST, language-level scopes, expression dependencies and evaluation. Jabr-engine (planned; no repository yet) owns worksheet node/port mapping, cross-block bindings, graph construction, scheduling/recalculation orchestration and calculation-result lifecycle. Engine composes the generic Kernel primitives with Math-owned values without making Kernel depend on Math.
+Jabr Math owns mathematical values, quantities, units, parsing, AST, language-level scopes, expression-dependency interpretation and evaluation. Jabr-engine (planned; no repository yet) owns worksheet state and calculation records, worksheet node/port mapping, cross-block bindings, graph construction, revisions, snapshots, result storage/cache, scheduling/recalculation orchestration and calculation-result lifecycle. Engine composes generic Kernel graph/transport primitives with Math-owned values without making Kernel depend on Math.
 
 A future cross-boundary value DTO may use an opaque tagged envelope:
 
