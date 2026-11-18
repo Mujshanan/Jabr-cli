@@ -9,10 +9,10 @@ The vendored Calcpad source is maintained locally under engine/. It is a selecte
 - **Jabr Math owns:** mathematical syntax, parsing, AST, values, quantities, units, dimensional rules, and expression evaluation.
 - **Jabr-engine owns:** worksheet node mapping, graph construction, binding, dependency resolution, recalculation scheduling, and calculation-result lifecycle. The repository is planned but does not yet exist.
 - **Jabr-kernel owns:** generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, dependency-graph primitives, diagnostics and spans. It does not own Math values or variable semantics.
-- **Jabr-table owns:** table structure, stable row/column IDs, authored cell text and metadata. Math parses cell text; Table never stores or interprets Math evaluation values.
+- **Jabr-table owns:** table structure, stable row/column IDs, typed table data and data operations. A dedicated authored formula-source contract remains to be designed; Math parses authored expressions and Table never evaluates them.
 - **Jabr-UI owns:** the complete BlockSuite/MathLive product experience and authored document persistence. Computed results remain derived/transient and are not written into Yjs.
 
-Math must expose a stable, independently testable facade. It must not become the worksheet orchestrator or own cross-engine scheduling. Its current Calcpad workbench and Mathlex terminal remain development tools, not a second product UI.
+Math currently exposes an initial Jabr-owned source-evaluation facade over the vendored Calcpad core. It returns report HTML and line-oriented MathDiagnostic values; it does not yet expose structured Math values, Engine-owned variable snapshots or a versioned browser wire protocol. Math must not become the worksheet orchestrator or own cross-engine scheduling. Its current Calcpad workbench and Mathlex terminal remain development tools, not a second product UI.
 
 **Naming note:** the `jabr-engine` binary built inside `engine/calcpad-core` is the native Calcpad worksheet test runner for this repository. It is not the separate, planned `Jabr-engine` worksheet orchestration repository listed above.
 
@@ -51,6 +51,7 @@ The following is an illustrative layout preview of the minimal engine test page.
 - [Agent instructions](AGENTS.md) — repository-wide rules and constraints for AI coding agents.
 - [Contributing guide](CONTRIBUTING.md) — branch, coding, testing, and pull-request expectations.
 - [Engine-lab development plan](docs/ENGINE-LAB-PLAN.md) — milestones, API contract, and acceptance criteria.
+- [Public Rust API and Kernel boundary](docs/api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md) — current source-evaluation facade and generic Kernel/Engine ownership contract.
 - [CivilKit API audit](docs/CIVILKIT-API-AUDIT.md) — current upstream API findings.
 - [Tokenizer and AST design](docs/TOKENIZER-AST-DESIGN.md) — tokenizer/AST distinction and proposed inspection contract.
 
