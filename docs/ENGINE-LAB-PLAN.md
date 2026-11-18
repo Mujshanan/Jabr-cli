@@ -216,3 +216,32 @@ The CivilKit engine test page will use a minimal CodeMirror 6 editor instead of 
 4. Add tests, document the boundary, and verify Bun/npm builds and the Windows CI path.
 
 **Acceptance criteria:** the engine-test page uses CodeMirror; core editing interactions work; completion inserts the selected item at the correct cursor range; Run and Tokenize consume the latest document; the existing terminal and engine behavior remain unchanged; no unnecessary framework or language-server dependencies are introduced.
+
+
+## Unit system specification and implementation roadmap
+
+The normative design target is documented in [Jabr Unit System Specification](specs/jabr-unit-system-spec.md).
+
+Jabr Math owns the runtime unit registry, dimensions, unit-expression parser, quantities, dimensional arithmetic, conversion, temperature semantics, and display formatting. Kernel and Engine must treat Math quantity payloads as opaque domain values.
+
+Implementation phases:
+
+- **U0:** numeric precision and dimension foundation.
+- **U1:** seven SI base dimensions and units.
+- **U2:** derived SI units and complete prefixes.
+- **U3:** runtime compound-unit grammar and normalization.
+- **U4:** conventional metric, US customary, Imperial, and engineering unit registry.
+- **U5:** dimensional arithmetic and diagnostics.
+- **U6:** conversion and display formatting.
+- **U7:** affine temperature and angle semantics.
+- **U8:** custom units, deferred until the built-in registry is stable.
+
+Do not start U0 until the unit-system specification and numeric representation contract are reviewed. Evaluate `uom` through a focused proof of concept; do not expose third-party unit types in the public Jabr Math API or add the dependency before checking runtime parsing, exact numeric compatibility, affine conversions, WASM support, and build cost.
+
+### CLI and repository naming
+
+- **Jabr-math** is the canonical repository and library owner for mathematical syntax, parsing, values, quantities, units, and evaluation.
+- The existing terminal/workbench is a developer tool, not the production worksheet UI.
+- The local `jabr-engine` executable under `engine/calcpad-core` is a native smoke-test runner only; it is not the planned Jabr Engine orchestration subsystem.
+- The long-term command-line role is a headless developer/test runner for fixtures, validation, and reproducible calculations. The Rust Math library/facade remains the reusable integration surface.
+- Use actual repository names in new documentation: `Jabr-kernel`, `Jabr-math`, `Jabr-table`, `Jabr-diagram`, and `Jabr-UI`. Treat “Jabr-cli” and “Jabr-draw” as legacy/logical labels, not current repository names.
