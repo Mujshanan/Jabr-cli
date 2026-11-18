@@ -80,7 +80,7 @@ const INITIAL_WORKSHEET = "a = 6\nb = 7\nanswer = a*b";
 const WORKSHEET_EXAMPLES: Record<string, string> = {
   scalar: "a = 6\nb = 7\nanswer = a*b",
   units: "length = 6 m\nwidth = 300 mm\narea = length * width",
-  functions: "angle = 30 deg\nsine = sin(angle)\ncosine = cos(angle)",
+  functions: "sine = sin(30 deg)\ncosine = cos(30 deg)",
 };
 let editor: WorksheetEditor | null = null;
 
