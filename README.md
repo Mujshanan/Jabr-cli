@@ -1,6 +1,6 @@
-# Jabr CLI
+# Jabr Math Engine
 
-A lightweight, browser-based command interface for an application, built with Vanilla HTML, CSS, TypeScript and a Rust/WebAssembly math parser.
+A browser-based parser and AST inspection workbench, built with Vanilla HTML, CSS, TypeScript and a Rust/WebAssembly math parser.
 
 Jabr CLI is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
 
@@ -88,6 +88,13 @@ Each mathematical output block has a renderer switch:
 - **MathJax** is available when broader TeX support is needed; its typesetting is asynchronous.
 
 The LaTeX source is available under each rendered expression. Both renderers are loaded from pinned jsDelivr CDN URLs in index.html, so this first version requires an internet connection to load their scripts, CSS and fonts. The parser and Rust/WASM engine remain local. A later packaging step can vendor the renderer assets for fully offline use.
+
+
+## Engine workbench UI
+
+The browser harness is intentionally small and engine-oriented. It provides command examples for plain-text parsing, LaTeX parsing and AST inspection, plus KaTeX/MathJax output comparison. The command prompt remains available for repeatable engine experiments.
+
+This interface does **not** evaluate expressions or implement worksheet variables, units, dependency tracking or execution semantics. Keep those responsibilities in the math engine. Jabr-UI owns the production MathLive worksheet block, calculation-row presentation and unified document experience; this repository should not grow a competing worksheet editor.
 
 ## Commands
 
