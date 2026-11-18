@@ -48,3 +48,85 @@ kbd { padding: 2px 5px; border: 1px solid #343d48; border-radius: 4px; color: #a
   .worksheet-editor, .worksheet-editor .cm-editor, .worksheet-editor .cm-scroller { min-height: 220px; }
   #engine-report { height: 380px; }
 }
+
+.engine-examples{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
+.engine-examples span{width:100%;color:#788797;font-size:9px;font-weight:700;letter-spacing:.1em}
+.engine-examples button{padding:5px 8px;border:1px solid #344553;border-radius:5px;background:#18232e;color:#b9c8d4;font:inherit;font-size:10px;cursor:pointer}
+.engine-examples button:hover{border-color:#7297b0;background:#203242;color:#f2f6fa}
+
+
+/* Jabr shared workbench theme: light engineering workspace + navy product header */
+:root {
+  color-scheme: light;
+  --jabr-brand-950: #101923;
+  --jabr-brand-800: #1e4964;
+  --jabr-accent-700: #2f7196;
+  --jabr-accent-600: #3b86ad;
+  --jabr-accent-100: #edf6fb;
+  --jabr-text: #1b2a38;
+  --jabr-muted: #71818f;
+  --jabr-border: #dce3e9;
+  --jabr-border-soft: #e8edf1;
+  --jabr-surface: #ffffff;
+  --jabr-workspace: #f2f5f8;
+  --jabr-radius-sm: 5px;
+  --jabr-radius-md: 7px;
+  --jabr-radius-lg: 9px;
+}
+body { background: var(--jabr-workspace); color: var(--jabr-text); }
+.engine-test { width: min(1180px, calc(100% - 40px)); padding-top: 0; }
+.engine-test__header {
+  position: relative;
+  width: 100vw;
+  min-height: 62px;
+  margin: 0 0 28px calc((min(1180px, 100vw - 40px) - 100vw) / 2);
+  padding: 0 max(20px, calc((100vw - 1180px) / 2));
+  background: var(--jabr-brand-950);
+  border-bottom: 1px solid #263747;
+  color: #edf4fa;
+}
+.engine-test__header h1 { margin: 0 0 3px; color: #edf4fa; font-size: 14px; font-weight: 700; }
+.engine-test__header p { color: #91a5b7; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.engine-test__back {
+  display: flex; align-items: center; gap: 9px;
+  color: #edf4fa; font-size: 14px; font-weight: 650;
+  text-decoration: none;
+}
+.engine-test__back::before {
+  content: "J"; display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--jabr-brand-800); color: #bde3f6;
+  font-size: 18px; font-weight: 800;
+}
+.engine-status { padding: 6px 9px; border: 1px solid #405264; border-radius: 5px; color: #b7c7d5; }
+.engine-status[data-state="ready"] { color: #9bd6b7; }
+.engine-status[data-state="error"] { color: #ffaaaa; }
+.engine-test__workspace { gap: 1px; padding: 1px; border: 1px solid var(--jabr-border); border-radius: var(--jabr-radius-lg); background: var(--jabr-border); }
+.engine-test__editor, .engine-test__result {
+  padding: 18px; border: 0; border-radius: 0; background: var(--jabr-surface); color: var(--jabr-text);
+}
+.engine-test__editor { border-radius: 8px 0 0 8px; }
+.engine-test__result { border-radius: 0 8px 8px 0; }
+.engine-test__editor label, .engine-test__result-heading label { color: #526879; }
+.worksheet-editor { border-color: var(--jabr-border); border-radius: var(--jabr-radius-md); background: #fbfcfd; }
+.worksheet-editor:focus-within { border-color: #79aeca; }
+.engine-test__editor-hint, .engine-status { color: var(--jabr-muted); }
+kbd { border-color: var(--jabr-border); color: #617687; background: #f7f9fa; }
+.engine-test__actions button { border-radius: var(--jabr-radius-sm); background: var(--jabr-accent-700); }
+.engine-test__actions button:hover { background: var(--jabr-accent-600); }
+#inspect-tokens { border-color: var(--jabr-border); border-radius: var(--jabr-radius-sm); background: #f7f9fa; color: #43596b; }
+.engine-inspector { border-color: var(--jabr-border); border-radius: var(--jabr-radius-md); background: #f8fafb; }
+.engine-inspector h2 { color: #526879; }
+.engine-inspector__heading span, #engine-version { color: #8795a0; }
+.engine-inspector pre { color: #40586a; }
+#engine-report { border-color: var(--jabr-border); border-radius: var(--jabr-radius-md); }
+.engine-errors { border-color: #efcccc; border-radius: var(--jabr-radius-md); background: #fff7f7; }
+.engine-errors h2, .engine-errors pre { color: #9d4242; }
+.engine-examples span { color: #71818f; }
+.engine-examples button { border-color: var(--jabr-border); border-radius: var(--jabr-radius-sm); background: #fff; color: #526879; }
+.engine-examples button:hover { border-color: #9bbbd0; background: #f4f9fc; color: #225f81; }
+@media (max-width: 760px) {
+  .engine-test { width: min(100% - 24px, 560px); padding-top: 0; }
+  .engine-test__header { width: 100vw; margin-left: calc((min(560px, 100vw - 24px) - 100vw) / 2); padding: 12px 12px; }
+  .engine-test__editor, .engine-test__result { border-radius: 8px; }
+}

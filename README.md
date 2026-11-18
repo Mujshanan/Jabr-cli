@@ -167,3 +167,7 @@ The vendored source was imported from CivilKit Calcs revision `97f4bb698cea3bd6a
 ## Safety boundary
 
 Jabr CLI is an application command interface, not a system shell. Input is dispatched only to registered commands. It does not use `eval()` or run operating-system processes.
+
+## Engine test page
+
+The [Calcpad engine test page](./engine-test.html) is a development harness for sample worksheets, tokenizer inspection and calculation reports. It is not the production worksheet editor; Jabr-UI owns the unified document UI and MathLive editing experience.

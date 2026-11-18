@@ -77,6 +77,11 @@ const tokenCount = requireElement(
 );
 
 const INITIAL_WORKSHEET = "a = 6\nb = 7\nanswer = a*b";
+const WORKSHEET_EXAMPLES: Record<string, string> = {
+  scalar: "a = 6\nb = 7\nanswer = a*b",
+  units: "length = 6 m\nwidth = 300 mm\narea = length * width",
+  functions: "sine = sin(30 deg)\ncosine = cos(30 deg)",
+};
 let editor: WorksheetEditor | null = null;
 
 function setStatus(message: string, state: "loading" | "ready" | "error"): void {
@@ -165,6 +170,16 @@ async function start(): Promise<void> {
       initHighlighter(),
     ]);
     editor = worksheetEditor;
+    document.querySelectorAll<HTMLButtonElement>("[data-example]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const source = WORKSHEET_EXAMPLES[button.dataset.example ?? ""];
+        if (!source || !editor) return;
+        editor.setValue(source);
+        tokenCount.textContent = "Source changed — tokenize to refresh";
+        tokenOutput.textContent = "Example loaded. Select Tokenize source to inspect the tokens.";
+        editor.focus();
+      });
+    });
     versionLabel.textContent = "Calcpad " + version() + " · Highlighter " + highlighterVersion();
     runButton.disabled = false;
     tokenizeButton.disabled = false;
