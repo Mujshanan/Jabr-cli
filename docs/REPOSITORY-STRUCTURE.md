@@ -58,9 +58,9 @@ The current `AGENTS.md` explicitly requires preserving the Vanilla TypeScript/Vi
 
 ## 3. Public API and Kernel boundary
 
-The proposed Jabr-owned Rust API and Kernel integration contract are documented in [PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md](api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md). This contract is under review; it does not claim that a stable facade or Kernel implementation already exists. The next implementation step is an additive facade with compile-time API tests over the existing engine, not a rewrite of the vendored Calcpad core.
+The Jabr-owned source-evaluation facade and generic Kernel/Engine boundary are documented in [PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md](api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md). The current facade is additive over the existing engine; variable-context transport and cross-repository integration remain future work.
 
-Kernel owns generic IDs, scopes, opaque typed value envelopes, immutable snapshots, revisions and atomic transactions. Math owns language symbols, parsing, evaluation, units and conversion to/from the opaque Kernel envelope. The dependency direction is Math adapter → Kernel; Kernel must never depend on Math.
+Kernel owns only generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, dependency-graph primitives, diagnostics, spans and envelopes. It does not own Math values, language scopes, variable state or assignment transactions. Math owns mathematical values, parsing, AST, units and evaluation. The planned Jabr-engine layer owns worksheet graph construction, cross-block bindings, scheduling and result lifecycle; it composes Kernel primitives with domain-engine APIs.
 
 ## 4. Target package boundaries (incremental; not created by this change)
 
@@ -109,7 +109,7 @@ A documentation or directory-standardization PR must not weaken these jobs, chan
 
 1. Keep the vendored source and existing harness in place.
 2. Define and test a Jabr-owned engine API/DTO contract.
-3. Integrate the shared Jabr Kernel variable-state model through an explicit adapter; the Math engine remains responsible for parsing and evaluating assignments.
+3. Integrate generic Kernel primitives through the planned Engine adapter; Math remains responsible for parsing and evaluating expressions, while Engine owns worksheet state transitions and result lifecycle.
 4. Extract a stable Rust library only when its public API and dependency boundary are clear.
 5. Keep WASM bindings as a target-specific adapter over the same core API.
 6. Consider React components as a separate package only after a concrete consumer and ownership boundary are demonstrated.
