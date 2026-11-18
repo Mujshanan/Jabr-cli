@@ -14,7 +14,7 @@ Do not extract dependencies with regular expressions over source or by scraping 
 
 Every block analysis/evaluation result includes a dependency summary:
 
-\`\`\`rust
+```rust
 pub struct BlockDependencies {
     pub block_id: NodeId,
     pub definitions: Vec<SymbolDefinition>,
@@ -40,37 +40,37 @@ pub struct SymbolRead {
     pub span: Option<Span>,
     pub event_index: u32,
 }
-\`\`\`
+```
 
-Illustrative types only; the JSON DTO is frozen with the shared wire protocol. \`SymbolId\` is Math-owned and canonical according to Math's language rules. It is not a Kernel \`NodeId\`. The containing block is identified by Kernel \`NodeId\`.
+Illustrative types only; the JSON DTO is frozen with the shared wire protocol. `SymbolId` is Math-owned and canonical according to Math's language rules. It is not a Kernel `NodeId`. The containing block is identified by Kernel `NodeId`.
 
 ## 3. Symbol identity and name resolution
 
 - Math defines canonical symbol identity using the same case sensitivity, Unicode normalization, identifier grammar, aliases, and unit/function namespaces used by evaluation.
-- Return both canonical \`symbol\` and authored \`display_name\`.
+- Return both canonical `symbol` and authored `display_name`.
 - Engine compares canonical symbol keys only. It must not independently lowercase, trim, or normalize names.
 - Built-in constants, built-in functions, built-in units, and language keywords are not worksheet reads unless the language permits them to be shadowed and the current scope actually resolves them to a worksheet binding.
 - Function parameters, loop indices, condition-local bindings, and other local symbols are not cross-block reads.
 - A custom function or custom unit definition is a definition of its own symbol. Its body may read other symbols; report those reads with the scope and evaluation timing defined by Math.
-- Names that cannot be resolved statically (for example dynamic symbol lookup) set \`analysis_complete = false\` and produce a diagnostic. Engine must use conservative sequential evaluation for that block; it must not assume the dependency set is empty.
+- Names that cannot be resolved statically (for example dynamic symbol lookup) set `analysis_complete = false` and produce a diagnostic. Engine must use conservative sequential evaluation for that block; it must not assume the dependency set is empty.
 
 ## 4. Definition and read semantics
 
 Report actual symbol references, not just token occurrences:
 
-- \`x = expr\`: defines \`x\`; reads every external symbol referenced by \`expr\`.
-- \`x := expr\` or equivalent declaration syntax: define according to the Math language's actual assignment semantics.
-- \`x += expr\` and other compound updates: read the prior \`x\` and define/reassign \`x\`.
-- \`x = x + 1\`: reads the previous binding of \`x\` and defines the next value.
-- A pure expression \`x + y\`: reads \`x\` and \`y\`; defines nothing.
-- Multiple assignments in one block are reported in source/evaluation order with monotonically increasing \`event_index\`.
+- `x = expr`: defines `x`; reads every external symbol referenced by `expr`.
+- `x := expr` or equivalent declaration syntax: define according to the Math language's actual assignment semantics.
+- `x += expr` and other compound updates: read the prior `x` and define/reassign `x`.
+- `x = x + 1`: reads the previous binding of `x` and defines the next value.
+- A pure expression `x + y`: reads `x` and `y`; defines nothing.
+- Multiple assignments in one block are reported in source/evaluation order with monotonically increasing `event_index`.
 - Reassignments remain distinct definition events; do not collapse them to one final symbol set. The typed result may contain the final value, but Engine needs the event sequence to preserve sequential semantics.
 
 ### Conditional and iterative constructs
 
-Reads in a condition are unconditional when the construct itself is reached. Reads inside a branch or loop body are conditional. Report them as \`may_read\` rather than dropping them.
+Reads in a condition are unconditional when the construct itself is reached. Reads inside a branch or loop body are conditional. Report them as `may_read` rather than dropping them.
 
-Definitions inside a branch or loop are marked \`conditional\` unless Math can prove the assignment occurs on every execution path. Do not mark a possibly skipped assignment as definitely available to later blocks.
+Definitions inside a branch or loop are marked `conditional` unless Math can prove the assignment occurs on every execution path. Do not mark a possibly skipped assignment as definitely available to later blocks.
 
 For loops, report reads of loop bounds/conditions and distinguish the loop-local index from external symbols. For custom functions, report the function symbol definition and its body dependencies, but do not eagerly bind function-body reads as worksheet execution dependencies if Math semantics resolve them only when called. The call site must report the function symbol as a read; Math must define the exact function dependency expansion rule.
 
@@ -93,7 +93,7 @@ This resolution produces the graph edges. Engine uses Kernel's generic graph and
 
 ## 6. Intra-block dependencies and cycles
 
-Math handles statement-level ordering and local dependencies within a block. Engine's graph contains cross-block edges. A self-reference in an assignment (for example \`x = x + 1\`) is a read of the prior binding, not a self-edge to the new definition. A true recursive definition/function cycle is diagnosed according to Math language semantics; Engine must not erase it by treating all same-block definitions as already available.
+Math handles statement-level ordering and local dependencies within a block. Engine's graph contains cross-block edges. A self-reference in an assignment (for example `x = x + 1`) is a read of the prior binding, not a self-edge to the new definition. A true recursive definition/function cycle is diagnosed according to Math language semantics; Engine must not erase it by treating all same-block definitions as already available.
 
 For a block that defines several symbols and reads symbols defined earlier in the same block, Math's ordered events establish the local execution semantics. Engine treats the block as one scheduling node unless a future contract explicitly promotes statements to separately addressable nodes.
 
@@ -107,7 +107,7 @@ Changes to a block's definitions or reads cause Engine to rebuild the affected b
 
 ## 8. Integration with typed results
 
-The \`BlockResult\` described in [STRUCTURED-BLOCK-RESULTS.md](STRUCTURED-BLOCK-RESULTS.md) carries both typed definitions and the dependency summary. The dependency summary is available even when evaluation fails, if parsing/analysis reached the relevant statements. Do not infer definitions or reads from the final value list alone.
+The `BlockResult` described in [STRUCTURED-BLOCK-RESULTS.md](STRUCTURED-BLOCK-RESULTS.md) carries a `BlockDependencies` summary plus typed `AssignmentResult` values. Each assignment result correlates with its `SymbolDefinition` by canonical symbol and event_index; this avoids maintaining two competing definition schemas. The dependency summary is available even when evaluation fails, if parsing/analysis reached the relevant statements. Do not infer definitions or reads from the final value list alone.
 
 A successful assignment event must include its symbol, event order, assignment kind, and typed value. A failed or skipped assignment must not be reported as an available definition.
 
@@ -119,7 +119,7 @@ A successful assignment event must include its symbol, event order, assignment k
 - Built-ins and local function/loop variables do not become false worksheet dependencies.
 - Custom function definition and call-site dependencies follow the documented lazy/eager semantics.
 - Conditional reads/definitions are marked correctly.
-- Dynamic/unanalysable symbol lookup sets \`analysis_complete = false\`.
+- Dynamic/unanalysable symbol lookup sets `analysis_complete = false`.
 - Unicode/case-sensitive identifiers produce the same canonical identity as evaluation.
 - Source spans are valid UTF-8 byte ranges or absent; never guessed from line numbers.
 - Engine resolution selects the latest preceding definition and does not bind forward references.
