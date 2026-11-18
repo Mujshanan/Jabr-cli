@@ -356,7 +356,7 @@ Requirements:
 
 Jabr must own its runtime unit and quantity contract. A compile-time unit crate alone is insufficient for dynamic worksheet source.
 
-Evaluate \`uom\` as the first candidate for dimensional-algebra reference and possible internal reuse. Compare it with a small Jabr-owned runtime prototype. Do not adopt a dependency until the proof of concept demonstrates:
+Evaluate `uom` as the first candidate for dimensional-algebra reference and possible internal reuse. Compare it with a small Jabr-owned runtime prototype. Do not adopt a dependency until the proof of concept demonstrates:
 
 1. Runtime unit-expression support or a clean adapter path.
 2. Non-SI and compound-unit coverage.
