@@ -230,3 +230,8 @@ The initial feature set is automatic bracket/quote closing, bracket matching, in
 ## Repository structure
 
 The audited current tree, ownership boundaries, target package layout, and safe migration sequence are documented in [REPOSITORY-STRUCTURE.md](REPOSITORY-STRUCTURE.md). That document is additive: it does not authorize moving vendored Calcpad source, changing the Vanilla TypeScript/Vite workbench, or altering existing CI policy.
+
+
+## Public API and Kernel boundary
+
+See [PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md](api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md) for the proposed stable Rust facade, immutable evaluation snapshots, explicit assignment changes and the domain-neutral Kernel transaction contract. Treat it as a contract proposal until the facade and its tests are implemented; do not expose Calcpad internals directly to Jabr-UI.
