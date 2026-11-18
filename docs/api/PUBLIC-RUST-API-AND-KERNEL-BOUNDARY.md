@@ -1,147 +1,125 @@
 # Jabr Math Public Rust API and Kernel Boundary
 
-**Status:** Initial facade proposal aligned with the Jabr Kernel 0.1 contract. The branch implements a source-evaluation facade; variable-context transport and Engine integration remain future work.
+**Status:** Architecture contract aligned with Jabr Kernel 0.1. The current implementation remains a source-evaluation facade; typed block results, dependency extraction, and the versioned cross-target protocol are follow-up design/implementation work.
 
 ## Goals
 
-- Keep the locally maintained Calcpad implementation and its upstream-shaped types internal.
-- Expose a small Jabr-owned Rust API for native applications and a future versioned WASM adapter.
-- Make each evaluation a deterministic operation over explicit source input; never mutate shared worksheet state from Math.
-- Keep Kernel independent of Math, Diagram, Table, AFFiNE, BlockSuite and UI frameworks.
-- Preserve the current Vanilla TypeScript/Vite workbench and all existing native/WASM entry points.
+- Keep the locally maintained Calcpad implementation and upstream-shaped types internal.
+- Expose a small Jabr-owned Rust API for native applications and a versioned WASM/browser adapter.
+- Make evaluation deterministic over explicit input; Math does not mutate shared worksheet state.
+- Reuse Kernel's generic infrastructure types rather than defining parallel cross-repository primitives.
+- Keep Kernel independent of Math, Diagram, Table, Engine, and UI.
 
-## Public API boundary
+## Kernel 0.1: shipped public surface
 
-The initial facade exposes only capabilities the implementation can currently provide:
+The following is the complete relevant Kernel 0.1 public surface:
 
-- `EngineInfo`: API version and engine version.
-- `EvaluateRequest`: request ID, document ID, source revision and authored source text.
-- `EvaluateResponse`: matching request/document/source revision, evaluation outcome, Calcpad report HTML and the current MathDiagnostic values.
-- `MathDiagnostic`: the current facade's Calcpad line/output-line/message diagnostic. It is not yet the normalized cross-engine Kernel diagnostic; Engine/UI adapters must map it to the shared UI diagnostic DTO.
+| Capability | Public types | Meaning |
+| --- | --- | --- |
+| Identity | \`NodeId\`, \`NodeIdAllocator\`, \`IdAllocationError\`, \`MAX_NODE_ID\` | Nonzero JavaScript-safe node IDs. IDs are scoped by the owning document/application namespace. |
+| Ports | \`Port\` | Opaque node/port identity; Engine defines port meaning. |
+| Dependency graph | \`DependencyGraph<N>\`, \`GraphError<N>\` | Generic graph data structure and deterministic prerequisite-first topological ordering. It does not build worksheet dependencies or schedule work. |
+| Source coordinates | \`Span\`, \`SpanError\`, \`Location\`, \`LocationError\` | UTF-8 byte-based half-open spans; validated one-based line and Unicode-scalar-column locations. |
+| Diagnostics | \`Diagnostic\`, \`Severity\` | Generic structured diagnostics with owner-defined stable codes and optional source span. |
+| Transport envelope | \`Envelope<T>\`, \`ENVELOPE_SCHEMA_VERSION\` | Versioned optional result plus diagnostics. Current schema version is 1; deserialization rejects unsupported versions when the Kernel \`serde\` feature is enabled. |
 
-Do not expose `MathParser`, `VarRef`, `Rc<RefCell<_>>`, parser token internals, Calcpad DTOs or generated WASM classes as public application contracts.
+Kernel 0.1 does **not** ship \`Revision\`, \`Snapshot<T>\`, or \`ResultStore<V>\`. It also does not own variable state, scopes, worksheet state, caching, invalidation, cross-engine graph construction, scheduling, recalculation, or result lifecycle. Do not document or depend on those as Kernel APIs.
 
-Structured mathematical values, AST, LaTeX, unit metadata, and an explicit variable/evaluation context are future capabilities. Add them only when the underlying engine can provide them directly and their DTOs have compile-time and serialization tests. Never infer structured values by scraping report HTML.
+## Ownership and shared types
 
-### Rust shape (illustrative current facade)
+### Diagnostics and spans
 
-```rust
-pub struct EngineInfo {
-    pub api_version: u32,
-    pub engine_version: &'static str,
-}
+Math uses Kernel's \`Diagnostic\`, \`Severity\`, and \`Span\` as its public diagnostic representation. Remove the parallel public \`MathDiagnostic\` DTO when the facade's API migration is implemented.
 
-pub struct EvaluateRequest {
-    pub request_id: String,
-    pub document_id: String,
-    pub source_revision: u64,
-    pub source: String,
-}
+- Math owns diagnostic codes (for example, \`math.parse.invalid\`, \`math.evaluate.domain_error\`) and their semantics.
+- Kernel owns only the generic fields: code, severity, human-readable message, and optional source span.
+- A \`Span\` is a UTF-8 byte range \`[start, end)\` in the exact source string evaluated. It is not a line/column pair.
+- Convert Calcpad's line-oriented diagnostics to a byte span only when the parser can identify the exact source range. Do not fabricate offsets from a line number. Until exact ranges are available, use \`span: None\` and retain line/output-line metadata only in an internal adapter/debug detail, not a competing public diagnostic shape.
+- The UI must use the stable code and span for behavior/highlighting; it must not parse the message.
 
-pub struct MathDiagnostic {
-    pub source_line: i32,
-    pub output_line: i32,
-    pub message: String,
-}
+The Math crate enables Kernel's \`serde\` feature where serialization is required. The public facade should re-export Kernel diagnostic types or refer to them directly; it must not wrap them in a structurally duplicate Math diagnostic type.
 
-pub enum EvaluationOutcome {
-    Completed,
-    CompletedWithDiagnostics,
-}
+### IDs and ports
 
-pub struct EvaluateResponse {
-    pub request_id: String,
-    pub document_id: String,
-    pub source_revision: u64,
-    pub outcome: EvaluationOutcome,
-    pub html: String,
-    pub diagnostics: Vec<MathDiagnostic>,
-}
-```
+Use Kernel \`NodeId\` for worksheet block/node identity crossing the Math–Engine boundary, and \`Port\` for generic endpoints when a port is needed. Math must not create a second public numeric node-ID type.
 
-The final names, serialization and method signatures must be proven by public API tests before being treated as stable. The current Rust facade is not yet a versioned browser wire protocol. When serialized to JavaScript, 64-bit revisions must use decimal strings, not JSON numbers, to preserve the full `u64` range.
+Kernel IDs are document/application namespace-scoped, not globally unique. The owning document layer is responsible for allocating and persisting IDs consistently. Math-local parser symbols, variable names, AST node indices, and language-local scopes are not Kernel node IDs.
 
-## Evaluation semantics
+Existing external \`request_id\` and \`document_id\` strings may remain opaque request/document correlation fields in the current facade. They are not substitutes for a block's \`NodeId\`. A source revision echoed by the current facade is correlation metadata only; it does not imply a Kernel \`Revision\` API.
 
-1. The caller supplies authored source and its source revision.
-2. Math evaluates the supplied source using its own parser, evaluator, language symbols and mathematical semantics.
-3. The current facade returns Calcpad report HTML and line-oriented MathDiagnostic values. It does not yet accept an Engine-owned variable snapshot or return structured assignment changes.
-4. Math must not mutate Kernel or Engine state. Any future assignment/result proposal is returned as data; Engine decides how it participates in worksheet state and recalculation.
-5. Every response echoes the exact request ID, document ID and source revision used for evaluation.
-6. Engine/UI discard responses whose source or input revisions are stale.
-7. Language-local variables, functions and solver state follow Math language semantics; cross-block worksheet bindings and scheduling belong to Engine.
+### JSON envelope
 
-## Kernel and Engine integration contract
+Use Kernel \`Envelope<T>\` as the outer operation result/diagnostics container. Do not introduce a parallel Math envelope with a second schema-version field.
 
-Kernel 0.1 provides generic infrastructure only:
+The envelope's \`schema_version\` is \`ENVELOPE_SCHEMA_VERSION\` (currently 1). Its \`result\` contains a Math-owned, explicitly versioned payload DTO; \`diagnostics\` contains Kernel \`Diagnostic\` values. The envelope version governs the outer shape; the payload's own \`value_schema_version\` governs Math value semantics. These are distinct compatibility boundaries.
 
-- `NodeId` and `Port` identity primitives.
-- Checked `Revision`.
-- Generic `Snapshot<T>`.
-- Opaque `ResultStore<V>` keyed by `NodeId`.
-- Generic dependency-graph primitives and deterministic topological ordering.
-- Renderer-neutral `Diagnostic`, validated `Span` and versioned `Envelope<T>`.
+Enable Kernel's \`serde\` feature for this use. Serialize IDs as safe JSON integers only within Kernel's JavaScript-safe range. Serialize any full-width \`u64\` correlation/revision value as a decimal string in the browser protocol; never rely on JavaScript Number to preserve all \`u64\` values.
 
-Kernel does not own Math values, language symbols, variable scopes, worksheet bindings, assignment transactions, calculation scheduling or evaluation. Its generic payloads are opaque to Kernel.
+## Math and Engine ownership
 
-Jabr Math owns mathematical values, quantities, units, parsing, AST, language-level scopes, expression dependencies and evaluation. Jabr-engine (planned; no repository yet) owns worksheet node/port mapping, cross-block bindings, graph construction, scheduling/recalculation orchestration and calculation-result lifecycle. Engine composes the generic Kernel primitives with Math-owned values without making Kernel depend on Math.
+| Package / layer | Owns | Does not own |
+| --- | --- | --- |
+| Kernel | Generic IDs, ports, graph primitives, spans/locations, diagnostics, versioned envelope | Math values, worksheet state, dependency meaning, scheduling, result storage |
+| Jabr Math | Mathematical values/quantities, units, expression syntax, parsing, AST, mathematical semantics, evaluation, per-block definitions/reads, typed calculation outputs | Worksheet-wide graph, cross-block binding, scheduling, persistent result store, recalculation policy |
+| Jabr Engine (planned) | Worksheet state, cross-block binding, graph construction, scheduling, recalculation, result storage, revisions/snapshots and result lifecycle | Parsing, AST semantics, mathematical evaluation |
+| Jabr UI | Document experience, presentation, interaction, diagnostic rendering | Math evaluation or worksheet scheduling |
 
-A future cross-boundary value DTO may use an opaque tagged envelope:
+Math, Table, and Diagram remain independently developable/testable domain components. Engine composes their output. Kernel remains domain-neutral and must not depend on Math.
 
-- `type_id`: stable, namespaced Math value type.
-- `schema_version`: version of the payload schema.
-- `payload`: deterministic JSON-compatible or binary payload with exact numeric encodings preserved.
+## Evaluation contract (current)
 
-This envelope is a transport/domain-adapter contract, not a Kernel-owned value model. Unknown type IDs remain opaque to generic infrastructure and are interpreted only by the owning domain adapter.
+1. Caller supplies authored source and correlation metadata.
+2. Math evaluates using its own parser, evaluator, symbols, and mathematical semantics.
+3. The current facade returns report HTML and diagnostics. HTML is presentation output, not a machine-readable calculation result.
+4. Math does not mutate Engine or Kernel state. Any future block values, definitions, reads, or proposed assignment outputs are returned as data; Engine decides whether and when to commit them.
+5. Every response echoes request/document/source correlation metadata.
+6. Engine rejects results produced for stale source or stale inputs.
+7. Language-local variables/functions/solver state follow Math semantics; cross-block bindings and execution order belong to Engine.
 
-## Package ownership
+## Typed results and dependency extraction (required next contracts)
 
-| Package / layer | Responsibility | Must not own |
-|---|---|---|
-| `jabr-math-core` (current vendored engine, internal) | Calcpad parser/evaluator and calculation semantics | Studio UI, worksheet-wide scheduling or shared state lifecycle |
-| Jabr Math public facade | Stable Jabr-owned Rust DTOs and evaluation operations | Upstream internals in its public API |
-| Math WASM/native adapters | Transport, target-specific initialization and panic containment | Worksheet graph construction or calculation semantics outside Math |
-| Jabr-engine (planned) | Worksheet graph, cross-block bindings, scheduling and result lifecycle | Parsing/evaluation semantics or UI presentation |
-| Vanilla workbench (current) | Engine development/demo UI | Jabr Studio production blocks |
-| Optional React package | Reusable React presentation only if justified | Parser/evaluator or BlockSuite lifecycle |
+HTML must remain a display artifact only. Before Engine implementation, Math must define stable structured per-block output and dependency metadata.
 
-Do not create a React package as part of this work. Do not replace the Vanilla workbench. Jabr Studio remains owned by Jabr-UI and consumes typed Engine/Math adapters.
+A typed block result must be capable of representing at least:
+- a real number with an exactness/approximation representation;
+- a complex number;
+- a quantity with a numeric value and structured unit/dimension data;
+- vector and matrix values (including shape and typed elements);
+- a typed evaluation error/diagnostic reference;
+- the symbols/values defined by the block and the symbols read by the block.
 
-## Compatibility and errors
+Do not expose Calcpad \`Value\`, \`RealValue\`, \`Unit\`, \`Rc\`, \`RefCell\`, parser, AST, or WASM implementation types as the stable public DTO. The Math facade owns a serializable Jabr value model and converts from the vendored core at its boundary. Preserve exact integers/decimals/rationals where the core provides them; mark floating-point values as approximate rather than claiming exactness.
 
-- Version the public API separately from the vendored engine version.
-- Additive optional fields may be introduced within a compatible protocol version.
-- Breaking DTO or semantic changes require a protocol major version.
-- Return structured errors; do not leak panic text or Rust internals to the UI.
-- Include request ID and source/document revisions in every response.
-- Native and WASM adapters must pass the same golden contract fixtures.
-- Keep the Rust API and browser wire protocol distinct; wire serialization must preserve exact integers and decimal/rational values.
-- Stale responses are discarded by Engine/UI, not applied to newer documents.
+For every independently evaluable block, Math reports definitions and reads using normalized, case/Unicode-aware symbol identities consistent with Math's own language rules. Engine maps cross-block definitions to consumers and constructs the worksheet dependency graph. Math does not choose worksheet execution order.
+
+The detailed value schema and dependency extraction rules must be specified and tested before the Engine repository starts. This section states the boundary, not a claim that these features are already implemented.
+
+## Wire compatibility
+
+Native and WASM adapters implement one versioned protocol over the same Jabr-owned DTOs. The outer result uses Kernel \`Envelope<T>\`; payload DTOs remain Math-owned. Both targets must pass identical golden JSON fixtures, including success, diagnostics, typed values, dependency metadata, Unicode spans, unknown/unsupported versions, and large integer encodings.
+
+Do not treat generated wasm-bindgen classes, HTML, or the current Rust struct layout as the browser wire contract. Browser-facing functions should accept/return the agreed serialized envelope and keep target-specific initialization and panic containment inside the adapter.
+
+## Vendored implementation and attribution
+
+The vendored Rust core is isolated under \`engine/\` and is not the public API. Its provenance is tracked in [engine/UPSTREAM.md](../../engine/UPSTREAM.md). The imported CivilKit Calcs revision is \`97f4bb698cea3bd6a9a4fae46dbc28b0d3ca5ffc\`; its CalcpadCE engine ancestry is commit \`0cf438f\`.
+
+Retain [engine/LICENSE](../../engine/LICENSE), [engine/NOTICE](../../engine/NOTICE), and the highlighter's license file with redistributed source/binaries. The vendored core includes a Markdig subset under BSD 2-Clause terms; preserve the copyright, conditions, and disclaimer in the NOTICE. Review and record licenses for any future imported dependency or asset. Keep upstream updates separate from Jabr-specific patches and update the recorded upstream revision on every deliberate import.
 
 ## Required acceptance tests
 
-For the current facade:
-
-1. API version and engine-info construction.
-2. Empty and non-empty worksheet evaluation.
-3. Invalid source and normalized diagnostics.
-4. Request/document/source-revision preservation.
-5. No public API type leaks `Rc`, `RefCell`, parser internals or upstream DTOs.
-
-Before adding variable/evaluation context or browser transport, separately test:
-
-1. Engine-owned input snapshot construction and revision preservation.
-2. Exact value serialization and round-trip, including full-width revisions.
-3. Explicit proposed assignment/result output without mutating Engine state.
-4. Unknown type/version behavior at the adapter boundary.
-5. Native/WASM parity for the same golden fixtures.
-6. Stale response rejection by Engine/UI.
+1. Public API tests prove that facade diagnostics use Kernel \`Diagnostic\` and \`Span\`, and that no parallel public \`MathDiagnostic\` remains.
+2. Identity tests prove Kernel \`NodeId\`/ \`Port\` are used for cross-boundary block identity and endpoints.
+3. Envelope tests prove schema version 1 round-trips and unsupported versions fail closed.
+4. Typed-value tests cover numeric exactness, approximate values, units, complex values, vectors/matrices, and typed errors.
+5. Dependency tests cover definitions, reads, forward references, unresolved names, local symbols, and deterministic normalization.
+6. Native and WASM adapters pass the exact same golden protocol fixtures.
+7. No public API type leaks Calcpad parser/AST/value internals, \`Rc\`, \`RefCell\`, or generated WASM classes.
 
 ## Migration sequence
 
-1. Keep the facade additive over the existing Calcpad core; do not rewrite the core.
-2. Compile-test the current public API and its supported evaluation/diagnostic behavior.
-3. Define the Engine-owned input-context and result-lifecycle contract before exposing variable snapshots.
-4. Add native and WASM adapters against the same versioned DTOs.
-5. Migrate Jabr-UI behind its existing engine adapter.
-6. Keep Kernel generic; do not add Math-specific state, scope, value or transaction APIs to it.
+1. Align this document with Kernel 0.1 (completed by this documentation change).
+2. Migrate the facade's diagnostics, spans, IDs, and envelope to Kernel types.
+3. Specify and implement typed results and dependency extraction in Math.
+4. Freeze the shared versioned payload/envelope schema and run the same golden fixtures on native and WASM.
+5. Keep the Engine contract and implementation in the separate Jabr Engine repository; do not add worksheet scheduling or persistent result storage to Math.
