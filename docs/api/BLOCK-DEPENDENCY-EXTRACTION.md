@@ -27,6 +27,12 @@ pub struct SymbolId {
     pub canonical_name: String,
 }
 
+pub enum SymbolNamespace {
+    Variable,
+    Function,
+    Unit,
+}
+
 pub struct SymbolDefinition {
     pub symbol: SymbolId,
     pub display_name: String,
