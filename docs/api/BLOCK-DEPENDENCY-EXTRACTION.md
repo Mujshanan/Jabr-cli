@@ -74,7 +74,7 @@ pub enum ReadCertainty {
 }
 ```
 
-Illustrative types only; the JSON DTO is frozen with the shared wire protocol. `SymbolId` is Math-owned and canonical according to Math's language rules. Its namespace separates variable, function, and unit symbol spaces; its canonical name follows the evaluator's exact name-resolution rules. It is not a Kernel `NodeId`. The containing block is identified by Kernel `NodeId`. A `BlockResult` embeds this summary and carries typed assignment values separately; assignment values correlate with definitions by symbol and event_index. Block-level diagnostics remain on `BlockResult`, avoiding duplicate diagnostic lists.
+Illustrative types only; the JSON DTO is frozen with the shared [VERSIONED-WIRE-PROTOCOL.md](VERSIONED-WIRE-PROTOCOL.md). `SymbolId` is Math-owned and canonical according to Math's language rules. Its namespace separates variable, function, and unit symbol spaces; its canonical name follows the evaluator's exact name-resolution rules. It is not a Kernel `NodeId`. The containing block is identified by Kernel `NodeId`. A `BlockResult` embeds this summary and carries typed assignment values separately; assignment values correlate with definitions by symbol and event_index. Block-level diagnostics remain on `BlockResult`, avoiding duplicate diagnostic lists.
 
 ## 3. Symbol identity and name resolution
 
