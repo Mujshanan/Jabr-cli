@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "result": {
+    "payload_schema_version": 1,
+    "operation": "evaluate_blocks",
+    "request_id": "req-000042",
+    "document_id": "doc-001",
+    "source_revision": "18446744073709551614",
+    "blocks": [
+      {
+        "block_id": 42,
+        "status": "completed",
+        "value": {
+          "kind": "vector",
+          "length": 2,
+          "elements": [
+            {
+              "kind": "real",
+              "number": {
+                "kind": "finite",
+                "encoding": "f64",
+                "value": "1.0"
+              },
+              "unit": null
+            },
+            {
+              "kind": "real",
+              "number": {
+                "kind": "finite",
+                "encoding": "f64",
+                "value": "2.0"
+              },
+              "unit": null
+            }
+          ]
+        },
+        "definitions": [],
+        "reads": [],
+        "diagnostics": []
+      },
+      {
+        "block_id": 43,
+        "status": "completed",
+        "value": {
+          "kind": "matrix",
+          "rows": 2,
+          "columns": 2,
+          "ordering": "row_major",
+          "elements": [
+            {
+              "kind": "real",
+              "number": {
+                "kind": "finite",
+                "encoding": "f64",
+                "value": "1.0"
+              },
+              "unit": null
+            },
+            {
+              "kind": "real",
+              "number": {
+                "kind": "finite",
+                "encoding": "f64",
+                "value": "2.0"
+              },
+              "unit": null
+            },
+            {
+              "kind": "real",
+              "number": {
+                "kind": "finite",
+                "encoding": "f64",
+                "value": "3.0"
+              },
+              "unit": null
+            },
+            {
+              "kind": "real",
+              "number": {
+                "kind": "finite",
+                "encoding": "f64",
+                "value": "4.0"
+              },
+              "unit": null
+            }
+          ]
+        },
+        "definitions": [],
+        "reads": [],
+        "diagnostics": []
+      }
+    ]
+  },
+  "diagnostics": []
+}
