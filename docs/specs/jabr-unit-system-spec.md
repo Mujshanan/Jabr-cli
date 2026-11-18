@@ -1,49 +1,68 @@
 # Jabr Unit System Specification
 
-**Status:** Architecture specification draft for review  
+**Status:** M0 architecture draft — revised for Architecture A  
 **Owner:** Jabr Math  
-**Scope:** Runtime units, quantities, dimensional analysis, conversion, precision, and display semantics
+**Target contract:** `quantity-v1`  
+**Implementation boundary:** Jabr Math owns all numeric, quantity, unit and dimensional semantics  
+**Freeze rule:** This document is a proposal until reviewed and explicitly accepted.
 
-## 1. Goals
+## 1. Purpose and ownership
 
-Jabr Math requires a runtime unit system for user-authored engineering expressions. Users must be able to enter units dynamically in worksheet source and combine them algebraically; the system cannot rely exclusively on Rust compile-time quantity types.
+Jabr Math requires a runtime unit system for user-authored engineering expressions. Users enter unit symbols dynamically, combine units algebraically and evaluate expressions whose unit structure is not known at Rust compile time.
 
-The unit system must support:
+**All mathematical quantity semantics belong to Jabr Math.** Kernel and Jabr Engine must treat Math values as opaque payloads. Kernel does not define dimensions, quantities, unit registries, conversion factors or mathematical diagnostics. Engine resolves worksheet references and stores/publishes opaque Math result payloads; it does not reinterpret their mathematical meaning.
 
-- The seven SI base dimensions and SI base units.
+The system must support:
+- Seven SI base dimensions and units.
 - SI derived units and the complete SI prefix set.
-- Conventional metric, US customary, Imperial, and common engineering units.
+- Conventional metric, US customary, Imperial and engineering units.
 - Runtime parsing and normalization of compound units.
 - Exact and approximate numeric values.
 - Dimensional analysis and unit-aware arithmetic.
 - Linear and affine conversions.
 - Absolute temperature versus temperature intervals.
 - Stable serialization and deterministic evaluation.
-- Display-unit preferences that do not alter the physical value.
+- Display-unit preferences that do not alter physical values.
 
-The implementation belongs to Jabr Math. Kernel stores only opaque generic payloads; it does not own unit definitions, dimensions, or quantity semantics.
+## 2. Numeric representation
 
-## 2. Core design decisions
+The numeric model is independent of units. V1 should use a tagged scalar representation that preserves exact values where practical and makes approximation explicit.
 
-### 2.1 Runtime-first, dimensionally typed model
+Proposed conceptual model:
 
-The parser must accept unit expressions at runtime, for example:
+```rust
+pub enum Scalar {
+    ExactInt(i128),
+    Rational { numerator: i128, denominator: i128 },
+    Real(f64),
+}
+```
 
-~~~text
-L = 6000 mm
-F = 20 kN
-M = F * 3 m
-sigma = 100 kN / 2000 mm^2
-E = 200 GPa
-~~~
+Rules:
+- Rational denominators are non-zero and normalized to a positive denominator.
+- Rational construction and arithmetic use checked operations; overflow must never wrap.
+- Overflow policy must be explicit: return a typed numeric diagnostic or promote through a documented exact/approximate path. Silent precision loss is forbidden.
+- Integer division promotes to Rational when exact representation is possible.
+- Operations that inherently require approximation (for example general trigonometric/logarithmic functions or irrational roots) return tagged approximate values.
+- No intermediate rounding is performed for display purposes.
+- Non-finite Real values are rejected or represented through explicit diagnostics; they are not silently serialized as JSON numbers.
+- Exact values serialize with tagged integer/rational fields, not as JSON floating-point values.
 
-Internally, each quantity has a numeric value, physical dimension, semantic kind where required, and a preferred display-unit expression.
+Big decimal and symbolic algebra are deferred unless a concrete engineering requirement demonstrates that Rational/Real is insufficient. Decimal source-literal preservation remains an open Math-language decision and must not be confused with a general-purpose arbitrary-precision decimal engine.
 
-Rust compile-time unit libraries may be evaluated as implementation aids or reference oracles, but they cannot be the sole quantity model because worksheet expressions and unit symbols are not known at Rust compile time.
+### 2.1 Equality and comparison
 
-### 2.2 One canonical dimension system
+Do not define all expression equality using a universal relative tolerance. V1 must distinguish:
+- exact equality for exact integer/rational values;
+- approximate numeric comparison for explicitly approximate values;
+- dimensional compatibility before comparing quantities;
+- a separately documented tolerance policy for engineering comparison functions.
 
-Use the seven SI base dimensions as the canonical physical dimension basis:
+The language's `==` semantics must be frozen in the Math language specification. A tolerance such as 1e-12 may be a candidate for an explicit approximate-comparison function or configurable policy, but must not silently redefine exact equality.
+
+## 3. Dimension model
+
+Use the seven SI base dimensions:
 
 | Dimension | Base unit | Symbol |
 |---|---|---|
@@ -55,388 +74,216 @@ Use the seven SI base dimensions as the canonical physical dimension basis:
 | Amount of substance | mole | mol |
 | Luminous intensity | candela | cd |
 
-A dimension is a seven-component exponent vector. Exponents must support the operations required by the language, including negative and rational exponents where mathematically valid.
+A dimension is a seven-component exponent vector. V1 must define exponent representation and bounds. Integer exponents are mandatory; rational exponents may be supported where the Math language permits roots/fractional powers. Exponent overflow must return a diagnostic, never wrap.
 
-Angle is dimensionless in SI dimensional analysis, but the language should preserve angle semantics sufficiently to convert degrees/radians and validate trigonometric inputs. Dimensionless quantities, plain scalars, percentages, and angles must not be conflated in formatting or function semantics.
+Dimension multiplication adds exponents; division subtracts them; exponentiation multiplies them.
 
-### 2.3 Numeric precision is independent of units
+Angle is dimensionless in SI dimensional analysis but retains semantic information for degree/radian conversion and trigonometric functions. Plain scalars, percentages, ratios and angles must not be conflated in parsing, function semantics or formatting.
 
-The unit system must not force all values to f64.
+## 4. Quantity model
 
-Use the Math numeric model:
+The following types are conceptual, not frozen Rust signatures:
 
-- Exact integer and rational values where possible.
-- Exact decimal values where the source or unit definition is decimal-exact.
-- Tagged approximate values for floating-point or numerically approximate results.
-- Explicit precision/rounding metadata for display only.
-
-Conversion factors and offsets should be represented exactly when their definitions permit. Do not round intermediate values merely because the user selected a display unit. Rounding belongs to formatting unless a calculation operation explicitly requests rounding.
-
-## 3. Internal model
-
-The following types describe the required concepts. They are conceptual contracts, not final Rust signatures.
-
-### 3.1 Dimension
-
-~~~rust
-pub struct Dimension {
-    pub length: RationalExponent,
-    pub mass: RationalExponent,
-    pub time: RationalExponent,
-    pub current: RationalExponent,
-    pub temperature: RationalExponent,
-    pub amount: RationalExponent,
-    pub luminous_intensity: RationalExponent,
-}
-~~~
-
-Dimension multiplication adds exponents; division subtracts them; exponentiation multiplies them. The implementation must define supported exponent bounds and reject overflow rather than wrap.
-
-### 3.2 Unit definition
-
-A registered unit definition should contain:
-
-- Stable namespaced UnitId.
-- Canonical symbol and accepted aliases.
-- Physical dimension.
-- Linear scale to the canonical base representation, or an affine transform where applicable.
-- Unit category and unit-system metadata.
-- Prefix policy.
-- Quantity semantic kind, where required.
-- Definition provenance and exactness.
-
-A unit registry is data-driven. The evaluator must not contain scattered conversion constants or symbol-specific conversion branches.
-
-### 3.3 Unit expression
-
-A UnitExpression is a normalized product of registered unit factors and rational exponents.
-
-~~~rust
-pub struct UnitFactor {
-    pub unit_id: UnitId,
-    pub exponent: RationalExponent,
-}
-
-pub struct UnitExpression {
-    pub factors: Vec<UnitFactor>,
-    pub dimension: Dimension,
-    pub scale: ExactOrApproximate,
-}
-~~~
-
-Canonicalization must make equivalent expressions comparable without losing the user's preferred display form. For example, N/m² and kg/(m·s²) are dimensionally and physically equivalent, even if the preferred display is different.
-
-### 3.4 Quantity
-
-~~~rust
+```rust
 pub struct Quantity {
-    pub value: NumericValue,
+    pub value: Scalar,
     pub dimension: Dimension,
     pub kind: QuantityKind,
-    pub display_unit: Option<UnitExpression>,
+    pub canonical_value: CanonicalValue,
+    pub preferred_display_unit: Option<UnitExpression>,
 }
-~~~
 
-The physical value and display preference are separate. Changing a display unit must not change the represented physical quantity.
+pub enum QuantityKind {
+    Linear,
+    AbsoluteTemperature,
+    TemperatureInterval,
+    Angle,
+    DimensionlessRatio,
+    Percentage,
+}
+```
 
-## 4. Unit-expression grammar
+The implementation may choose a different internal representation, but it must preserve these semantic distinctions.
 
-The runtime parser must support:
+Physical value and preferred display unit are separate. Changing a display preference must not change the represented physical quantity or invalidate unrelated mathematical dependencies.
 
-| Form | Example |
-|---|---|
-| Unit following a value | 5 m |
-| Explicit multiplication | kg*m/s^2 |
-| Middle-dot multiplication | kN·m |
-| Division | m/s |
-| Positive and negative powers | m^2, s^-2 |
-| Parentheses | kg/(m*s^2) |
-| Nested compounds | N*m/kg |
-| Prefixes | mm/s, kN/m |
-| Rational powers where supported | m^(1/2) |
+## 5. Unit definitions and registry
 
-The grammar must distinguish a unit expression from a variable/expression identifier using parser context and explicit tokenization rules. It must not silently reinterpret an unknown identifier as a unit or a known unit symbol as a variable.
+A unit definition must contain:
+- Stable Math-owned UnitId.
+- Canonical symbol and explicit aliases.
+- Dimension and semantic kind.
+- Exact or approximate scale to canonical representation.
+- Offset where affine conversion is applicable.
+- Unit family/system metadata.
+- Prefix policy.
+- Definition provenance and exactness classification.
 
-### 4.1 Symbol and prefix rules
-
-- Symbols are case-sensitive: m and M are not interchangeable.
-- Prefixes are resolved only where the registry permits them.
-- Prefix parsing must not accept ambiguous repeated prefixes.
-- kg is the base mass unit; prefix handling must not accidentally reinterpret it as an ordinary prefixed gram without a canonical rule.
-- Unicode micro, middle dot, degree, and superscript input may be normalized at the input boundary, but original source text must remain available for editing and diagnostics.
-- Aliases are explicit registry entries, not fuzzy matching.
-
-## 5. Unit families and minimum coverage
+The registry is data-driven. Conversion constants must not be scattered through evaluator branches.
 
 ### 5.1 SI base and derived units
 
-Include the seven SI base units and named derived units needed by engineering and science, including Hz, N, Pa, J, W, C, V, ohm, F, Wb, T, H, lm, and lx.
-
-Named derived units retain preferred symbols but resolve to canonical dimensions and scale.
+Include seven SI base units and named derived units required for engineering/science, including Hz, N, Pa, J, W, C, V, ohm, F, Wb, T, H, lm and lx. Named derived units retain preferred symbols while resolving to canonical dimensions and scale.
 
 ### 5.2 SI prefixes
 
-Support the complete current SI prefix set, with case-sensitive symbols and exact powers of ten. Prefix support must be data-driven and tested at both large and small magnitudes.
+Support the complete current SI prefix set with exact powers of ten and case-sensitive symbols. Prefix application is controlled by the registry:
+- no ambiguous repeated prefixes;
+- kg is handled as the canonical base mass unit;
+- prefix eligibility is explicit per unit;
+- micro, middle dot, degree and superscript input may be normalized at the input boundary while retaining original source for diagnostics/editing.
 
-### 5.3 Conventional metric units
+### 5.3 Non-SI and engineering units
 
-At minimum evaluate and support common engineering usage such as:
+V1 registry coverage should include commonly used:
+- conventional metric units;
+- US customary units;
+- Imperial units;
+- engineering force and stress units.
 
-- Length: mm, cm, km.
-- Area: mm², cm², hectare.
-- Volume: litre and common submultiples.
-- Mass: gram and metric tonne.
-- Pressure: bar and other accepted conventional units.
-- Force: kilogram-force and tonne-force, explicitly distinct from mass.
+At minimum, distinguish mass from force and include kg, g, tonne, lbm, slug, N, kN, MN, kgf, lbf and kip. Include length units such as mm, cm, m, km, inch, foot, yard and mile; pressure/stress units such as Pa, kPa, MPa, GPa, bar, psi and ksi; and common volume/area/time units.
 
-### 5.4 US customary and Imperial units
+Each definition must record whether its conversion factor is exact by definition or an approximation/conventional value. Avoid describing all legacy customary conversions as inherently inexact: some are exact by definition (for example inch-to-metre and pound-mass-to-kilogram international definitions).
 
-The initial registry should cover common engineering units:
+## 6. Compound-unit grammar
 
-- Length: inch, foot, yard, mile.
-- Area: square inch, square foot, acre.
-- Volume: cubic inch, cubic foot, US gallon, Imperial gallon.
-- Mass: pound mass (lbm), ounce, slug, short ton, long ton.
-- Force: pound-force (lbf), kip, kilogram-force, tonne-force.
-- Pressure: psi, ksi, standard atmosphere, bar, and supported mercury-column units.
-- Energy/moment: ft·lbf, in·lbf, and SI torque/moment units.
-- Power: horsepower variants only when the exact definition is named.
+The runtime unit parser must support:
 
-US customary and Imperial units must remain distinguishable where definitions differ. Do not use ambiguous symbols such as ton or gallon without a named variant or an explicit default documented by the registry.
+| Form | Example |
+|---|---|
+| Unit after numeric value | `5 m` |
+| Multiplication | `kg*m/s^2` |
+| Middle-dot multiplication | `kN·m` |
+| Division | `m/s` |
+| Integer powers | `m^2`, `s^-2` |
+| Parentheses | `kg/(m*s^2)` |
+| Nested compounds | `N*m/kg` |
+| Prefixes | `mm/s`, `kN/m` |
+| Rational powers | `m^(1/2)`, if supported by the Math grammar |
 
-### 5.5 Engineering units
+The parser must distinguish unit expressions from variable identifiers using explicit lexical/parser context. An unknown identifier must not silently become a unit, and a known unit symbol must not be silently treated as a variable where unit syntax is expected.
 
-Prioritize structural and civil engineering usage:
+Symbols are case-sensitive. Aliases are explicit registry entries, not fuzzy matching. Normalization must preserve source text for editing and diagnostics.
 
-- Force: N, kN, MN, lbf, kip.
-- Stress/pressure: Pa, kPa, MPa, GPa, psi, ksi.
-- Distributed load: N/m, kN/m, lbf/ft, kip/ft.
-- Moment: N·m, kN·m, lbf·ft, kip·ft.
-- Density: kg/m³, t/m³, lbm/ft³.
-- Unit weight: kN/m³, lbf/ft³.
-- Section properties: mm², cm², m², in², mm⁴, cm⁴, in⁴, ft⁴.
+Equivalent unit expressions must normalize to comparable dimension/scale representations without erasing the user's preferred display expression. For example, N/m² and kg/(m·s²) are dimensionally equivalent even though their display forms differ.
 
-Engineering names are aliases or named derived units over the same canonical dimensional model, not separate dimension systems.
-
-## 6. Compound units and dimensional algebra
-
-Compound units are generated dynamically from registered units. Do not maintain an exhaustive list of every possible compound unit.
-
-Required operations:
-
-- Multiplication and division of units.
-- Integer and supported rational powers.
-- Negative powers.
-- Parenthesized products and quotients.
-- Prefix application to eligible units.
-- Canonical dimension and scale computation.
-- Preferred display preservation.
-
-Examples:
-
-~~~text
-N/m^2       -> pressure dimension
-kN*m        -> moment/energy dimension
-kg/(m*s^2)  -> pressure dimension
-mm^4        -> fourth power of length
-kN/m        -> distributed force dimension
-~~~
-
-A compound expression is valid only if all factors are valid linear units. Affine units such as degrees Celsius and degrees Fahrenheit cannot be multiplied, divided, exponentiated, or embedded directly in a compound unit.
-
-The engine must distinguish quantities that share dimensions but have different semantic roles where the language requires it, such as energy and torque, or absolute temperature and temperature interval.
-
-## 7. Conversion model
+## 7. Linear, affine and semantic units
 
 ### 7.1 Linear units
 
-For a linear unit:
+Linear units use scale-only conversion. Multiplication, division, powers and compound expressions are allowed subject to dimensional rules.
 
-~~~text
-canonical_value = displayed_value * scale
-displayed_value = canonical_value / scale
-~~~
+### 7.2 Affine temperature units
 
-All intermediate calculations retain the exact/approximate tag of the numeric model.
-
-### 7.2 Affine units
-
-For an affine unit:
-
-~~~text
-canonical_value = displayed_value * scale + offset
-displayed_value = (canonical_value - offset) / scale
-~~~
-
-Affine conversion is required for absolute temperature.
-
-### 7.3 Temperature semantics
+Celsius and Fahrenheit absolute-temperature scales require scale and offset. They are valid only for absolute temperature quantities, not as ordinary factors in compound units.
 
 The model must distinguish:
+- absolute temperature, e.g. 20 °C;
+- temperature interval, e.g. a difference of 20 K;
+- Kelvin absolute temperature and Kelvin interval semantics.
 
-- Absolute temperature.
-- Temperature interval/difference.
+Required arithmetic:
+- absolute temperature minus absolute temperature produces a temperature interval;
+- absolute temperature plus an interval produces an absolute temperature;
+- interval plus interval produces an interval;
+- adding two absolute temperatures is invalid;
+- multiplying/dividing an absolute temperature is invalid;
+- conversion between Celsius/Fahrenheit/Kelvin preserves the physical absolute temperature;
+- interval conversion uses scale only, without affine offset.
 
-Required arithmetic rules:
+### 7.3 Other dimensionless semantics
 
-| Operation | Result |
-|---|---|
-| Absolute temperature + interval | Absolute temperature |
-| Absolute temperature − interval | Absolute temperature |
-| Absolute temperature − absolute temperature | Temperature interval |
-| Interval + interval | Temperature interval |
-| Absolute temperature + absolute temperature | Error |
-| Multiplication/division of absolute temperature | Error unless a separately defined operation explicitly permits it |
+Radians, degrees, percentages and ppm are dimensionless in the SI dimension vector but retain semantic/display metadata. Trigonometric functions must define accepted angle inputs and conversion behavior. Percentage scaling must be explicit (for example 50% represents ratio 0.5), not merely a decorative label.
 
-Support kelvin, degrees Celsius, and degrees Fahrenheit. Conversion constants must be exact where defined. Do not treat Celsius/Fahrenheit as ordinary multiplicative units.
+## 8. Arithmetic and dimensional diagnostics
 
-### 7.4 Angle semantics
+The evaluator must validate dimensions and quantity kinds for addition, subtraction, comparison, multiplication, division, powers and supported functions.
 
-Radians are the coherent SI unit for angle and are dimensionless in the dimension vector. Degrees and other supported angular units convert to radians. Trigonometric functions must document their angle policy; Jabr's default should be radians, with explicit degree conversion available.
+Minimum Math-owned diagnostic categories:
+- `math.unit.unknown`
+- `math.unit.dimension_mismatch`
+- `math.unit.affine_in_product`
+- `math.unit.affine_sum`
+- `math.unit.expected`
+- `math.unit.invalid_conversion`
+- `math.unit.exponent_overflow`
+- `math.numeric.rational_overflow`
+- `math.numeric.division_by_zero`
+- `math.numeric.non_finite`
 
-## 8. Arithmetic and validation rules
-
-| Operation | Rule |
-|---|---|
-| Addition/subtraction | Compatible dimensions and compatible quantity kinds |
-| Multiplication | Multiply dimensions and scales |
-| Division | Divide dimensions and scales; reject division by zero |
-| Power | Multiply dimension exponents by the power |
-| Root | Resulting exponents must be representable |
-| Comparison | Compatible dimensions and quantity kinds |
-| Conversion | Same physical dimension and compatible semantic kind |
-| Trigonometric functions | Dimensionless/angle input under documented angle semantics |
-| Logarithms/exponentials | Dimensionless input |
-
-Examples:
-
-~~~text
-5 m + 3 m       valid -> 8 m
-10 m / 2 s      valid -> 5 m/s
-5 m + 3 kg      invalid -> dimensional mismatch
-100 kN/2000 mm² valid -> 50 MPa
-~~~
-
-The evaluator must return structured diagnostics with stable Math-owned codes and source spans. It must never silently discard units to make an expression evaluate.
+Kernel supplies only a generic diagnostic envelope. Engine may transport/store these diagnostics as opaque Math payloads; it must not invent or reinterpret their mathematical meaning.
 
 ## 9. Display and formatting
 
-- Preserve the authored expression and its unit spelling.
-- Preserve a preferred display unit separately from the canonical physical value.
-- Allow a result to display in a compatible unit selected by the user or document.
-- A display-unit change must not alter the source expression or physical result.
-- Do not round stored values when formatting.
-- Apply significant figures, decimal places, scientific notation, and unit spacing only in the formatter.
-- Keep unit symbol formatting consistent: multiplication dots, superscripts, negative exponents, parentheses, and spacing.
-- If a preferred unit is incompatible, show a diagnostic and retain the physical value; do not silently fall back to an unrelated unit.
+- Default display precision is a configurable significant-figure policy; six significant figures is a proposed initial default, not a calculation precision.
+- Formatting never mutates the underlying quantity.
+- A user-selected display unit must be dimensionally and semantically compatible.
+- Unit conversion occurs before formatting and preserves exactness when the conversion factor is exact and the scalar operation remains representable.
+- Engineering notation and unit-symbol spacing/case rules belong to the Math formatter.
+- A display-unit-only change should update presentation without forcing unrelated worksheet recalculation.
 
-## 10. Serialization and reproducibility
+## 10. Serialization and inter-engine boundary
 
-Define versioned Math-owned DTOs for:
-
-- UnitDefinition references.
-- UnitExpression.
-- Dimension.
-- Quantity.
-- NumericValue.
-- QuantityKind.
-- Display-unit preference.
+Math owns the serialized representation of `Scalar`, `Dimension`, `Quantity`, `UnitExpression` and Math diagnostics.
 
 Requirements:
+- Use tagged representations for ExactInt, Rational and Real.
+- Never serialize i128 values as JSON numbers if the receiving JavaScript/runtime cannot preserve their full range; use decimal strings.
+- Define stable field names and payload version.
+- Define finite-value policy for Real.
+- Include enough metadata to reconstruct quantity kind and preferred display unit.
+- Preserve unknown/future version behavior explicitly.
+- Engine and Kernel treat the serialized Math payload as opaque. Kernel does not need to depend on the Math crate or understand the quantity schema.
 
-- Stable unit IDs; symbols and aliases may change only through a documented compatibility migration.
-- Exact integers/rationals/decimals serialize as tagged strings or numerator/denominator structures, never as JSON floating-point values.
-- Approximate values serialize with an explicit approximate tag and documented numeric representation.
-- The registry version is recorded when a serialized document depends on registry-defined units.
-- Unknown unit IDs or unsupported registry versions produce explicit diagnostics.
-- Native and WASM adapters produce equivalent normalized results.
-- Display formatting must not be the only persisted representation of a quantity.
+## 11. Required verification fixtures
 
-## 11. Rust-library evaluation policy
+Minimum conversion/dimension fixtures:
+- 1 m = 1000 mm.
+- 1 in = 25.4 mm exactly.
+- 1 ft = 12 in exactly.
+- 1 MPa = 1000 kPa.
+- 1 bar = 100000 Pa.
+- 1 kip ≈ 4.4482216152605 kN (with documented exactness/rounding basis).
+- kN·m has moment dimension.
+- N/mm² has pressure/stress dimension and equals MPa.
+- 3 m + 2 s returns dimension mismatch.
+- Compound-unit cancellation, e.g. (m/s)·s -> m.
+- Celsius/Fahrenheit/Kelvin absolute conversions.
+- Absolute temperature subtraction produces interval.
+- Absolute temperature addition and affine multiplication return diagnostics.
+- kg and kgf remain different dimensions/quantities.
+- Rational overflow and zero denominator return explicit diagnostics.
+- Native and WASM paths produce matching normalized results.
 
-Jabr must own its runtime unit and quantity contract. A compile-time unit crate alone is insufficient for dynamic worksheet source.
+## 12. Implementation phases
 
-Evaluate `uom` as the first candidate for dimensional-algebra reference and possible internal reuse. Compare it with a small Jabr-owned runtime prototype. Do not adopt a dependency until the proof of concept demonstrates:
+- **U0:** scalar representation, checked rational arithmetic and dimension foundation.
+- **U1:** seven SI base dimensions and units.
+- **U2:** SI derived units and complete prefix registry.
+- **U3:** runtime compound-unit parser and normalization.
+- **U4:** conventional metric, US customary, Imperial and engineering unit registry.
+- **U5:** dimensional arithmetic and diagnostics.
+- **U6:** conversion and display formatting.
+- **U7:** affine temperature, angle and dimensionless semantic rules.
+- **U8:** user-defined/custom units, deferred until built-in registry and serialization are stable.
 
-1. Runtime unit-expression support or a clean adapter path.
-2. Non-SI and compound-unit coverage.
-3. Compatibility with exact rational/decimal values.
-4. Affine temperature behavior.
-5. WASM compatibility and acceptable binary/compile-time cost.
-6. Stable serialization and no leakage of third-party types into the Jabr public API.
+Evaluate `uom` only through a focused proof of concept. It may serve as an implementation aid or reference oracle, but must not define the public Jabr Math API or become the sole runtime unit model. Evaluate runtime unit parsing, rational/exact scalar compatibility, affine temperature, WASM support and build cost before adding any dependency.
 
-The decision record must state whether the library is adopted, used only as a reference/test oracle, or rejected. The public Jabr Math API remains independent of that decision.
+## 13. Open decisions before freeze
 
-## 12. Implementation phases and gates
+1. Whether dimension exponents are bounded integers in V1 or rational exponents from the start.
+2. Whether decimal source literals preserve exact decimal form or normalize to Rational/Real.
+3. Exact scalar overflow behavior: typed error only versus a documented promotion to approximate Real.
+4. Full minimum unit registry list and provenance source.
+5. Language-level equality and approximate comparison semantics.
+6. Angle and percentage parsing/formatting behavior.
+7. Exact serialized Math value schema and compatibility policy.
 
-| Phase | Deliverable | Exit criteria |
-|---|---|---|
-| U0 | Numeric and dimension foundation | Exact/approximate model, dimension algebra, serialization tests |
-| U1 | SI base units | Seven dimensions and base-unit tests |
-| U2 | Derived units and prefixes | Named derived units and complete prefix resolution |
-| U3 | Runtime compound-unit parser | Grammar, normalization, invalid-token diagnostics |
-| U4 | Non-SI registry | Metric conventional, US customary, Imperial and engineering fixtures |
-| U5 | Quantity arithmetic | Dimensional rules and operation tests |
-| U6 | Conversion and formatting | Linear conversion, display preferences and precision behavior |
-| U7 | Affine temperature and angle semantics | Absolute/differential temperature and angular tests |
-| U8 | Custom units (deferred) | User-defined registry extensions with namespace and persistence rules |
+## 14. Explicit non-goals
 
-### U0 acceptance gate
-
-- Dimension vector algebra is tested independently of the parser.
-- Exact rational and decimal factors round-trip without loss.
-- Approximate values remain explicitly tagged.
-- Quantity and UnitExpression DTOs have versioned serialization tests.
-- No dependency on Kernel implementation or UI.
-
-### End-to-end engineering fixture
-
-~~~text
-L = 6000 mm
-b = 300 mm
-h = 600 mm
-A = b*h
-I = b*h^3/12
-E = 200 GPa
-w = 25 kN/m
-~~~
-
-The fixture must verify values, dimensions, conversion, preferred display units, and deterministic serialization.
-
-## 13. Required test matrix
-
-At minimum:
-
-| Input/conversion | Expected behavior |
-|---|---|
-| 1 m → mm | 1000 mm |
-| 1 in → mm | 25.4 mm |
-| 1 ft → in | 12 in |
-| 1 MPa → kPa | 1000 kPa |
-| 1 bar → Pa | 100000 Pa |
-| 1 lbf → N | Exact defined conversion |
-| 1 kip → kN | Exact defined conversion |
-| N/mm² → MPa | Equivalent dimensions and scale |
-| kN/m × m | Force |
-| kN × m | Moment/energy dimension; semantic role retained where available |
-| m/s × s | Length |
-| m + kg | Dimensional error |
-| °C ↔ °F | Correct affine conversion |
-| absolute °C − absolute °C | Temperature interval |
-| absolute °C + absolute °C | Error |
-| degree → radian | Correct angular conversion |
-| mm^4 → m^4 | Correct fourth-power scale |
-| unknown unit symbol | Source-spanned diagnostic |
-| ambiguous US/Imperial unit | Explicit variant required |
-
-Add property-based tests for conversion round trips, compound-unit normalization, dimensional identities, and serialization reproducibility.
-
-## 14. Explicit non-goals for the first unit-system milestone
-
-- User-defined units and arbitrary user registries (U8).
-- Automatic guessing of unknown unit symbols.
-- Locale-dependent reinterpretation of unit symbols.
-- Treating every dimensionally equal quantity as semantically interchangeable.
-- Forcing all values into f64.
-- Using report HTML as the source of structured values.
-- Moving units or quantities into Kernel.
+- Kernel-owned dimensions, units, quantities or conversion logic.
+- Engine-owned mathematical interpretation or evaluation.
+- Compile-time-only units as the sole runtime model.
+- Arbitrary-precision symbolic algebra in V1.
+- Silent floating-point rounding or silent rational overflow.
+- Custom unit definition before the built-in registry is stable.
