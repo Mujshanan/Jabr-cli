@@ -56,7 +56,13 @@ The frontend is intentionally Vanilla HTML/CSS + TypeScript + Vite. Bun is canon
 
 The current `AGENTS.md` explicitly requires preserving the Vanilla TypeScript/Vite stack and forbids introducing React solely to implement a feature. This standardization change does not override that constraint.
 
-## 3. Target package boundaries (incremental; not created by this change)
+## 3. Public API and Kernel boundary
+
+The proposed Jabr-owned Rust API and Kernel integration contract are documented in [PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md](api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md). This contract is under review; it does not claim that a stable facade or Kernel implementation already exists. The next implementation step is an additive facade with compile-time API tests over the existing engine, not a rewrite of the vendored Calcpad core.
+
+Kernel owns generic IDs, scopes, opaque typed value envelopes, immutable snapshots, revisions and atomic transactions. Math owns language symbols, parsing, evaluation, units and conversion to/from the opaque Kernel envelope. The dependency direction is Math adapter → Kernel; Kernel must never depend on Math.
+
+## 4. Target package boundaries (incremental; not created by this change)
 
 The long-term subsystem may expose these logical packages:
 
@@ -70,7 +76,7 @@ The long-term subsystem may expose these logical packages:
 
 Do not rename, move, split or wrap the vendored Calcpad crates merely to make directory names match this conceptual table. First stabilize the Jabr-owned API and prove the boundary with tests.
 
-## 4. Standard repository conventions
+## 5. Standard repository conventions
 
 Use these shared conventions where they add real value:
 
@@ -88,7 +94,7 @@ Use these shared conventions where they add real value:
 
 Do not create empty directories or placeholder packages. Add a directory when it contains a maintained artifact.
 
-## 5. CI and validation ownership
+## 6. CI and validation ownership
 
 Preserve the existing independent jobs in `.github/workflows/test.yml`:
 
