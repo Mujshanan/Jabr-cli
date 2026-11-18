@@ -24,16 +24,21 @@ pub struct BlockResult {
     pub block_id: NodeId,
     pub status: BlockStatus,
     pub value: Option<MathValue>,
-    pub assignments: Vec<AssignmentResult>,
-    pub dependencies: BlockDependencies,
+    pub definitions: Vec<DefinitionResult>,
+    pub reads: Vec<SymbolRead>,
+    pub analysis_complete: bool,
     pub diagnostics: Vec<Diagnostic>,
 }
 
-pub struct AssignmentResult {
+pub struct DefinitionResult {
     pub symbol: SymbolId,
+    pub display_name: String,
+    pub kind: DefinitionKind,
+    pub certainty: DefinitionCertainty,
+    pub span: Option<Span>,
+    pub event_index: u32,
     pub value: MathValue,
     pub assignment: AssignmentKind,
-    pub event_index: u32,
 }
 
 pub enum BlockStatus {
@@ -46,7 +51,7 @@ pub enum BlockStatus {
 
 This is an illustrative Rust shape, not a frozen ABI. The JSON representation is specified in the wire-format design. The outer Kernel envelope carries operation-level diagnostics; block-local diagnostics are attached to the block result so Engine can associate failures with the responsible node. Avoid duplicating the same diagnostic at both levels unless the operation itself also failed.
 
-A block may produce a primary expression value, zero or more named assignment results, and a dependency summary. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation.
+A block may produce a primary expression value, zero or more named definition results, and a dependency summary. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation.
 
 ## 3. MathValue tagged union
 
@@ -92,10 +97,10 @@ Vectors and matrices must preserve shape, ordering, and typed elements. Do not f
 
 ## 4. Definitions and outputs
 
-Each named assignment captured from a block becomes an assignment result. The corresponding symbol definition is also present in the block's dependency summary, keyed by the same canonical symbol and event_index:
+Each named assignment captured from a block becomes a DefinitionResult. It combines the dependency definition metadata with the typed value and assignment operation, so definitions are not duplicated in a nested dependency object:
 
 ```rust
-pub struct AssignmentResult {
+pub struct DefinitionResult {
     pub symbol: SymbolId,
     pub value: MathValue,
     pub assignment: AssignmentKind,
@@ -111,7 +116,7 @@ pub enum AssignmentKind {
 
 `SymbolId` is a Math-owned canonical symbol key (not a Kernel NodeId). Engine uses the display name only for UI and the canonical symbol key for matching. The symbol key must follow the exact case, Unicode normalization, and identifier rules of the Math language; do not lowercase or normalize independently in Engine.
 
-The block's primary `value` represents the value of an output expression when one exists. An assignment result represents the value assigned to a name. Dependency metadata is not duplicated: the assignment and dependency definition are correlated by symbol and event_index. The same assignment should not be duplicated as a separate primary output unless the source explicitly emits it as an output expression.
+The block's primary `value` represents the value of an output expression when one exists. A definition result represents the value assigned to a name and is also the definition record consumed by Engine. The separate dependency-extraction operation returns the same definition metadata without a value when only analysis is requested. The same assignment should not be duplicated as a separate primary output unless the source explicitly emits it as an output expression.
 
 The current vendored `CapturedValue` captures each variable in first-assignment order with its last value for Excel export. It does not yet provide a per-source-block result stream or assignment event history. The adapter must not pretend this global capture vector already satisfies the block-result contract. Add a narrow capture hook at the parser/evaluator boundary that emits an assignment event with source-block identity and typed value.
 
