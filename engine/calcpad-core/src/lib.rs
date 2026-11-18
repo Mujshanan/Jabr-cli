@@ -38,6 +38,8 @@ pub mod fast_alloc;
 pub mod markdig;
 pub mod math_parser_exception;
 pub mod matrix;
+pub mod jabr_api;
+pub use jabr_api::{evaluate, Diagnostic, EngineInfo, EvaluateRequest, EvaluateResponse, EvaluationOutcome};
 pub mod messages;
 pub mod model_bindings;
 pub mod netfmt;
