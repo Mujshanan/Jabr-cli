@@ -97,15 +97,26 @@ registerCommands(registry);
 const dispatcher = new CommandDispatcher(registry, context);
 const history = new CommandHistory();
 
-print("Welcome to Jabr CLI v0.1.0.", "success");
-print('Type "help" to see available commands.', "muted");
+document.querySelectorAll<HTMLButtonElement>("[data-command]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const command = button.dataset.command;
+    if (!command) return;
+    input.value = command;
+    input.focus();
+    input.setSelectionRange(command.length, command.length);
+  });
+});
+
+print("Welcome to Jabr Math Engine Workbench v0.1.0.", "success");
+print("Parser and AST inspection are available; expression evaluation is not implemented.", "muted");
+print('Type "help" to see available commands, or choose an example above.', "muted");
 print("");
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const value = input.value.trim();
   if (!value) return;
-  print("guest@jabr:~$ " + value, "command");
+  print("jabr.math > " + value, "command");
   history.add(value);
   history.resetNavigation();
   input.value = "";
