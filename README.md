@@ -51,6 +51,7 @@ The following is an illustrative layout preview of the minimal engine test page.
 - [Agent instructions](AGENTS.md) — repository-wide rules and constraints for AI coding agents.
 - [Contributing guide](CONTRIBUTING.md) — branch, coding, testing, and pull-request expectations.
 - [Engine-lab development plan](docs/ENGINE-LAB-PLAN.md) — milestones, API contract, and acceptance criteria.
+- [Public Rust API and Kernel boundary](docs/api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md) — shared Kernel types and Math/Engine ownership.
 - [CivilKit API audit](docs/CIVILKIT-API-AUDIT.md) — current upstream API findings.
 - [Tokenizer and AST design](docs/TOKENIZER-AST-DESIGN.md) — tokenizer/AST distinction and proposed inspection contract.
 
