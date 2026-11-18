@@ -15,7 +15,7 @@ pub enum EvaluationOutcome { Completed, CompletedWithDiagnostics }
 pub struct EvaluateResponse { pub document_id:String, pub request_id:String, pub source_revision:u64, pub outcome:EvaluationOutcome, pub html:String, pub diagnostics:Vec<Diagnostic> }
 
 /// Evaluate a worksheet using an isolated parser instance. The revision is echoed, never
-/// mutated: persistence and assignment commits belong to the Kernel adapter.
+/// mutated: persistence, worksheet state transitions and assignment commits belong to Jabr-engine.
 pub fn evaluate(request: EvaluateRequest) -> EvaluateResponse {
     let mut parser=ExpressionParser::new();
     parser.debug=true;
