@@ -1,10 +1,24 @@
-# Jabr CLI
+# Jabr Math
 
-Jabr is a lightweight browser-based application terminal built with Vanilla HTML, CSS, TypeScript and Vite. The repository contains the original Mathlex expression-parser terminal and a separate minimal test page for Jabr's locally vendored Calcpad Rust calculation engine.
+Jabr Math is the mathematical language and calculation subsystem of the Jabr engineering worksheet ecosystem. This repository currently hosts a development workbench, the locally maintained Calcpad Rust source, its native/WASM adapters, and the separate Mathlex compatibility experiment. The workbench is for engine development and is not the production worksheet UI.
 
-Jabr is an **engine laboratory** for developing a locally maintained Calcpad Rust engine fork before its eventual integration into a separate notes application through a custom calculation block. The repository vendors the Calcpad core, native runner, calculation WASM bindings, highlighter, and highlighter WASM bindings under `engine/`. This is a selected source import from CivilKit Calcs, not a copy of every crate and tool in the upstream repository. Jabr does not use a Git submodule or an external CivilKit API at build or runtime. It is not the notes application, and its terminal UI is not intended to be embedded in that application.
+The vendored Calcpad source is maintained locally under engine/. It is a selected source import from CivilKit Calcs, not a runtime API or Git submodule dependency. Preserve upstream license, NOTICE and provenance files.
 
-Jabr CLI is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
+## Ecosystem architecture boundary
+
+- **Jabr Math owns:** mathematical syntax, parsing, AST, values, quantities, units, dimensional rules, and expression evaluation.
+- **Jabr-engine owns:** worksheet node mapping, graph construction, binding, dependency resolution, recalculation scheduling, and calculation-result lifecycle. The repository is planned but does not yet exist.
+- **Jabr-kernel owns:** generic NodeId/Port, Revision, Snapshot<T>, ResultStore<V>, dependency-graph primitives, diagnostics and spans. It does not own Math values or variable semantics.
+- **Jabr-table owns:** table structure, stable row/column IDs, authored cell text and metadata. Math parses cell text; Table never stores or interprets Math evaluation values.
+- **Jabr-UI owns:** the complete BlockSuite/MathLive product experience and authored document persistence. Computed results remain derived/transient and are not written into Yjs.
+
+Math must expose a stable, independently testable facade. It must not become the worksheet orchestrator or own cross-engine scheduling. Its current Calcpad workbench and Mathlex terminal remain development tools, not a second product UI.
+
+**Naming note:** the `jabr-engine` binary built inside `engine/calcpad-core` is the native Calcpad worksheet test runner for this repository. It is not the separate, planned `Jabr-engine` worksheet orchestration repository listed above.
+
+
+
+The legacy terminal is a simulated application terminal, **not** an operating-system shell. It executes only commands registered by the host application. It does not execute arbitrary JavaScript or Windows commands.
 
 ## Quick start
 
@@ -166,4 +180,4 @@ The vendored source was imported from CivilKit Calcs revision `97f4bb698cea3bd6a
 
 ## Safety boundary
 
-Jabr CLI is an application command interface, not a system shell. Input is dispatched only to registered commands. It does not use `eval()` or run operating-system processes.
+The legacy terminal is an application command interface, not a system shell. Input is dispatched only to registered commands. It does not use `eval()` or run operating-system processes.
