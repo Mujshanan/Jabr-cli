@@ -20,7 +20,11 @@ pub struct BlockDependencies {
     pub definitions: Vec<SymbolDefinition>,
     pub reads: Vec<SymbolRead>,
     pub analysis_complete: bool,
-    pub diagnostics: Vec<Diagnostic>,
+}
+
+pub struct SymbolId {
+    pub namespace: SymbolNamespace,
+    pub canonical_name: String,
 }
 
 pub struct SymbolDefinition {
@@ -32,6 +36,17 @@ pub struct SymbolDefinition {
     pub event_index: u32,
 }
 
+pub enum DefinitionKind {
+    Variable,
+    Function,
+    CustomUnit,
+}
+
+pub enum DefinitionCertainty {
+    Definite,
+    Conditional,
+}
+
 pub struct SymbolRead {
     pub symbol: SymbolId,
     pub display_name: String,
@@ -40,9 +55,20 @@ pub struct SymbolRead {
     pub span: Option<Span>,
     pub event_index: u32,
 }
+
+pub enum ReadKind {
+    Variable,
+    FunctionCall,
+    Unit,
+}
+
+pub enum ReadCertainty {
+    Required,
+    Conditional,
+}
 ```
 
-Illustrative types only; the JSON DTO is frozen with the shared wire protocol. `SymbolId` is Math-owned and canonical according to Math's language rules. It is not a Kernel `NodeId`. The containing block is identified by Kernel `NodeId`.
+Illustrative types only; the JSON DTO is frozen with the shared wire protocol. `SymbolId` is Math-owned and canonical according to Math's language rules. Its namespace separates variable, function, and unit symbol spaces; its canonical name follows the evaluator's exact name-resolution rules. It is not a Kernel `NodeId`. The containing block is identified by Kernel `NodeId`. A `BlockResult` embeds this summary and carries typed assignment values separately; assignment values correlate with definitions by symbol and event_index. Block-level diagnostics remain on `BlockResult`, avoiding duplicate diagnostic lists.
 
 ## 3. Symbol identity and name resolution
 
@@ -109,7 +135,7 @@ Changes to a block's definitions or reads cause Engine to rebuild the affected b
 
 The `BlockResult` described in [STRUCTURED-BLOCK-RESULTS.md](STRUCTURED-BLOCK-RESULTS.md) carries a `BlockDependencies` summary plus typed `AssignmentResult` values. Each assignment result correlates with its `SymbolDefinition` by canonical symbol and event_index; this avoids maintaining two competing definition schemas. The dependency summary is available even when evaluation fails, if parsing/analysis reached the relevant statements. Do not infer definitions or reads from the final value list alone.
 
-A successful assignment event must include its symbol, event order, assignment kind, and typed value. A failed or skipped assignment must not be reported as an available definition.
+A successful assignment event must include its symbol, event order, assignment kind, and typed value. Its `SymbolDefinition` metadata and `AssignmentResult` are correlated by symbol and event_index. A failed or skipped assignment must not be reported as an available definition.
 
 ## 9. Acceptance tests
 
