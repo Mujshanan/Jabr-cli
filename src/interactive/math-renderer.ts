@@ -6,14 +6,41 @@ interface KatexApi {
   }): void;
 }
 interface MathJaxApi {
-  typesetPromise(elements?: HTMLElement[]): Promise<void>;
+  typesetPromise?: (elements?: HTMLElement[]) => Promise<void>;
   typesetClear?: (elements?: HTMLElement[]) => void;
+  startup?: { typeset?: boolean };
+  tex?: { inlineMath?: string[][]; displayMath?: string[][] };
+  options?: { skipHtmlTags?: string[] };
 }
 declare global {
   interface Window {
     katex?: KatexApi;
     MathJax?: MathJaxApi;
   }
+}
+
+let mathJaxInitialization: Promise<MathJaxApi> | undefined;
+function loadMathJax(): Promise<MathJaxApi> {
+  if (window.MathJax?.typesetPromise) return Promise.resolve(window.MathJax);
+  if (!mathJaxInitialization) {
+    window.MathJax = {
+      startup: { typeset: false },
+      tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] },
+      options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] },
+    };
+    mathJaxInitialization = new Promise<MathJaxApi>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/mathjax@4.0.0/tex-chtml.js";
+      script.integrity = "sha384-2BWc4dVaHADUocwKrUrK9u3iDwHxVMKXWEcoRmUkXYSFKhAsgVAYClu9ydNuo5Oz";
+      script.crossOrigin = "anonymous";
+      script.onload = () => window.MathJax?.typesetPromise
+        ? resolve(window.MathJax)
+        : reject(new Error("MathJax loaded without its typesetting API."));
+      script.onerror = () => { script.remove(); reject(new Error("MathJax did not load. Check your internet connection and reload Jabr.")); };
+      document.head.append(script);
+    }).catch((error: unknown) => { mathJaxInitialization = undefined; throw error; });
+  }
+  return mathJaxInitialization;
 }
 
 export function createMathOutput(latex: string, source: string): HTMLElement {
@@ -61,6 +88,8 @@ export function createMathOutput(latex: string, source: string): HTMLElement {
   return block;
 }
 
+const renderTokens = new WeakMap<HTMLElement, number>();
+
 export async function renderMathOutput(
   block: HTMLElement,
   renderer: MathRenderer,
@@ -68,6 +97,10 @@ export async function renderMathOutput(
   const target = block.querySelector<HTMLElement>(".math-output__rendered");
   const latex = block.dataset.latex;
   if (!target || !latex) return;
+
+  const token = (renderTokens.get(block) ?? 0) + 1;
+  renderTokens.set(block, token);
+  const isCurrentRender = () => renderTokens.get(block) === token;
 
   block.querySelectorAll<HTMLButtonElement>("[data-math-renderer]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.mathRenderer === renderer));
@@ -88,12 +121,16 @@ export async function renderMathOutput(
       return;
     }
 
-    if (!window.MathJax?.typesetPromise) {
-      throw new Error("MathJax did not load. Check your internet connection and reload Jabr.");
-    }
-    target.textContent = "\\[" + latex + "\\]";
-    await window.MathJax.typesetPromise([target]);
+    const mathJax = await loadMathJax();
+    if (!isCurrentRender()) return;
+    // Typeset off-DOM so a slow MathJax operation cannot overwrite a newer renderer selection.
+    const staging = document.createElement("div");
+    staging.textContent = "\\[" + latex + "\\]";
+    await mathJax.typesetPromise?.([staging]);
+    if (!isCurrentRender()) { mathJax.typesetClear?.([staging]); return; }
+    target.replaceChildren(...Array.from(staging.childNodes));
   } catch (error) {
+    if (!isCurrentRender()) return;
     target.replaceChildren();
     const message = document.createElement("div");
     message.className = "math-output__error";

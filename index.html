@@ -4,24 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#101318" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'" />
     <meta name="description" content="Jabr CLI — a simple command interface for your application." />
     <title>Jabr CLI</title>
     <link rel="stylesheet" href="/src/interactive/style.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
-    <script>
-      window.MathJax = {
-        startup: { typeset: false },
-        tex: {
-          inlineMath: [["\\(", "\\)"]],
-          displayMath: [["\\[", "\\]"]]
-        },
-        options: {
-          skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
-        }
-      };
-    </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@4.0.0/tex-chtml.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" integrity="sha384-5TcZemv2l/9On385z///+d7MSYlvIEw9FuZTIdZ14vJLqWphw7e7ZPuOiCHJcFCP" crossorigin="anonymous" />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js" integrity="sha384-cMkvdD8LoxVzGF/RPUKAcvmm49FQ0oxwDF3BGKtDXcEc+T1b2N+teh/OJfpU0jr6" crossorigin="anonymous"></script>
   </head>
   <body>
     <main class="terminal-shell" aria-label="Jabr CLI terminal">
@@ -31,7 +19,7 @@
           <span class="control control-minimize"></span>
           <span class="control control-maximize"></span>
         </div>
-        <div class="terminal-title">Jabr CLI <span>v0.1.0</span></div>
+        <div class="terminal-title">Jabr CLI <span>v%APP_VERSION%</span></div>
         <div></div>
       </header>
       <section id="terminal-output" class="terminal-output" aria-live="polite" aria-label="Terminal output"></section>

@@ -1,8 +1,10 @@
+import type { MathlexAstNode } from "./mathlex";
+
 export type OutputKind = "normal" | "muted" | "command" | "success" | "error";
 
 export interface TerminalContext {
   print: (content: string, kind?: OutputKind) => void;
-  printAst: (ast: unknown) => void;
+  printAst: (ast: MathlexAstNode, source: string) => void;
   printMath: (latex: string, source: string) => void;
   clear: () => void;
 }
@@ -11,10 +13,13 @@ export interface Command {
   name: string;
   description: string;
   usage?: string;
-  execute: (args: string[], context: TerminalContext) => void | Promise<void>;
+  /** Pass the untouched text after the command name instead of shell-like tokenized arguments. */
+  rawArguments?: boolean;
+  execute: (args: string[], context: TerminalContext, rawArgs: string) => void | Promise<void>;
 }
 
 export interface ParsedCommand {
   name: string;
   args: string[];
+  rawArgs: string;
 }

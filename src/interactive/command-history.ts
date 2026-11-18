@@ -1,6 +1,7 @@
 /** In-memory command history for the terminal prompt. */
 export class CommandHistory {
   private readonly entries: string[] = [];
+  private static readonly MAX_ENTRIES = 100;
   private index = 0;
   private draft = "";
 
@@ -8,7 +9,12 @@ export class CommandHistory {
     const value = command.trim();
     if (!value) return;
 
-    this.entries.push(value);
+    if (this.entries[this.entries.length - 1] !== value) {
+      this.entries.push(value);
+      if (this.entries.length > CommandHistory.MAX_ENTRIES) {
+        this.entries.shift();
+      }
+    }
     this.index = this.entries.length;
     this.draft = "";
   }

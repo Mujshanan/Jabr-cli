@@ -3,27 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.34.5",
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
-  },
+  "engines": { "node": "^20.19.0 || >=22.12.0" },
   "scripts": {
-    "dev": "pnpm run wasm:build && vite",
-    "wasm:build": "wasm-pack build rust/mathlex-bridge --target web --out-dir ../../src/engine/wasm --out-name jabr_mathlex",
-    "typecheck": "pnpm run wasm:build && tsc --noEmit",
-    "build": "pnpm run typecheck && vite build",
+    "dev": "node scripts/build-native.mjs && node scripts/build-wasm.mjs --dev && vite",
+    "dev:bun": "bun scripts/build-native.mjs && bun scripts/build-wasm.mjs --dev && vite",
+    "engine:native": "node scripts/build-native.mjs",
+    "engine:native:bun": "bun scripts/build-native.mjs",
+    "engine:wasm": "node scripts/build-wasm.mjs",
+    "engine:wasm:bun": "bun scripts/build-wasm.mjs",
+    "typecheck": "node scripts/build-wasm.mjs && tsc --noEmit",
+    "typecheck:bun": "bun scripts/build-wasm.mjs && tsc --noEmit",
+    "build:web": "tsc --noEmit && vite build",
+    "build": "node scripts/build-native.mjs && node scripts/build-wasm.mjs && tsc --noEmit && vite build",
+    "build:bun": "bun scripts/build-native.mjs && bun scripts/build-wasm.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run --exclude src/engine/mathlex.wasm.integration.test.ts",
+    "test:wasm": "vitest run src/engine/mathlex.wasm.integration.test.ts",
+    "test:watch": "vitest --exclude src/engine/mathlex.wasm.integration.test.ts",
+    "test:python": "python tests/python/run_civilkit_checks.py"
   },
   "devDependencies": {
     "typescript": "5.9.3",
     "vite": "7.3.8",
     "vitest": "4.1.12"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  }
+  "trustedDependencies": ["esbuild"]
 }

@@ -1,8 +1,9 @@
 name: Test
 
 on:
+  # Test main and the standalone engine-lab branch on every push.
   push:
-    branches: ["**"]
+    branches: [main, feat/codemirror-worksheet-editor]
   pull_request:
 
 concurrency:
@@ -13,13 +14,62 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  native-engine:
+    name: Vendored Calcpad native engine and Python checks (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: |
+            engine -> target
+            rust/mathlex-bridge -> target
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Build and smoke-test the vendored native engine
+        run: bun scripts/build-native.mjs
+      - name: Run independent Python engine checks
+        run: python tests/python/run_civilkit_checks.py
+
+  rust-tests:
+    name: Vendored Rust engine tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
         with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: |
+            engine -> target
+            rust/mathlex-bridge -> target
+      - name: Test the vendored Calcpad core
+        run: cargo test --manifest-path engine/Cargo.toml -p jabr-calcpad-core
+      - name: Test the vendored tokenizer/highlighter
+        run: cargo test --manifest-path engine/Cargo.toml -p jabr-calcpad-highlighter
+      - name: Test the Jabr Mathlex compatibility bridge
+        run: cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
+
+  javascript:
+    name: WebAssembly, tests and Vite (Bun)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
+        with:
+          toolchain: stable
           targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: |
+            engine -> target
+            rust/mathlex-bridge -> target
       - name: Install wasm-pack
         run: |
           curl --fail --location --silent --show-error \
@@ -29,26 +79,42 @@ jobs:
           tar -xzf /tmp/wasm-pack.tar.gz -C /tmp
           sudo install /tmp/wasm-pack-v0.15.1-x86_64-unknown-linux-musl/wasm-pack /usr/local/bin/wasm-pack
           wasm-pack --version
-      - uses: actions/setup-node@v7
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          node-version: 24
-      - uses: pnpm/action-setup@v6.1.1
-        with:
-          version: 10.34.5
-          run_install: false
-      - name: Install JavaScript dependencies
-        run: |
-          pnpm install --frozen-lockfile
-      - name: Run JavaScript dependency audit
-        run: pnpm audit --audit-level=low
-      - name: Run Rust tests
-        run: |
-          cargo test --locked --manifest-path rust/mathlex-bridge/Cargo.toml
-      - name: Install Rust dependency auditor
-        run: cargo install cargo-audit --locked
-      - name: Run Rust dependency audit
-        run: cargo audit --file rust/mathlex-bridge/Cargo.lock
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Install dependencies with Bun
+        run: bun install --frozen-lockfile
+      # Build first: src/engine/wasm is generated and intentionally gitignored.
+      - name: Build native runner, local WASM engines and Vite
+        run: bun run build:bun
       - name: Run TypeScript tests
-        run: pnpm test
-      - name: Build browser application
-        run: pnpm build
+        run: bun run test
+      - name: Run real Mathlex WASM integration tests
+        run: bun run test:wasm
+
+  rust-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: |
+            engine -> target
+            rust/mathlex-bridge -> target
+      - name: Generate the vendored engine lockfile
+        run: cargo generate-lockfile --manifest-path engine/Cargo.toml
+      - name: Install prebuilt Rust dependency auditor
+        uses: taiki-e/install-action@ab49d3c64680143e184118bed66a46419fc15519 # v2.90.5
+        with:
+          tool: cargo-audit
+      - name: Audit vendored engine dependencies
+        run: cargo audit --file engine/Cargo.lock
+      - name: Audit Mathlex bridge dependencies
+        run: cargo audit --file rust/mathlex-bridge/Cargo.lock

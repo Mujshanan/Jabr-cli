@@ -34,13 +34,30 @@ describe("CommandHistory", () => {
     expect(history.next()).toBe("");
   });
 
-  it("keeps duplicate commands as separate history entries", () => {
+  it("skips consecutive duplicate commands but keeps non-consecutive repeats", () => {
     const history = new CommandHistory();
     history.add("help");
     history.add("help");
+    history.add("version");
+    history.add("help");
 
+    expect(history.length).toBe(3);
     expect(history.previous("")).toBe("help");
-    expect(history.previous("help")).toBe("help");
-    expect(history.length).toBe(2);
+    expect(history.previous("help")).toBe("version");
+    expect(history.previous("version")).toBe("help");
+  });
+
+  it("keeps only the newest 100 commands", () => {
+    const history = new CommandHistory();
+    for (let index = 0; index < 105; index += 1) {
+      history.add(`command-${index}`);
+    }
+
+    expect(history.length).toBe(100);
+    expect(history.previous("")).toBe("command-104");
+    for (let index = 0; index < 99; index += 1) {
+      history.previous("");
+    }
+    expect(history.previous("")).toBe("command-5");
   });
 });

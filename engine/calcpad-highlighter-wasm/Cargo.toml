@@ -1,0 +1,14 @@
+[package]
+name = "jabr-calcpad-highlighter-wasm"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Jabr WebAssembly bindings for its vendored Calcpad highlighter"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+calcpad-highlighter = { package = "jabr-calcpad-highlighter", path = "../calcpad-highlighter" }
+wasm-bindgen = "=0.2.122"

@@ -14,6 +14,33 @@ export interface MathlexAstNode {
 type MathlexParser = (input: string) => string;
 type MathlexLatexSerializer = (input: string) => string;
 
+export const MAX_EXPRESSION_LENGTH = 4096;
+export const MAX_EXPRESSION_NESTING = 128;
+function validateInput(input: string): void {
+  if (typeof input !== "string" || input.trim().length === 0) {
+    throw new TypeError("A non-empty mathematical expression is required.");
+  }
+  if (input.length > MAX_EXPRESSION_LENGTH) {
+    throw new RangeError(
+      `Mathematical expressions are limited to ${MAX_EXPRESSION_LENGTH} UTF-16 code units.`,
+    );
+  }
+
+  let nesting = 0;
+  for (const character of input) {
+    if (character === "(" || character === "[" || character === "{") {
+      nesting += 1;
+      if (nesting > MAX_EXPRESSION_NESTING) {
+        throw new RangeError(
+          `Mathematical expression nesting is limited to ${MAX_EXPRESSION_NESTING} levels.`,
+        );
+      }
+    } else if (character === ")" || character === "]" || character === "}") {
+      nesting = Math.max(0, nesting - 1);
+    }
+  }
+}
+
 let initialization: Promise<unknown> | undefined;
 
 async function ensureInitialized(): Promise<void> {
@@ -55,9 +82,7 @@ function decodeAst(json: string): MathlexAstNode {
 }
 
 async function parse(input: string, parser: MathlexParser): Promise<MathlexAstNode> {
-  if (typeof input !== "string" || input.trim().length === 0) {
-    throw new TypeError("A non-empty mathematical expression is required.");
-  }
+  validateInput(input);
 
   try {
     await ensureInitialized();
@@ -72,9 +97,7 @@ async function serializeLatex(
   input: string,
   serializer: MathlexLatexSerializer,
 ): Promise<string> {
-  if (typeof input !== "string" || input.trim().length === 0) {
-    throw new TypeError("A non-empty mathematical expression is required.");
-  }
+  validateInput(input);
 
   try {
     await ensureInitialized();

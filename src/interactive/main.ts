@@ -1,8 +1,10 @@
 import { registerCommands } from "../command/register";
 import { CommandDispatcher } from "../engine/dispatcher";
+import { createDispatchQueue } from "../engine/dispatch-queue";
 import { CommandRegistry } from "../engine/registry";
+import type { MathlexAstNode } from "../engine/mathlex";
 import type { OutputKind, TerminalContext } from "../engine/types";
-import { renderAst } from "./ast-renderer";
+import { createAstExplorer } from "./ast-renderer";
 import { CommandHistory } from "./command-history";
 import { createMathOutput, renderMathOutput } from "./math-renderer";
 
@@ -22,10 +24,10 @@ function print(content: string, kind: OutputKind = "normal"): void {
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
-function printAst(ast: unknown): void {
+function printAst(ast: MathlexAstNode, source: string): void {
   const line = document.createElement("div");
   line.className = "output-line output-line--ast";
-  line.innerHTML = renderAst(ast);
+  line.append(createAstExplorer(ast, source));
   terminalOutput.append(line);
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
@@ -40,51 +42,12 @@ function printMath(latex: string, source: string): void {
 
 terminalOutput.addEventListener("click", async (event) => {
   if (!(event.target instanceof Element)) return;
-
   const rendererButton = event.target.closest<HTMLButtonElement>("button[data-math-renderer]");
-  if (rendererButton) {
-    const mathBlock = rendererButton.closest<HTMLElement>(".math-output");
-    const renderer = rendererButton.dataset.mathRenderer;
-    if (mathBlock && (renderer === "katex" || renderer === "mathjax")) {
-      await renderMathOutput(mathBlock, renderer);
-    }
-    return;
-  }
-
-  const button = event.target.closest<HTMLButtonElement>("button[data-ast-action]");
-  if (!button) return;
-  const astView = button.closest<HTMLElement>(".ast-view");
-  if (!astView) return;
-
-  const action = button.dataset.astAction;
-  if (action === "expand" || action === "collapse") {
-    const expanded = action === "expand";
-    astView.querySelectorAll<HTMLDetailsElement>("details.ast-details").forEach((details) => {
-      details.open = expanded;
-    });
-    return;
-  }
-  if (action === "raw") {
-    const raw = astView.querySelector<HTMLElement>(".ast-raw");
-    if (!raw) return;
-    raw.hidden = !raw.hidden;
-    button.textContent = raw.hidden ? "Raw JSON" : "Hide JSON";
-    return;
-  }
-  if (action === "copy") {
-    event.preventDefault();
-    event.stopPropagation();
-    const data = button.dataset.copy;
-    if (!data) return;
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(JSON.parse(data), null, 2));
-      const original = button.textContent;
-      button.textContent = "✓";
-      window.setTimeout(() => { button.textContent = original; }, 1200);
-    } catch {
-      button.textContent = "!";
-      button.title = "Clipboard access unavailable";
-    }
+  if (!rendererButton) return;
+  const mathBlock = rendererButton.closest<HTMLElement>(".math-output");
+  const renderer = rendererButton.dataset.mathRenderer;
+  if (mathBlock && (renderer === "katex" || renderer === "mathjax")) {
+    await renderMathOutput(mathBlock, renderer);
   }
 });
 
@@ -96,12 +59,13 @@ const registry = new CommandRegistry();
 registerCommands(registry);
 const dispatcher = new CommandDispatcher(registry, context);
 const history = new CommandHistory();
+const enqueueDispatch = createDispatchQueue();
 
-print("Welcome to Jabr CLI v0.1.0.", "success");
+print("Welcome to Jabr CLI v" + __APP_VERSION__ + ".", "success");
 print('Type "help" to see available commands.', "muted");
 print("");
 
-form.addEventListener("submit", async (event) => {
+form.addEventListener("submit", (event) => {
   event.preventDefault();
   const value = input.value.trim();
   if (!value) return;
@@ -109,7 +73,10 @@ form.addEventListener("submit", async (event) => {
   history.add(value);
   history.resetNavigation();
   input.value = "";
-  await dispatcher.dispatch(value);
+
+  void enqueueDispatch(() => dispatcher.dispatch(value)).catch((error: unknown) => {
+    print(error instanceof Error ? error.message : "Command failed unexpectedly.", "error");
+  });
   input.focus();
 });
 
@@ -133,6 +100,7 @@ input.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("click", (event) => {
+  if (window.getSelection()?.toString()) return;
   if (event.target instanceof Element && event.target.closest("button, a, input, textarea, select")) {
     return;
   }

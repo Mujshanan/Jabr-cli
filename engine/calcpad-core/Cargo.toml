@@ -1,0 +1,21 @@
+[package]
+name = "jabr-calcpad-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+description = "Vendored CalcpadCE-compatible worksheet calculation core maintained by Jabr"
+
+[lib]
+name = "calcpad_core"
+
+[[bin]]
+name = "jabr-engine"
+path = "src/bin/jabr-engine.rs"
+
+[features]
+xunit_vm = []
+
+[dependencies]
+miniz_oxide = "0.8"
+serde_json = "1"

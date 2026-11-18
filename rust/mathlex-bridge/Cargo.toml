@@ -8,6 +8,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+console_error_panic_hook = "0.1"
 mathlex = { version = "=0.4.2", features = ["serde"] }
 serde_json = "1"
 wasm-bindgen = "0.2"
