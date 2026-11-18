@@ -10,9 +10,9 @@ Math must return typed, deterministic data for each evaluated block. Math comput
 
 ## 2. Result envelope
 
-The Math operation result is a Math-owned payload carried inside Kernel \`Envelope<T>\`:
+The Math operation result is a Math-owned payload carried inside Kernel `Envelope<T>`:
 
-\`\`\`rust
+```rust
 pub struct EvaluateBlocksResult {
     pub document_id: String,
     pub request_id: String,
@@ -24,9 +24,16 @@ pub struct BlockResult {
     pub block_id: NodeId,
     pub status: BlockStatus,
     pub value: Option<MathValue>,
-    pub definitions: Vec<DefinitionResult>,
-    pub reads: Vec<SymbolRead>,
+    pub assignments: Vec<AssignmentResult>,
+    pub dependencies: BlockDependencies,
     pub diagnostics: Vec<Diagnostic>,
+}
+
+pub struct AssignmentResult {
+    pub symbol: SymbolId,
+    pub value: MathValue,
+    pub assignment: AssignmentKind,
+    pub event_index: u32,
 }
 
 pub enum BlockStatus {
@@ -35,37 +42,37 @@ pub enum BlockStatus {
     Failed,
     Skipped,
 }
-\`\`\`
+```
 
 This is an illustrative Rust shape, not a frozen ABI. The JSON representation is specified in the wire-format design. The outer Kernel envelope carries operation-level diagnostics; block-local diagnostics are attached to the block result so Engine can associate failures with the responsible node. Avoid duplicating the same diagnostic at both levels unless the operation itself also failed.
 
-A block may produce a primary expression value, zero or more named definitions, or both. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation.
+A block may produce a primary expression value, zero or more named assignment results, and a dependency summary. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation. A text/diagram/table block may legitimately have no Math value and should not be sent through Math evaluation.
 
 ## 3. MathValue tagged union
 
-Use a Jabr-owned tagged union. Do not expose Calcpad \`Value\`, \`RealValue\`, \`ComplexValue\`, \`Unit\`, \`Vector\`, or \`Matrix\` directly.
+Use a Jabr-owned tagged union. Do not expose Calcpad `Value`, `RealValue`, `ComplexValue`, `Unit`, `Vector`, or `Matrix` directly.
 
 | Variant | Payload | Notes |
 | --- | --- | --- |
-| \`real\` | \`NumericValue\` plus optional \`UnitValue\` | Scalar real value |
-| \`complex\` | real and imaginary \`NumericValue\` components plus optional \`UnitValue\` | Preserve complex values, not just the real component |
-| \`vector\` | shape/length and ordered \`MathValue\` elements | Element types and units remain explicit |
-| \`matrix\` | rows, columns, and row-major ordered \`MathValue\` elements | Shape must agree with element count |
-| \`boolean\` | boolean | Used only if Math semantics can distinguish logical from numeric values |
-| \`text\` | string | Only for an explicitly supported mathematical string value; not report HTML |
+| `real` | `NumericValue` plus optional `UnitValue` | Scalar real value |
+| `complex` | real and imaginary `NumericValue` components plus optional `UnitValue` | Preserve complex values, not just the real component |
+| `vector` | shape/length and ordered `MathValue` elements | Element types and units remain explicit |
+| `matrix` | rows, columns, and row-major ordered `MathValue` elements | Shape must agree with element count |
+| `boolean` | boolean | Used only if Math semantics can distinguish logical from numeric values |
+| `text` | string | Only for an explicitly supported mathematical string value; not report HTML |
 
 ### NumericValue
 
-The current Calcpad scalar implementation uses IEEE-754 \`f64\`. It does not provide exact decimal/rational provenance for every calculation. The DTO must not label a binary floating-point result as exact.
+The current Calcpad scalar implementation uses IEEE-754 `f64`. It does not provide exact decimal/rational provenance for every calculation. The DTO must not label a binary floating-point result as exact.
 
-\`\`\`json
+```json
 { "kind": "finite", "encoding": "f64", "value": "12.5" }
 { "kind": "nan" }
 { "kind": "positive_infinity" }
 { "kind": "negative_infinity" }
-\`\`\`
+```
 
-Finite \`f64\` values are encoded as decimal strings using Rust's shortest round-trip representation. This preserves the exact binary64 value through JSON and avoids JSON's inability to represent NaN and infinities. A future exact integer/decimal/rational variant can be added without misrepresenting current values.
+Finite `f64` values are encoded as decimal strings using Rust's shortest round-trip representation. This preserves the exact binary64 value through JSON and avoids JSON's inability to represent NaN and infinities. A future exact integer/decimal/rational variant can be added without misrepresenting current values.
 
 ### UnitValue
 
@@ -77,7 +84,7 @@ A unit is not just its display symbol. The Math-owned DTO must carry:
 - temperature/affine-unit semantics where applicable;
 - an explicit dimensionless representation.
 
-The conversion must preserve the value represented by the original Calcpad \`RealValue\`/unit pair. Display text alone is insufficient for dimensional analysis or conversion. Unit serialization must be independent of Calcpad's internal \`Rc<Unit>\`, pointer identity, mutable caches, and private arrays.
+The conversion must preserve the value represented by the original Calcpad `RealValue`/unit pair. Display text alone is insufficient for dimensional analysis or conversion. Unit serialization must be independent of Calcpad's internal `Rc<Unit>`, pointer identity, mutable caches, and private arrays.
 
 ### Containers
 
@@ -85,14 +92,14 @@ Vectors and matrices must preserve shape, ordering, and typed elements. Do not f
 
 ## 4. Definitions and outputs
 
-Each named assignment captured from a block becomes a definition result:
+Each named assignment captured from a block becomes an assignment result. The corresponding symbol definition is also present in the block's dependency summary, keyed by the same canonical symbol and event_index:
 
-\`\`\`rust
-pub struct DefinitionResult {
+```rust
+pub struct AssignmentResult {
     pub symbol: SymbolId,
-    pub display_name: String,
     pub value: MathValue,
     pub assignment: AssignmentKind,
+    pub event_index: u32,
 }
 
 pub enum AssignmentKind {
@@ -100,25 +107,25 @@ pub enum AssignmentKind {
     Reassign,
     CompoundUpdate,
 }
-\`\`\`
+```
 
-\`SymbolId\` is a Math-owned canonical symbol key (not a Kernel NodeId). Engine uses the display name only for UI and the canonical symbol key for matching. The symbol key must follow the exact case, Unicode normalization, and identifier rules of the Math language; do not lowercase or normalize independently in Engine.
+`SymbolId` is a Math-owned canonical symbol key (not a Kernel NodeId). Engine uses the display name only for UI and the canonical symbol key for matching. The symbol key must follow the exact case, Unicode normalization, and identifier rules of the Math language; do not lowercase or normalize independently in Engine.
 
-The block's primary \`value\` represents the value of an output expression when one exists. A definition result represents the value assigned to a name. The same assignment should not be duplicated as a separate primary output unless the source explicitly emits it as an output expression.
+The block's primary `value` represents the value of an output expression when one exists. An assignment result represents the value assigned to a name. Dependency metadata is not duplicated: the assignment and dependency definition are correlated by symbol and event_index. The same assignment should not be duplicated as a separate primary output unless the source explicitly emits it as an output expression.
 
-The current vendored \`CapturedValue\` captures each variable in first-assignment order with its last value for Excel export. It does not yet provide a per-source-block result stream or assignment event history. The adapter must not pretend this global capture vector already satisfies the block-result contract. Add a narrow capture hook at the parser/evaluator boundary that emits an assignment event with source-block identity and typed value.
+The current vendored `CapturedValue` captures each variable in first-assignment order with its last value for Excel export. It does not yet provide a per-source-block result stream or assignment event history. The adapter must not pretend this global capture vector already satisfies the block-result contract. Add a narrow capture hook at the parser/evaluator boundary that emits an assignment event with source-block identity and typed value.
 
 ## 5. Errors and partial results
 
-- A failed expression has \`status: failed\`, no primary value, and one or more structured diagnostics.
-- A block that completed but emitted warnings/notes uses \`completed_with_diagnostics\`.
-- A block skipped by a language condition or unavailable prerequisite uses \`skipped\`; Engine decides the scheduling reason and must not convert it to a mathematical error.
+- A failed expression has `status: failed`, no primary value, and one or more structured diagnostics.
+- A block that completed but emitted warnings/notes uses `completed_with_diagnostics`.
+- A block skipped by a language condition or unavailable prerequisite uses `skipped`; Engine decides the scheduling reason and must not convert it to a mathematical error.
 - Earlier successful assignments within a multi-statement block must be represented explicitly if the parser can produce partial output. Engine decides whether the block is atomic and whether any definitions are committed. Math must never mutate persistent state.
-- Unsupported value conversion is a typed diagnostic with a stable \`math.value.unsupported\`-style code; do not silently omit the value.
+- Unsupported value conversion is a typed diagnostic with a stable `math.value.unsupported`-style code; do not silently omit the value.
 
 ## 6. Source association
 
-Every block result carries the caller's Kernel \`NodeId\`. Every diagnostic uses Kernel \`Diagnostic\` and optional Kernel \`Span\`. A span is a UTF-8 byte range into the exact source string supplied for that evaluation. If the vendored parser only supplies a line number and cannot recover an exact byte range, leave the span absent; do not guess offsets.
+Every block result carries the caller's Kernel `NodeId`. Every diagnostic uses Kernel `Diagnostic` and optional Kernel `Span`. A span is a UTF-8 byte range into the exact source string supplied for that evaluation. If the vendored parser only supplies a line number and cannot recover an exact byte range, leave the span absent; do not guess offsets.
 
 ## 7. Engine interaction
 
@@ -132,7 +139,7 @@ Engine:
 5. stores accepted results and their provenance;
 6. invalidates/recalculates affected blocks according to worksheet policy.
 
-The Math API must not introduce Kernel \`Revision\`, \`Snapshot\`, or \`ResultStore\` because Kernel 0.1 does not ship them.
+The Math API must not introduce Kernel `Revision`, `Snapshot`, or `ResultStore` because Kernel 0.1 does not ship them.
 
 ## 8. Acceptance tests
 
@@ -145,7 +152,7 @@ The Math API must not introduce Kernel \`Revision\`, \`Snapshot\`, or \`ResultSt
 - A block can return multiple named definitions and an independent primary value.
 - Failed blocks return diagnostics without fabricated values.
 - Every result is associated with the input block NodeId and source revision.
-- No public DTO contains Calcpad types, \`Rc\`, \`RefCell\`, or parser implementation objects.
+- No public DTO contains Calcpad types, `Rc`, `RefCell`, or parser implementation objects.
 
 ## 9. Implementation sequence
 
