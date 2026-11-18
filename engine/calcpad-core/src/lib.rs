@@ -39,7 +39,9 @@ pub mod markdig;
 pub mod math_parser_exception;
 pub mod matrix;
 pub mod jabr_api;
-pub use jabr_api::{evaluate, MathDiagnostic, EngineInfo, EvaluateRequest, EvaluateResponse, EvaluationOutcome};
+pub use jabr_api::{
+    evaluate, EngineInfo, EvaluateRequest, EvaluateResponse, EvaluationOutcome, MathDiagnostic,
+};
 pub mod messages;
 pub mod model_bindings;
 pub mod netfmt;
