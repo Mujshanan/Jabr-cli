@@ -105,4 +105,6 @@
 
 ## Execution notes
 
-The GitHub connector is the write path for this session. If no local Rust toolchain or GitHub Actions run is available, record verification as blocked; do not claim compilation or tests passed.
+- Work is isolated on branch feat/block-analysis-api; main is unchanged.
+- Added the internal UTF-8 SourceSpan/SourceMap and provenance model, token instrumentation, RPN collection-node provenance, parser/compiler error-span propagation, and focused unit tests.
+- The GitHub connector is the write path for this session. This environment has no rustc/cargo, cannot resolve github.com from the container, and the commit-workflow lookup returned no runs. Therefore the tests, formatter, Clippy, and build remain unverified. Continue the M1 audit and run the complete Rust suite in a toolchain-enabled environment before declaring the milestone complete.
