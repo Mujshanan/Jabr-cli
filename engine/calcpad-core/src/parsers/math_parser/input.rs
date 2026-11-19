@@ -1017,7 +1017,7 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
                                     mt.kind = TokenKind::Matrix(None);
                                     mt.index = matrix_stack[tovs] * crate::vector::MAX_LENGTH;
                                     let mt = mt.into_ref();
-                                    if let (Some(open), Some(close)) = (vector_open_spans[tovs], tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span)) {
+                                    if let (Some(open), Some(close)) = (vector_open_spans.get(tovs).copied().flatten(), tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span)) {
                                         set_derived_span(&mt, vec![open.merge(close)]);
                                     }
                                     output.push(mt);
