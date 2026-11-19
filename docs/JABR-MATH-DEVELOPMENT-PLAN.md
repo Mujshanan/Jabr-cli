@@ -50,7 +50,7 @@ Operator ordering and RPN conversion must preserve provenance when they reorder 
 ### M1 work items
 
 1. Add UTF-8-safe byte-span primitives and character-index conversion helpers.
-2. Instrument Calcpad tokenization so identifiers, literals, units, operators, input fields, solver blocks, and delimiters retain original-source locations.
+2. Instrument Calcpad tokenization so identifiers, literals, units, operators, input fields, solver blocks, and delimiters retain original-source locations; preserve the mapping through ExpressionParser line slicing, trimming, and line continuations so spans are absolute to the original block.
 3. Preserve provenance through implicit multiplication, array/vector/matrix token creation, operator ordering, and RPN conversion.
 4. Trace compiler transformations and identify which constructs need one source span versus multiple origin spans; do not flatten multiple origins without a documented policy.
 5. Attach source locations to parser and compiler diagnostics wherever the failing source construct is known. An unavailable location must be explicit.
@@ -115,6 +115,7 @@ The public contract must be versioned and independent of Calcpad internal types 
 - engine/calcpad-core/src/source_span.rs contains UTF-8 byte-range validation, character-boundary mapping, a precomputed SourceMap for O(1) character-to-byte lookup, and SourceOrigin variants for direct, derived, and synthetic provenance.
 - MathParser tokens carry internal provenance. Tokenizer instrumentation covers identifiers, literals, units, operators, input fields, solver blocks, and array references.
 - Implicit multiplication records both operand origins. RPN vector/matrix nodes retain their opening and closing delimiter origins; operator ordering and RPN token movement preserve provenance by retaining the original token references.
-- MathParserException carries an internal optional source span. Tokenizer failures attach source ranges where the failing construct is known, and compiler failures inherit the current token's origin.
+- MathParserException carries an internal optional source span. Tokenizer failures attach source ranges where the failing construct is known, and compiler failures inherit the current token's origin. At present these ranges are relative to the exact expression string passed into MathParser; the outer ExpressionParser line/trim/continuation mapping back to the original block is still outstanding and is an M1 requirement.
 - Focused tests were added for Unicode character-to-byte mapping, empty/end spans, invalid ranges, token spans, RPN reordering, and an invalid-character diagnostic.
+- The full-block offset map remains open: ExpressionParser slices each source line, trims it, and may join continued lines before MathParser sees the expression. M1 must carry source-segment provenance across those operations rather than treating expression-local offsets as block-global.
 - **Verification is currently blocked:** this session has no Rust toolchain, cannot reach GitHub from the container, and the GitHub commit-workflow lookup returned no runs. The Rust tests, formatting, Clippy, and build have not been executed. Do not mark M1 complete until they run successfully and the remaining token/error paths are audited.
