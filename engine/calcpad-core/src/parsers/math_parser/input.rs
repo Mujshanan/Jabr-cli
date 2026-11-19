@@ -378,7 +378,7 @@ impl MathParser {
                                     _ => false,
                                 };
                                 if bad {
-                                    return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), &source_map, i, i + 1));
+                                    return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), &source_map, token_literal.start, i + 1));
                                 }
                             }
                             let tok = tok.into_ref();
