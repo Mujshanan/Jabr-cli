@@ -14,7 +14,7 @@ use crate::exceptions;
 use crate::extension_methods::{is_letter as char_is_letter, trim};
 use crate::math_parser_exception::{CResult, MathParserException};
 use crate::parsers::units_parser;
-use crate::source_span::{SourceOrigin, SourceSpan};
+use crate::source_span::{SourceMap, SourceOrigin, SourceSpan};
 use crate::validator;
 
 /// `TextSpan` over a char array.
@@ -40,12 +40,12 @@ impl Span {
     }
 }
 
-fn source_error(error: MathParserException, source: &str, start_char: usize, end_char: usize) -> MathParserException {
-    error.with_source_span(SourceSpan::from_char_range(source, start_char, end_char))
+fn source_error(error: MathParserException, source_map: &SourceMap, start_char: usize, end_char: usize) -> MathParserException {
+    error.with_source_span(source_map.span_from_chars(start_char, end_char))
 }
 
-fn set_source_span(token: &TokenRef, source: &str, start_char: usize, end_char: usize) {
-    if let Some(span) = SourceSpan::from_char_range(source, start_char, end_char) {
+fn set_source_span(token: &TokenRef, source_map: &SourceMap, start_char: usize, end_char: usize) {
+    if let Some(span) = source_map.span_from_chars(start_char, end_char) {
         token.borrow_mut().source_origin = Some(SourceOrigin::Source(span));
     }
 }
@@ -114,6 +114,7 @@ impl MathParser {
     /// `Input.GetInput`
     pub(crate) fn get_input(&self, expression: &str, allow_assignment: bool) -> CResult<Vec<TokenRef>> {
         let ex: Vec<char> = expression.chars().collect();
+        let source_map = SourceMap::new(expression);
         let is_complex = self.settings.borrow().is_complex;
         let mut tokens: Vec<TokenRef> = Vec::with_capacity(ex.len());
         let mut pt = TokenTypes::None;
@@ -130,7 +131,7 @@ impl MathParser {
         let mut input_start = None;
         self.assignment_index.set(0);
         let mut t: Option<TokenRef> = None;
-        let n = self.get_target_units(&ex).map_err(|e| source_error(e, expression, 0, expression.chars().count()))?;
+        let n = self.get_target_units(&ex).map_err(|e| source_error(e, &source_map, 0, expression.chars().count()))?;
         let mut i = 0usize;
         while i <= n {
             let c = if i == n { ' ' } else { ex[i] };
@@ -178,7 +179,7 @@ impl MathParser {
                                 let mut tok = Token::new("", TokenTypes::Solver);
                                 tok.index = index as i64;
                                 let tok = tok.into_ref();
-                                set_source_span(&tok, expression, solver_start, i + 1);
+                                set_source_span(&tok, &source_map, solver_start, i + 1);
                                 tokens.push(tok.clone());
                                 t = Some(tok);
                                 st = SolverTypes::None;
@@ -218,7 +219,7 @@ impl MathParser {
                             }
                         }
                         if let (Some(tok), Some(start)) = (&t, input_start) {
-                            set_source_span(tok, expression, start, i + 1);
+                            set_source_span(tok, &source_map, start, i + 1);
                         }
                         input_start = None;
                         token_literal.reset(i);
@@ -345,7 +346,7 @@ impl MathParser {
                             if !units_literal.is_empty() {
                                 let s = units_literal.get(&ex);
                                 let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, expression, units_literal.start, units_literal.end))?.into_ref();
-                                set_source_span(&unit_tok, expression, units_literal.start, units_literal.end);
+                                set_source_span(&unit_tok, &source_map, units_literal.start, units_literal.end);
                                 let multiply = Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref();
                                 let mut origins = token_source_spans(&tokens[tokens.len() - 1]);
                                 origins.extend(token_source_spans(&unit_tok));
@@ -391,7 +392,7 @@ impl MathParser {
                             if prev_is_input_or_const {
                                 let multiply = Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref();
                                 let mut origins = t.as_ref().map(token_source_spans).unwrap_or_default();
-                                if let Some(span) = SourceSpan::from_char_range(expression, token_literal.start, i) { origins.push(span); }
+                                if let Some(span) = source_map.span_from_chars(token_literal.start, i) { origins.push(span); }
                                 set_derived_span(&multiply, origins);
                                 tokens.push(multiply);
                                 if !token_literal.is_empty() {
