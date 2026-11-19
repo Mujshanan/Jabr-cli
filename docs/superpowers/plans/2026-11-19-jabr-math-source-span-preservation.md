@@ -62,6 +62,7 @@
 - [ ] Add tests for identifiers, numbers, units, operators, input fields, and solver blocks with Unicode prefixes.
 - [ ] Run tests to verify missing provenance is detected.
 - [ ] Instrument every source-backed token creation path in get_input.
+- [ ] Preserve byte-origin mapping through ExpressionParser line slicing, trimming, directives, and line continuations; verify resulting spans are absolute to the original block source.
 - [ ] Verify all token spans slice the expected original source text.
 - [ ] Run core crate tests.
 
@@ -107,4 +108,5 @@
 
 - Work is isolated on branch feat/block-analysis-api; main is unchanged.
 - Added the internal UTF-8 SourceSpan/SourceMap and provenance model, token instrumentation, RPN collection-node provenance, parser/compiler error-span propagation, and focused unit tests.
+- Important remaining correctness gap: current spans are expression-local. ExpressionParser slices/trims individual lines and joins line continuations; M1 still needs a source-segment map to translate those locations back to the original block source.
 - The GitHub connector is the write path for this session. This environment has no rustc/cargo, cannot resolve github.com from the container, and the commit-workflow lookup returned no runs. Therefore the tests, formatter, Clippy, and build remain unverified. Continue the M1 audit and run the complete Rust suite in a toolchain-enabled environment before declaring the milestone complete.
