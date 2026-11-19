@@ -12,7 +12,6 @@ use serde_json::Value;
 use crate::ast::{
     AstDiagnostic, AstInspection, AstNode, AstNodeOrigin, DocumentNodeKind, SourceSpan,
 };
-use crate::base_types::value::Value as MathValue;
 use crate::calculator::NEG_STR;
 use crate::parsers::math_parser::tokens::{Rpn, TokenKind, TokenRef, TokenTypes};
 use crate::parsers::math_parser::MathParser;
@@ -131,7 +130,7 @@ fn lower_rpn(parser: &MathParser, rpn: &Rpn, source: &str) -> Result<AstNode, St
                 node
             }
             TokenTypes::Vector | TokenTypes::RowDivisor
-                if matches!(kind, TokenKind::Vector(_)) =>
+                if matches!(&kind, TokenKind::Vector(_)) =>
             {
                 let count = index.max(0) as usize;
                 let children = pop_children(&mut stack, count)?;
@@ -145,7 +144,7 @@ fn lower_rpn(parser: &MathParser, rpn: &Rpn, source: &str) -> Result<AstNode, St
                 node.children = children;
                 node
             }
-            TokenTypes::Matrix if matches!(kind, TokenKind::Matrix(_)) => {
+            TokenTypes::Matrix if matches!(&kind, TokenKind::Matrix(_)) => {
                 let count = (index / crate::vector::MAX_LENGTH) as usize;
                 let children = pop_children(&mut stack, count)?;
                 let mut node = new_node(&mut next_id, "matrix_literal", origin, source, &line_starts);
@@ -394,13 +393,6 @@ fn operator_name(content: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn node<'a>(node: &'a AstNode, kind: &str) -> &'a AstNode {
-        if node.kind == kind {
-            return node;
-        }
-        node.children.iter().find_map(|child| find_node(child, kind)).expect("AST node kind")
-    }
 
     fn find_node<'a>(node: &'a AstNode, kind: &str) -> Option<&'a AstNode> {
         if node.kind == kind {
