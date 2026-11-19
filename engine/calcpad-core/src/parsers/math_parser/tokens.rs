@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::base_types::value::Value;
 use crate::base_types::variable::VarRef;
 use crate::matrix::Matrix;
+use crate::source_span::SourceOrigin;
 use crate::vector::Vector;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -92,6 +93,8 @@ pub struct Token {
     pub ttype: TokenTypes,
     pub order: i8,
     pub kind: TokenKind,
+    /// Original-source provenance; RPN reordering keeps the same token allocation.
+    pub source_origin: Option<SourceOrigin>,
 }
 
 pub type TokenRef = Rc<RefCell<Token>>;
@@ -105,6 +108,7 @@ impl Token {
             ttype,
             order: DEFAULT_ORDER,
             kind: TokenKind::Plain,
+            source_origin: None,
         }
     }
 
