@@ -400,7 +400,7 @@ impl MathParser {
                                     t = Some(unit_tok);
                                 }
                             } else if s.chars().next().is_some_and(validator::is_unit_char) {
-                                let unit_tok = self.make_unit_token(&s, true)?.into_ref();
+                                let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end))?.into_ref();
                                 set_source_span(&unit_tok, expression, token_literal.start, i);
                                 t = Some(unit_tok);
                             } else {
@@ -482,7 +482,7 @@ impl MathParser {
                                     let is_var = token.borrow().is_variable_token();
                                     if is_var {
                                         if c == '\u{2190}' {
-                                            self.get_variable_for(&token, true)?;
+                                            self.get_variable_for(&token, true).map_err(|e| e.with_source_span(token_source_spans(&token).first().copied()))?;
                                         } else {
                                             self.create_variable(&token);
                                         }
@@ -496,7 +496,7 @@ impl MathParser {
                                 self.assignment_index.set(count);
                             }
                         } else if tt == TokenTypes::SquareBracketLeft && is_complex {
-                            return Err(exceptions::ComplexVectorsAndMatricesNotSupported());
+                            return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), expression, i, i + 1));
                         }
                         new_tok = Token::new(c.to_string(), tt);
                     }
