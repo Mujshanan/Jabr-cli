@@ -23,12 +23,7 @@ impl SourceSpan {
     }
 
     pub(crate) fn from_char_range(source: &str, start_char: usize, end_char: usize) -> Option<Self> {
-        if start_char > end_char {
-            return None;
-        }
-        let start_byte = byte_offset_for_char(source, start_char)?;
-        let end_byte = byte_offset_for_char(source, end_char)?;
-        Self::from_byte_range(source, start_byte, end_byte)
+        SourceMap::new(source).span_from_chars(start_char, end_char)
     }
 
     pub(crate) fn merge(self, other: Self) -> Self {
@@ -43,11 +38,29 @@ impl SourceSpan {
     }
 }
 
-fn byte_offset_for_char(source: &str, char_index: usize) -> Option<usize> {
-    if char_index == source.chars().count() {
-        return Some(source.len());
+/// Precomputed character-boundary map for one immutable source revision.
+/// Build once per parser invocation so mapping every token is O(1), not O(source_len).
+#[derive(Clone, Debug)]
+pub(crate) struct SourceMap {
+    char_to_byte: Vec<usize>,
+}
+
+impl SourceMap {
+    pub(crate) fn new(source: &str) -> Self {
+        let mut char_to_byte: Vec<usize> = source.char_indices().map(|(byte, _)| byte).collect();
+        char_to_byte.push(source.len());
+        Self { char_to_byte }
     }
-    source.char_indices().nth(char_index).map(|(byte, _)| byte)
+
+    pub(crate) fn span_from_chars(&self, start_char: usize, end_char: usize) -> Option<SourceSpan> {
+        if start_char > end_char {
+            return None;
+        }
+        Some(SourceSpan {
+            start_byte: *self.char_to_byte.get(start_char)?,
+            end_byte: *self.char_to_byte.get(end_char)?,
+        })
+    }
 }
 
 /// Provenance for tokens introduced or changed by parser transformations.
