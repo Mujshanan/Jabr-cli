@@ -216,3 +216,8 @@ The CivilKit engine test page will use a minimal CodeMirror 6 editor instead of 
 4. Add tests, document the boundary, and verify Bun/npm builds and the Windows CI path.
 
 **Acceptance criteria:** the engine-test page uses CodeMirror; core editing interactions work; completion inserts the selected item at the correct cursor range; Run and Tokenize consume the latest document; the existing terminal and engine behavior remain unchanged; no unnecessary framework or language-server dependencies are introduced.
+
+
+## Jabr-Math block-analysis milestones
+
+The active parser and block-analysis delivery sequence is maintained in [JABR-MATH-DEVELOPMENT-PLAN.md](JABR-MATH-DEVELOPMENT-PLAN.md). It supersedes the older generic AST phase sequencing for source-span, AST, name-analysis, facade, and release work. M1 implementation details are tracked in [the source-span implementation plan](superpowers/plans/2026-11-19-jabr-math-source-span-preservation.md).
