@@ -4,6 +4,9 @@
 
 use crate::parsers::expression_parser::ExpressionParser;
 
+/// Parse and inspect one mathematical expression without evaluating it.
+pub use crate::ast_inspection::inspect_expression;
+
 /// Version and identity information for the Jabr Math facade.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EngineInfo {
