@@ -64,6 +64,7 @@ impl MathParserException {
             unexpected: true,
             code: None,
             args: Vec::new(),
+            source_span: None,
         }
     }
 }
