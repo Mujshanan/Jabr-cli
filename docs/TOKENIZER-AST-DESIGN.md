@@ -131,3 +131,20 @@ The vendored Calcpad highlighter exposes token positions, not AST node positions
 
 \`src/interactive/ast-renderer.test.ts\` covers stable node paths, arbitrary node kinds, nesting limits, valid UTF-16 span metadata, and rejection of invalid spans. Browser interaction tests should be added when the test environment includes a DOM; the current Vitest environment is Node.
 
+
+
+## M2 implementation update — parse-only expression AST
+
+The first native expression-inspection path is now implemented on `feat/block-analysis-api`.
+
+- `inspect_expression(source)` invokes `MathParser::parse`, then lowers the parser-produced RPN into Jabr-owned AST DTOs.
+- It does not call `compile_rpn`, `eval_expr`, worksheet evaluation, HTML rendering, or the highlighter.
+- This avoids the existing compiler `Expr` constant-folding behavior, which would otherwise erase syntax such as the operator tree in `2 + 3 * 4`.
+- AST nodes retain parser token categories, operator/function identity, operand order, and source/derived provenance. Derived origins retain their individual fragments; the node span is only their bounding envelope.
+- Parser errors are returned as structured AST diagnostics.
+- The API is expression-level. It does not yet expose worksheet directives, multi-line blocks, loop/conditional document nodes, or function-definition bodies.
+- The expression source itself is the coordinate authority. Original block-global offsets remain gated on M1's ExpressionParser source-segment and cache/replay mapping.
+
+Implementation plan: [M2 AST inspection](superpowers/plans/2026-11-19-jabr-math-ast-inspection.md).
+
+Native Rust tests have been added for precedence-preserving AST shape, assignment target/RHS separation, function calls, parser diagnostics, and UTF-8 token spans. They have not yet been executed because this environment has no Rust toolchain. The RPN token-family audit and broader fixtures remain open.
