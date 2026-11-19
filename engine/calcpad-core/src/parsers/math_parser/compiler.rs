@@ -20,6 +20,7 @@ use crate::calculator::{IF_FUNCTION_INDEX, NEG_STR, SWITCH_INDEX};
 use crate::exceptions;
 use crate::math_parser_exception::{CResult, MathParserException};
 use crate::vector::Vector;
+use crate::source_span::SourceOrigin;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinOp {
@@ -140,7 +141,8 @@ impl MathParser {
                 let tb = t.borrow();
                 (tb.ttype, tb.content.clone(), tb.index)
             };
-            match tt {
+            let result: CResult<()> = (|| {
+                match tt {
                 TokenTypes::Constant => {
                     let v = t.borrow().token_value().cloned().unwrap_or_else(Value::zero);
                     stack.push(Expr::Const(v));
@@ -269,7 +271,13 @@ impl MathParser {
                     stack.push(Expr::Solver(sb));
                 }
                 _ => return Err(exceptions::CannotEvaluateAsType(&content, &tt.name())),
-            }
+                }
+                Ok(())
+            })();
+            result.map_err(|error| {
+                let span = t.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span);
+                error.with_source_span(span)
+            })?;
         }
         stack.pop().ok_or_else(exceptions::StackLeak)
     }
