@@ -50,6 +50,7 @@ pub mod output;
 pub mod parsers;
 pub mod plotter;
 pub mod settings;
+mod source_span;
 pub mod solver;
 pub mod sort;
 pub mod ui_dto;
