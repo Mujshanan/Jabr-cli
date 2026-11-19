@@ -17,7 +17,7 @@
 |---|---|---|---|
 | **M1** | Source-span preservation | Reliable original-source provenance through parsing and transformations, including Unicode and error locations | In progress |
 | **M2** | AST inspection | Real Calcpad parser output lowered into Jabr-owned versioned AST DTOs; expression-level parse-only inspector started | In progress |
-| **M3** | Name analysis | Ordered, occurrence-level definitions and references derived from the AST | Pending |
+| **M3** | Name analysis | Ordered, occurrence-level definitions and references derived from the AST | In progress |
 | **M4** | Public facade | Stable parse-only analyze_block API, diagnostics, source hash and length metadata | Pending |
 | **M5** | Release | Fixtures, documentation, compatibility checks, versioning, and Engine integration handoff | Pending |
 
@@ -102,13 +102,26 @@ Expose a syntax-preserving, parse-only expression AST derived from the authorita
 
 ## M3 — Name analysis
 
-- Derive definitions and references from the real AST.
-- Preserve source occurrence order by SourceSpan.start.
-- Emit one record per occurrence; do not deduplicate repeated references or definitions.
-- Distinguish assignment targets from reads, including read-modify-write expressions such as x = x + 1.
-- Do not invent exports when parsing fails.
+### Objective
 
-**Exit criteria:** fixtures verify definitions and references, occurrence spans, ordering, assignment semantics, and Unicode offsets.
+Derive ordered, occurrence-level definitions and references from the Jabr-owned AST. This pass consumes an existing AstInspection; it does not reparse source, evaluate expressions, or resolve worksheet-wide bindings.
+
+### Current implementation slice
+
+- Added Jabr-owned NameDefinition, NameReference, and NameAnalysis DTOs with JSON serialization.
+- Added analyze_names(&AstInspection), preserving one record per variable occurrence and a shared source-order ordinal across definitions and references.
+- Assignment LHS variables are definitions; RHS variables remain reads, including read-modify-write expressions such as x = x + 1.
+- Indexed vector/matrix assignment targets define the base collection name and treat index expressions as reads.
+- Parser diagnostics are carried forward. Failed parses do not produce speculative name occurrences.
+- The API is exported from the calcpad-core crate and Jabr facade.
+
+### Current limitations
+
+- This first slice analyzes one expression AST. It does not implement worksheet/block scope, sequential visibility, forward-reference diagnostics, or cross-block binding; those belong to Jabr-Engine.
+- Source locations are only as reliable as the supplied AST. Until M1 is complete, expression-local spans must not be represented as original multi-line worksheet offsets.
+- Unsupported assignment-target shapes produce an explicit diagnostic rather than silently inventing a definition.
+
+**Exit criteria:** fixtures verify definitions and references, occurrence spans, source ordering, assignment/read-modify-write semantics, parser-error behavior, and Unicode byte offsets. Full acceptance also requires the M1 original-source provenance path and Rust validation to pass.
 
 ## M4 — Public analysis facade
 

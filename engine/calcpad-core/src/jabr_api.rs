@@ -6,6 +6,8 @@ use crate::parsers::expression_parser::ExpressionParser;
 
 /// Parse and inspect one mathematical expression without evaluating it.
 pub use crate::ast_inspection::inspect_expression;
+/// Derive occurrence-level definitions and references from an existing AST.
+pub use crate::name_analysis::{analyze_names, NameAnalysis, NameDefinition, NameReference};
 
 /// Version and identity information for the Jabr Math facade.
 #[derive(Clone, Debug, PartialEq, Eq)]

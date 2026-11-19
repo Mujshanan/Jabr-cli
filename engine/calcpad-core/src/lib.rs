@@ -27,6 +27,8 @@
 
 pub mod ast;
 pub mod ast_inspection;
+pub mod name_analysis;
+pub use name_analysis::{analyze_names, NameAnalysis, NameDefinition, NameReference};
 pub use ast::{AstDiagnostic, AstInspection, AstNode, AstNodeOrigin, DocumentNodeKind, SourceSpan};
 pub mod base_types;
 pub mod calcpad_error;
