@@ -561,6 +561,33 @@ mod tests {
     }
 
     #[test]
+    fn parser_rejects_chained_assignments_before_ast_target_marking() {
+        let result = inspect_expression("x = y = 1");
+        assert!(result.ast.is_none());
+        assert!(!result.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn lowering_rejects_invalid_vector_and_matrix_arity_markers() {
+        use crate::parsers::math_parser::tokens::Token;
+
+        let parser = MathParser::new(Rc::new(RefCell::new(MathSettings::default())));
+        let mut vector = Token::new("", TokenTypes::Vector);
+        vector.kind = TokenKind::Vector(None);
+        vector.index = -1;
+        let error = lower_rpn(&parser, &Rc::new(vec![vector.into_ref()]), "")
+            .expect_err("negative vector count must fail");
+        assert!(error.contains("invalid vector element count"));
+
+        let mut matrix = Token::new("", TokenTypes::Matrix);
+        matrix.kind = TokenKind::Matrix(None);
+        matrix.index = 1;
+        let error = lower_rpn(&parser, &Rc::new(vec![matrix.into_ref()]), "")
+            .expect_err("invalid matrix count marker must fail");
+        assert!(error.contains("invalid matrix row count marker"));
+    }
+
+    #[test]
     fn lowering_rejects_underflow_and_multiple_rpn_roots() {
         use crate::parsers::math_parser::tokens::Token;
 
