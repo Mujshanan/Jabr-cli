@@ -1054,3 +1054,58 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
     let _ = Rc::new(());
     output
 }
+
+
+#[cfg(test)]
+mod source_span_tests {
+    use super::*;
+    use crate::settings::MathSettings;
+    use std::cell::RefCell;
+
+    fn parser() -> MathParser {
+        MathParser::new(Rc::new(RefCell::new(MathSettings::default())))
+    }
+
+    #[test]
+    fn tokenizer_records_utf8_spans_for_unicode_prefixed_expression() {
+        let source = "α + 2";
+        let tokens = parser().get_input(source, false).unwrap();
+        let spans: Vec<SourceSpan> = tokens
+            .iter()
+            .flat_map(token_source_spans)
+            .collect();
+
+        assert_eq!(spans.len(), 3);
+        assert_eq!(spans[0].slice(source), Some("α"));
+        assert_eq!(spans[1].slice(source), Some("+"));
+        assert_eq!(spans[2].slice(source), Some("2"));
+        assert_eq!(spans[0].start_byte, 0);
+        assert_eq!(spans[0].end_byte, 2);
+    }
+
+    #[test]
+    fn rpn_reordering_keeps_the_original_token_spans() {
+        let source = "α + 2 * 3";
+        let tokens = parser().get_input(source, false).unwrap();
+        let before: Vec<Vec<SourceSpan>> = tokens.iter().map(token_source_spans).collect();
+        let rpn = get_rpn(&tokens);
+        let after: Vec<Vec<SourceSpan>> = rpn.iter().map(token_source_spans).collect();
+
+        let mut expected = before;
+        expected.sort_by_key(|spans| spans.first().map(|span| span.start_byte).unwrap_or(usize::MAX));
+        let mut actual = after;
+        actual.sort_by_key(|spans| spans.first().map(|span| span.start_byte).unwrap_or(usize::MAX));
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn invalid_character_error_retains_its_original_unicode_aware_span() {
+        let source = "α + @";
+        let error = parser().get_input(source, false).unwrap_err();
+        let span = error.source_span.expect("invalid character should have a source span");
+
+        assert_eq!(span.start_byte, 5);
+        assert_eq!(span.end_byte, 6);
+        assert_eq!(span.slice(source), Some("@"));
+    }
+}
