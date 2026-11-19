@@ -16,7 +16,7 @@
 | Milestone | Focus | Deliverable | Status |
 |---|---|---|---|
 | **M1** | Source-span preservation | Reliable original-source provenance through parsing and transformations, including Unicode and error locations | In progress |
-| **M2** | AST inspection | Real Calcpad parser/compiler AST lowered into Jabr-owned versioned DTOs | Pending |
+| **M2** | AST inspection | Real Calcpad parser output lowered into Jabr-owned versioned AST DTOs; expression-level parse-only inspector started | In progress |
 | **M3** | Name analysis | Ordered, occurrence-level definitions and references derived from the AST | Pending |
 | **M4** | Public facade | Stable parse-only analyze_block API, diagnostics, source hash and length metadata | Pending |
 | **M5** | Release | Fixtures, documentation, compatibility checks, versioning, and Engine integration handoff | Pending |
@@ -68,13 +68,37 @@ Operator ordering and RPN conversion must preserve provenance when they reorder 
 
 ## M2 — AST inspection
 
-- Expose the real Calcpad parser/compiler tree through a parse-only inspection path.
-- Lower parser/compiler constructs into Jabr-owned AstInspection and AstNode DTOs.
-- Carry M1 provenance into AST nodes; do not reconstruct spans.
-- Keep AST inspection separate from evaluation.
-- Preserve operator, function, variable, literal, assignment, collection, and control-flow distinctions supported by the actual parser.
+### Objective
 
-**Exit criteria:** native inspection returns a versioned Jabr DTO populated from the real Calcpad parse/compiler representation, with preserved source locations and explicit diagnostics/partial-result status.
+Expose a syntax-preserving, parse-only expression AST derived from the authoritative Calcpad parser output. Keep AST inspection independent from evaluation.
+
+### Design decisions
+
+- MathParser.parse performs tokenization, syntax validation, operator ordering, and RPN generation without calling the evaluation compiler.
+- The current compiler Expr is not a safe syntax-AST source by itself because its compilation path constant-folds expressions and can erase authored operator structure.
+- The first inspection slice lowers actual parser-produced RPN into Jabr-owned AST nodes using the token type, operator/function arity, literal content, and original token provenance.
+- The inspection path must not call compile_rpn, eval_expr, worksheet evaluation, HTML rendering, or the highlighter.
+- Public AST origins distinguish direct source spans, derived non-contiguous fragments, and synthetic anchors. Node span is a navigation envelope, not a replacement for exact fragment provenance.
+- The first API is expression-level. Worksheet-level document nodes, directives, loops, conditions, and multi-line block structure remain separate follow-up work.
+
+### M2 work items
+
+1. Audit actual MathParser RPN token types and compiler semantics; do not infer grammar from the highlighter.
+2. Lower constants, variables, units, inputs, unary/binary operators, assignments, function families, vector/matrix literals, indexing, and solver references into structured AST nodes.
+3. Preserve operand/argument order and distinguish assignment targets from RHS expressions.
+4. Carry source and derived provenance into the AST DTO without reconstructing spans.
+5. Return structured diagnostics for parse failures and unsupported lowering cases.
+6. Add native fixtures for arithmetic precedence, assignments, functions, collections, indexing, units, malformed input, and Unicode offsets.
+7. Extend to worksheet/document AST only after M1 source-segment mapping is complete.
+
+### M2 exit criteria
+
+- Native inspection returns a versioned Jabr DTO populated from the actual Calcpad parser output.
+- Inspection preserves syntax and does not evaluate or constant-fold the expression.
+- Supported parser token families have explicit lowering rules; unsupported token families produce diagnostics.
+- Node children preserve parser operand order and semantic distinctions.
+- Source spans use UTF-8 bytes and exact source provenance; multi-origin nodes retain their fragments.
+- Tests pass on the supported toolchain.
 
 ## M3 — Name analysis
 
@@ -111,11 +135,10 @@ The public contract must be versioned and independent of Calcpad internal types 
 
 ## Current M1 implementation notes
 
-- engine/calcpad-core/src/ast.rs remains an existing DTO scaffold; M1 does not populate or expose it.
+- engine/calcpad-core/src/ast.rs contains Jabr-owned AST DTOs with a versioned JSON representation.
 - engine/calcpad-core/src/source_span.rs contains UTF-8 byte-range validation, character-boundary mapping, a precomputed SourceMap for O(1) character-to-byte lookup, and SourceOrigin variants for direct, derived, and synthetic provenance.
 - MathParser tokens carry internal provenance. Tokenizer instrumentation covers identifiers, literals, units, operators, input fields, solver blocks, and array references.
 - Implicit multiplication records both operand origins. RPN vector/matrix nodes retain their opening and closing delimiter origins; operator ordering and RPN token movement preserve provenance by retaining the original token references.
-- MathParserException carries an internal optional source span. Tokenizer failures attach source ranges where the failing construct is known, and compiler failures inherit the current token's origin. At present these ranges are relative to the exact expression string passed into MathParser; the outer ExpressionParser line/trim/continuation mapping back to the original block is still outstanding and is an M1 requirement.
-- Focused tests were added for Unicode character-to-byte mapping, empty/end spans, invalid ranges, token spans, RPN reordering, and an invalid-character diagnostic.
-- The full-block offset map remains open: ExpressionParser slices each source line, trims it, and may join continued lines before MathParser sees the expression. M1 must carry source-segment provenance across those operations rather than treating expression-local offsets as block-global.
-- **Verification is currently blocked:** this session has no Rust toolchain, cannot reach GitHub from the container, and the GitHub commit-workflow lookup returned no runs. The Rust tests, formatting, Clippy, and build have not been executed. Do not mark M1 complete until they run successfully and the remaining token/error paths are audited.
+- MathParserException carries an internal optional source span. Tokenizer failures attach source ranges where the failing construct is known, and compiler failures inherit the current token's origin.
+- **M1 remains in progress:** current spans are relative to the exact expression passed into MathParser. ExpressionParser line slicing, trimming, continuation mapping, cached LineInfo, and loop replay still need original-block provenance.
+- **Verification is pending:** this environment has no Rust toolchain. Do not claim tests, formatting, Clippy, or builds passed until run in a toolchain-enabled environment.

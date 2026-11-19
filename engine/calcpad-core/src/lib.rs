@@ -1,8 +1,7 @@
 //! calcpad-core: a Rust port of the CalcpadCE calculation engine (Calcpad.Core).
 //!
-//! Module names mirror the folders and files of Calcpad.Core so that the port can be
-//! followed file by file. The core performs no I/O; file access for `#include` goes
-//! through the [`parsers::macro_parser::FileProvider`] trait.
+//! The core performs no I/O; file access for `#include` goes through the
+//! `parsers::macro_parser::FileProvider` trait.
 // Style lints that would force the port away from the structure of the C# source.
 #![allow(
     clippy::excessive_precision,
@@ -27,6 +26,7 @@
 )]
 
 pub mod ast;
+pub mod ast_inspection;
 pub mod base_types;
 pub mod calcpad_error;
 pub mod calculator;
@@ -42,6 +42,7 @@ pub mod jabr_api;
 pub use jabr_api::{
     evaluate, EngineInfo, EvaluateRequest, EvaluateResponse, EvaluationOutcome, MathDiagnostic,
 };
+pub use ast_inspection::inspect_expression;
 pub mod messages;
 pub mod model_bindings;
 pub mod netfmt;

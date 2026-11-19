@@ -1,8 +1,9 @@
 //! Stable, Jabr-owned data-transfer types for parser inspection.
 //!
-//! These DTOs deliberately do not mirror the private Calcpad compiler types. The parser
-//! adapter will populate them from the real Calcpad parse/compiler output. In particular,
-//! tokenizer records must never be promoted to AST nodes.
+//! These DTOs deliberately do not mirror private Calcpad compiler types. The
+//! inspection adapter lowers the real Calcpad parser output into these types.
+//! Tokenizer records and rendered HTML are never promoted to AST nodes.
+
 use serde_json::{json, Map, Value};
 
 pub const AST_SCHEMA_VERSION: u32 = 1;
@@ -24,7 +25,8 @@ impl DocumentNodeKind {
     }
 }
 
-/// Half-open UTF-8 byte range in the original Rust source string.
+/// Half-open UTF-8 byte range in the exact source string.
+/// Line and column values are zero-based; columns are UTF-8 byte columns.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceSpan {
     pub start_byte: usize,
@@ -48,14 +50,43 @@ impl SourceSpan {
     }
 }
 
-/// A normalized syntax node. Attributes contain kind-specific semantic data
-/// (operator, literal, variable/function name, unit, etc.); children preserve
-/// source/compiler order. Evaluation results are intentionally not stored here.
+/// Exact provenance retained from the parser. A derived node can have
+/// non-contiguous source fragments; `span` on AstNode is only their envelope.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AstNodeOrigin {
+    Source(SourceSpan),
+    Derived(Vec<SourceSpan>),
+    Synthetic { anchor_byte: usize },
+}
+
+impl AstNodeOrigin {
+    pub fn to_json(&self) -> Value {
+        match self {
+            Self::Source(span) => json!({
+                "kind": "source",
+                "spans": [span.to_json()]
+            }),
+            Self::Derived(spans) => json!({
+                "kind": "derived",
+                "spans": spans.iter().map(SourceSpan::to_json).collect::<Vec<_>>()
+            }),
+            Self::Synthetic { anchor_byte } => json!({
+                "kind": "synthetic",
+                "anchorByte": anchor_byte
+            }),
+        }
+    }
+}
+
+/// A normalized syntax node. Attributes contain kind-specific semantic data;
+/// children preserve parser/compiler operand order. Evaluation results are not stored.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AstNode {
     pub id: String,
     pub kind: String,
+    /// Bounding span for navigation. Use `origin` for exact multi-fragment provenance.
     pub span: Option<SourceSpan>,
+    pub origin: Option<AstNodeOrigin>,
     pub attributes: Map<String, Value>,
     pub children: Vec<AstNode>,
 }
@@ -66,13 +97,15 @@ impl AstNode {
             id: id.into(),
             kind: kind.into(),
             span: None,
+            origin: None,
             attributes: Map::new(),
             children: Vec::new(),
         }
     }
 
     pub fn with_span(mut self, span: SourceSpan) -> Self {
-        self.span = Some(span);
+        self.span = Some(span.clone());
+        self.origin = Some(AstNodeOrigin::Source(span));
         self
     }
 
@@ -84,6 +117,10 @@ impl AstNode {
             "span".into(),
             self.span.as_ref().map(SourceSpan::to_json).unwrap_or(Value::Null),
         );
+        node.insert(
+            "origin".into(),
+            self.origin.as_ref().map(AstNodeOrigin::to_json).unwrap_or(Value::Null),
+        );
         node.insert("attributes".into(), Value::Object(self.attributes.clone()));
         node.insert(
             "children".into(),
@@ -93,13 +130,31 @@ impl AstNode {
     }
 }
 
+/// Structured, parse-only diagnostic.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AstDiagnostic {
+    pub code: Option<String>,
+    pub message: String,
+    pub span: Option<SourceSpan>,
+}
+
+impl AstDiagnostic {
+    pub fn to_json(&self) -> Value {
+        json!({
+            "code": self.code,
+            "message": self.message,
+            "span": self.span.as_ref().map(SourceSpan::to_json)
+        })
+    }
+}
+
 /// Inspection is a parse-only result. It must not execute worksheet calculations.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AstInspection {
     pub source: String,
     pub document_node: DocumentNodeKind,
     pub ast: Option<AstNode>,
-    pub diagnostics: Vec<Value>,
+    pub diagnostics: Vec<AstDiagnostic>,
     pub is_partial: bool,
 }
 
@@ -109,9 +164,11 @@ impl AstInspection {
             "schemaVersion": AST_SCHEMA_VERSION,
             "source": self.source,
             "sourceOffsetEncoding": "utf8-bytes",
+            "sourceLineColumnBase": 0,
+            "sourceColumnEncoding": "utf8-bytes",
             "documentNode": self.document_node.as_str(),
             "ast": self.ast.as_ref().map(AstNode::to_json),
-            "diagnostics": self.diagnostics,
+            "diagnostics": self.diagnostics.iter().map(AstDiagnostic::to_json).collect::<Vec<_>>(),
             "isPartial": self.is_partial
         })
     }
@@ -131,7 +188,7 @@ mod tests {
             end_line: 0,
             end_column_byte: 5,
         };
-        let mut root = AstNode::new("n1", "binary").with_span(span);
+        let mut root = AstNode::new("n1", "binary_expression").with_span(span);
         root.attributes.insert("operator".into(), Value::String("add".into()));
         root.children.push(AstNode::new("n2", "number"));
         let result = AstInspection {
@@ -147,6 +204,7 @@ mod tests {
         assert_eq!(result["sourceOffsetEncoding"], "utf8-bytes");
         assert_eq!(result["ast"]["children"][0]["kind"], "number");
         assert_eq!(result["ast"]["span"]["endByte"], 5);
+        assert_eq!(result["ast"]["origin"]["kind"], "source");
     }
 
     #[test]
@@ -161,5 +219,27 @@ mod tests {
 
         assert_eq!(result["documentNode"], "text");
         assert!(result["ast"].is_null());
+    }
+
+    #[test]
+    fn retains_non_contiguous_derived_origin_separately_from_envelope() {
+        let first = SourceSpan {
+            start_byte: 1, end_byte: 2, start_line: 0, start_column_byte: 1,
+            end_line: 0, end_column_byte: 2,
+        };
+        let second = SourceSpan {
+            start_byte: 8, end_byte: 9, start_line: 1, start_column_byte: 2,
+            end_line: 1, end_column_byte: 3,
+        };
+        let mut node = AstNode::new("n1", "vector_literal");
+        node.span = Some(SourceSpan {
+            start_byte: 1, end_byte: 9, start_line: 0, start_column_byte: 1,
+            end_line: 1, end_column_byte: 3,
+        });
+        node.origin = Some(AstNodeOrigin::Derived(vec![first, second]));
+        let json = node.to_json();
+        assert_eq!(json["span"]["startByte"], 1);
+        assert_eq!(json["span"]["endByte"], 9);
+        assert_eq!(json["origin"]["spans"].as_array().unwrap().len(), 2);
     }
 }
