@@ -980,7 +980,9 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
             }
             TokenTypes::SquareBracketLeft => {
                 tovs += 1;
-                vector_open_spans[tovs] = tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span);
+                if tovs < vector_open_spans.len() {
+                    vector_open_spans[tovs] = tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span);
+                }
                 if tovs < vector_stack.len() {
                     vector_stack[tovs] = 1;
                     matrix_stack[tovs] = 1;
@@ -1004,7 +1006,7 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
                             vt.kind = TokenKind::Vector(None);
                             vt.index = vector_stack[tovs];
                             let vt = vt.into_ref();
-                            if let (Some(open), Some(close)) = (vector_open_spans[tovs], tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span)) {
+                            if let (Some(open), Some(close)) = (vector_open_spans.get(tovs).copied().flatten(), tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span)) {
                                 set_derived_span(&vt, vec![open.merge(close)]);
                             }
                             output.push(vt.clone());
