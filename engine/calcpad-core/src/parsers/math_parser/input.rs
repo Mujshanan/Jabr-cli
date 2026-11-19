@@ -270,7 +270,7 @@ impl MathParser {
                             return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), &source_map, i, i + 1));
                         }
                         let s = token_literal.get(&ex);
-                        let tok = match self.make_vector_or_matrix_token(&s).map_err(|e| source_error(e, &source_map, token_literal.start, token_literal.end)) {
+                        let tok = match self.make_vector_or_matrix_token(&s) {
                             Some(t) => t,
                             None => {
                                 let mut t = Token::variable(s.clone(), None);
