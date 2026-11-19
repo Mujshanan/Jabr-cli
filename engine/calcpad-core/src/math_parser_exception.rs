@@ -53,7 +53,9 @@ impl MathParserException {
 
     /// Attach an original-source span without changing the public error message.
     pub(crate) fn with_source_span(mut self, span: Option<SourceSpan>) -> Self {
-        self.source_span = span;
+        if self.source_span.is_none() {
+            self.source_span = span;
+        }
         self
     }
 
