@@ -11,6 +11,7 @@ pub(crate) struct SourceSpan {
 }
 
 impl SourceSpan {
+    #[allow(dead_code)]
     pub(crate) fn from_byte_range(source: &str, start_byte: usize, end_byte: usize) -> Option<Self> {
         if start_byte > end_byte
             || end_byte > source.len()
@@ -22,6 +23,7 @@ impl SourceSpan {
         Some(Self { start_byte, end_byte })
     }
 
+    #[allow(dead_code)]
     pub(crate) fn from_char_range(source: &str, start_char: usize, end_char: usize) -> Option<Self> {
         SourceMap::new(source).span_from_chars(start_char, end_char)
     }
@@ -33,6 +35,7 @@ impl SourceSpan {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn slice<'a>(self, source: &'a str) -> Option<&'a str> {
         source.get(self.start_byte..self.end_byte)
     }
@@ -72,6 +75,7 @@ pub(crate) enum SourceOrigin {
     /// implicit multiplication operator or a vector/matrix RPN node).
     Derived(Vec<SourceSpan>),
     /// A generated token with no source text, anchored at a source byte offset.
+    #[allow(dead_code)]
     Synthetic { anchor_byte: usize },
 }
 
