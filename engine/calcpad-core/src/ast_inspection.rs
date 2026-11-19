@@ -494,17 +494,17 @@ mod tests {
 
     #[test]
     fn multiline_spans_use_zero_based_lines_and_utf8_byte_columns() {
-        let source = "a =\\n  1 + 2";
+        let source = "a =\\n  α + 2";
         let result = inspect_expression(source);
         let root = result.ast.expect("AST");
         let rhs = &root.children[1];
-        let first = rhs.children[0].span.as_ref().expect("first literal span");
-        let second = rhs.children[1].span.as_ref().expect("second literal span");
+        let first = rhs.children[0].span.as_ref().expect("first operand span");
+        let second = rhs.children[1].span.as_ref().expect("second operand span");
         assert_eq!((first.start_line, first.start_column_byte), (1, 2));
-        assert_eq!((first.end_line, first.end_column_byte), (1, 3));
-        assert_eq!((second.start_line, second.start_column_byte), (1, 6));
-        assert_eq!((second.end_line, second.end_column_byte), (1, 7));
-        assert_eq!(source.get(first.start_byte..first.end_byte), Some("1"));
+        assert_eq!((first.end_line, first.end_column_byte), (1, 4));
+        assert_eq!((second.start_line, second.start_column_byte), (1, 7));
+        assert_eq!((second.end_line, second.end_column_byte), (1, 8));
+        assert_eq!(source.get(first.start_byte..first.end_byte), Some("α"));
         assert_eq!(source.get(second.start_byte..second.end_byte), Some("2"));
     }
 
@@ -596,6 +596,25 @@ mod tests {
             root.children.iter().map(|n| n.attributes["literal"].as_str().unwrap()).collect::<Vec<_>>(),
             vec!["1", "2", "3"]
         );
+    }
+
+    #[test]
+    fn fixed_arity_function2_and_function3_tokens_keep_argument_order() {
+        use crate::parsers::math_parser::tokens::Token;
+
+        let parser = MathParser::new(Rc::new(RefCell::new(MathSettings::default())));
+        for (function_type, arity) in [(TokenTypes::Function2, 2usize), (TokenTypes::Function3, 3usize)] {
+            let mut tokens = (1..=arity)
+                .map(|value| Token::new(value.to_string(), TokenTypes::Constant).into_ref())
+                .collect::<Vec<_>>();
+            tokens.push(Token::new("f", function_type).into_ref());
+            let root = lower_rpn(&parser, &Rc::new(tokens), "function arguments")
+                .expect("fixed-arity function AST");
+            assert_eq!(root.children.len(), arity);
+            for (index, child) in root.children.iter().enumerate() {
+                assert_eq!(child.attributes["literal"], (index + 1).to_string());
+            }
+        }
     }
 
     #[test]
