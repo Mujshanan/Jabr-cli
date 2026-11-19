@@ -1011,7 +1011,7 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
                             vt.index = vector_stack[tovs];
                             let vt = vt.into_ref();
                             if let (Some(open), Some(close)) = (vector_open_spans.get(tovs).copied().flatten(), tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span)) {
-                                set_derived_span(&vt, vec![open.merge(close)]);
+                                set_derived_span(&vt, vec![open, close]);
                             }
                             output.push(vt.clone());
                             if tt == TokenTypes::SquareBracketRight {
@@ -1022,7 +1022,7 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
                                     mt.index = matrix_stack[tovs] * crate::vector::MAX_LENGTH;
                                     let mt = mt.into_ref();
                                     if let (Some(open), Some(close)) = (vector_open_spans.get(tovs).copied().flatten(), tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span)) {
-                                        set_derived_span(&mt, vec![open.merge(close)]);
+                                        set_derived_span(&mt, vec![open, close]);
                                     }
                                     output.push(mt);
                                     vt.borrow_mut().ttype = TokenTypes::RowDivisor;
