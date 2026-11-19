@@ -150,7 +150,7 @@ impl MathParser {
             if !is_input {
                 if tt == TokenTypes::Solver && !is_solver {
                     if !token_literal.is_empty() {
-                        return Err(source_error(exceptions::InvalidMacro(&token_literal.get(&ex)), expression, token_literal.start, token_literal.end));
+                        return Err(source_error(exceptions::InvalidMacro(&token_literal.get(&ex)), &source_map, token_literal.start, token_literal.end));
                     }
                     text_span.reset(i);
                     solver_start = i;
@@ -163,7 +163,7 @@ impl MathParser {
                                 let s = text_span.get(&ex);
                                 st = get_solver_type(&s);
                                 if st == SolverTypes::Error {
-                                    return Err(source_error(exceptions::InvalidSolver(&s), expression, text_span.start, text_span.end));
+                                    return Err(source_error(exceptions::InvalidSolver(&s), &source_map, text_span.start, text_span.end));
                                 }
                                 text_span.reset(i + 1);
                             } else {
@@ -175,7 +175,7 @@ impl MathParser {
                             bracket_counter -= 1;
                             if bracket_counter == 0 {
                                 let script = text_span.get(&ex);
-                                let index = self.add_solver(&script, st).map_err(|e| source_error(e, expression, solver_start, i + 1))?;
+                                let index = self.add_solver(&script, st).map_err(|e| source_error(e, &source_map, solver_start, i + 1))?;
                                 let mut tok = Token::new("", TokenTypes::Solver);
                                 tok.index = index as i64;
                                 let tok = tok.into_ref();
@@ -213,7 +213,7 @@ impl MathParser {
                                     source_error(MathParserException::unexpected(format!(
                                         "The input string '{}' was not in a correct format.",
                                         content
-                                    )), expression, input_start.unwrap_or(token_literal.start), i + 1)
+                                    )), &source_map, input_start.unwrap_or(token_literal.start), i + 1)
                                 })?;
                                 tm.set_value(Value::Real(RealValue::num(v)));
                             }
@@ -239,7 +239,7 @@ impl MathParser {
                             pt = TokenTypes::Unit;
                         }
                     } else if c != ' ' || !token_literal.is_empty() {
-                        return Err(source_error(exceptions::InvalidSymbol(c), expression, i, i + 1));
+                        return Err(source_error(exceptions::InvalidSymbol(c), &source_map, i, i + 1));
                     }
                     handled = true;
                 }
@@ -251,7 +251,7 @@ impl MathParser {
             }
 
             if tt == TokenTypes::Error {
-                return Err(source_error(exceptions::InvalidSymbol(c), expression, i, i + 1));
+                return Err(source_error(exceptions::InvalidSymbol(c), &source_map, i, i + 1));
             }
 
             if tt == TokenTypes::Constant && units_literal.is_empty()
@@ -267,10 +267,10 @@ impl MathParser {
                     };
                     if c == '.' && tt == TokenTypes::Variable {
                         if is_complex {
-                            return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), expression, i, i + 1));
+                            return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), &source_map, i, i + 1));
                         }
                         let s = token_literal.get(&ex);
-                        let tok = match self.make_vector_or_matrix_token(&s).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end)) {
+                        let tok = match self.make_vector_or_matrix_token(&s).map_err(|e| source_error(e, &source_map, token_literal.start, token_literal.end)) {
                             Some(t) => t,
                             None => {
                                 let mut t = Token::variable(s.clone(), None);
@@ -280,7 +280,7 @@ impl MathParser {
                         };
                         let ttype = tok.ttype;
                         let tok = tok.into_ref();
-                        set_source_span(&tok, expression, token_literal.start, i);
+                        set_source_span(&tok, &source_map, token_literal.start, i);
                         tokens.push(tok.clone());
                         t = Some(tok);
                         token_literal.reset(i);
@@ -304,8 +304,8 @@ impl MathParser {
                         units_literal.expand();
                         tt = TokenTypes::Constant;
                     } else {
-                        let tok = make_imaginary_value_token(&token_literal.get(&ex)).map_err(|e| source_error(e, expression, token_literal.start, i + 1))?.into_ref();
-                        set_source_span(&tok, expression, token_literal.start, i + 1);
+                        let tok = make_imaginary_value_token(&token_literal.get(&ex)).map_err(|e| source_error(e, &source_map, token_literal.start, i + 1))?.into_ref();
+                        set_source_span(&tok, &source_map, token_literal.start, i + 1);
                         tokens.push(tok.clone());
                         t = Some(tok);
                         token_literal.reset(i);
@@ -318,7 +318,7 @@ impl MathParser {
                     tt = TokenTypes::Constant;
                 } else {
                     if tt == TokenTypes::Unit && !validator::is_var_starting_char(c) {
-                        return Err(source_error(exceptions::InvalidCharacter(c), expression, i, i + 1));
+                        return Err(source_error(exceptions::InvalidCharacter(c), &source_map, i, i + 1));
                     }
                     if tt != pt {
                         token_literal.reset(i);
@@ -331,21 +331,21 @@ impl MathParser {
                         if token_literal.get(&ex) == "." && !units_literal.is_empty() {
                             let s = units_literal.get(&ex);
                             let force = Unit::exists(&s) || !tokens.is_empty();
-                            let tok = self.make_unit_token(&s, force).map_err(|e| source_error(e, expression, units_literal.start, units_literal.end))?.into_ref();
-                            set_source_span(&tok, expression, units_literal.start, units_literal.end);
+                            let tok = self.make_unit_token(&s, force).map_err(|e| source_error(e, &source_map, units_literal.start, units_literal.end))?.into_ref();
+                            set_source_span(&tok, &source_map, units_literal.start, units_literal.end);
                             tokens.push(tok.clone());
                             t = Some(tok);
                             token_literal.reset(i);
                             units_literal.reset(i);
                         } else {
-                            let tok = make_real_value_token(&token_literal.get(&ex)).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end))?.into_ref();
-                            set_source_span(&tok, expression, token_literal.start, token_literal.end);
+                            let tok = make_real_value_token(&token_literal.get(&ex)).map_err(|e| source_error(e, &source_map, token_literal.start, token_literal.end))?.into_ref();
+                            set_source_span(&tok, &source_map, token_literal.start, token_literal.end);
                             tokens.push(tok.clone());
                             t = Some(tok);
                             token_literal.reset(i);
                             if !units_literal.is_empty() {
                                 let s = units_literal.get(&ex);
-                                let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, expression, units_literal.start, units_literal.end))?.into_ref();
+                                let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, &source_map, units_literal.start, units_literal.end))?.into_ref();
                                 set_source_span(&unit_tok, &source_map, units_literal.start, units_literal.end);
                                 let multiply = Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref();
                                 let mut origins = token_source_spans(&tokens[tokens.len() - 1]);
@@ -361,7 +361,7 @@ impl MathParser {
                         let s = token_literal.get(&ex);
                         if tt == TokenTypes::BracketLeft {
                             let must_exist = self.is_calculation.get() && !tokens.is_empty();
-                            let tok = self.make_function_token(&s, must_exist).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end))?;
+                            let tok = self.make_function_token(&s, must_exist).map_err(|e| source_error(e, &source_map, token_literal.start, token_literal.end))?;
                             if is_complex {
                                 use TokenTypes::*;
                                 let ends_units = tok.content.to_lowercase().ends_with("units");
@@ -378,11 +378,11 @@ impl MathParser {
                                     _ => false,
                                 };
                                 if bad {
-                                    return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), expression, i, i + 1));
+                                    return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), &source_map, i, i + 1));
                                 }
                             }
                             let tok = tok.into_ref();
-                            set_source_span(&tok, expression, token_literal.start, i);
+                            set_source_span(&tok, &source_map, token_literal.start, i);
                             t = Some(tok);
                         } else {
                             let prev_is_input_or_const = t.as_ref().is_some_and(|x| {
@@ -396,23 +396,23 @@ impl MathParser {
                                 set_derived_span(&multiply, origins);
                                 tokens.push(multiply);
                                 if !token_literal.is_empty() {
-                                    let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end))?.into_ref();
-                                    set_source_span(&unit_tok, expression, token_literal.start, i);
+                                    let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, &source_map, token_literal.start, token_literal.end))?.into_ref();
+                                    set_source_span(&unit_tok, &source_map, token_literal.start, i);
                                     t = Some(unit_tok);
                                 }
                             } else if s.chars().next().is_some_and(validator::is_unit_char) {
-                                let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end))?.into_ref();
-                                set_source_span(&unit_tok, expression, token_literal.start, i);
+                                let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, &source_map, token_literal.start, token_literal.end))?.into_ref();
+                                set_source_span(&unit_tok, &source_map, token_literal.start, i);
                                 t = Some(unit_tok);
                             } else {
                                 let variable_tok = Token::variable(s.clone(), None).into_ref();
-                                set_source_span(&variable_tok, expression, token_literal.start, i);
+                                set_source_span(&variable_tok, &source_map, token_literal.start, i);
                                 t = Some(variable_tok);
                             }
                         }
                         let tok = t.clone().unwrap();
                         if tok.borrow().source_origin.is_none() {
-                            set_source_span(&tok, expression, token_literal.start, i);
+                            set_source_span(&tok, &source_map, token_literal.start, i);
                         }
                         tokens.push(tok.clone());
                         if tok.borrow().ttype == TokenTypes::Array {
@@ -456,7 +456,7 @@ impl MathParser {
                             tok.index = calculator::FACT_FUNCTION_INDEX;
                             new_tok = tok;
                         } else {
-                            return Err(source_error(exceptions::MissingOperand(), expression, i, i + 1));
+                            return Err(source_error(exceptions::MissingOperand(), &source_map, i, i + 1));
                         }
                     } else if tt == TokenTypes::Input {
                         self.has_input_fields.set(true);
@@ -475,7 +475,7 @@ impl MathParser {
                         if tt == TokenTypes::Operator {
                             if (c == '=' || c == '\u{2190}') && paren_depth == 0 {
                                 if !allow_assignment || self.assignment_index.get() > 0 {
-                                    return Err(source_error(exceptions::ImproperAssignment(), expression, i, i + 1));
+                                    return Err(source_error(exceptions::ImproperAssignment(), &source_map, i, i + 1));
                                 }
                                 let count = tokens.len();
                                 if count == 1 {
@@ -497,12 +497,12 @@ impl MathParser {
                                 self.assignment_index.set(count);
                             }
                         } else if tt == TokenTypes::SquareBracketLeft && is_complex {
-                            return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), expression, i, i + 1));
+                            return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), &source_map, i, i + 1));
                         }
                         new_tok = Token::new(c.to_string(), tt);
                     }
                     let tok = new_tok.into_ref();
-                    set_source_span(&tok, expression, i, i + 1);
+                    set_source_span(&tok, &source_map, i, i + 1);
                     tokens.push(tok.clone());
                     t = Some(tok);
                 }
@@ -517,9 +517,9 @@ impl MathParser {
             return Ok(tokens);
         }
         if st == SolverTypes::None {
-            return Err(source_error(exceptions::MissingLeftSolverBracket(), expression, solver_start, ex.len()));
+            return Err(source_error(exceptions::MissingLeftSolverBracket(), &source_map, solver_start, ex.len()));
         }
-        Err(source_error(exceptions::MissingRightSolverBracket(), expression, solver_start, ex.len()))
+        Err(source_error(exceptions::MissingRightSolverBracket(), &source_map, solver_start, ex.len()))
     }
 
     /// `GetTargetUnits`: returns the index where the expression ends.
