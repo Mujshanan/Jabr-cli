@@ -327,21 +327,21 @@ impl MathParser {
                             let s = units_literal.get(&ex);
                             let force = Unit::exists(&s) || !tokens.is_empty();
                             let tok = self.make_unit_token(&s, force)?.into_ref();
-                            set_source_span(&tok, expression, units_literal.start, i);
+                            set_source_span(&tok, expression, units_literal.start, units_literal.end);
                             tokens.push(tok.clone());
                             t = Some(tok);
                             token_literal.reset(i);
                             units_literal.reset(i);
                         } else {
                             let tok = make_real_value_token(&token_literal.get(&ex))?.into_ref();
-                            set_source_span(&tok, expression, token_literal.start, i);
+                            set_source_span(&tok, expression, token_literal.start, token_literal.end);
                             tokens.push(tok.clone());
                             t = Some(tok);
                             token_literal.reset(i);
                             if !units_literal.is_empty() {
                                 let s = units_literal.get(&ex);
                                 let unit_tok = self.make_unit_token(&s, true)?.into_ref();
-                                set_source_span(&unit_tok, expression, units_literal.start, i);
+                                set_source_span(&unit_tok, expression, units_literal.start, units_literal.end);
                                 let multiply = Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref();
                                 let mut origins = token_source_spans(&tokens[tokens.len() - 1]);
                                 origins.extend(token_source_spans(&unit_tok));
