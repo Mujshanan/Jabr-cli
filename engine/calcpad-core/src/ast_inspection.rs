@@ -13,7 +13,7 @@ use crate::ast::{
     AstDiagnostic, AstInspection, AstNode, AstNodeOrigin, DocumentNodeKind, SourceSpan,
 };
 use crate::calculator::NEG_STR;
-use crate::parsers::math_parser::tokens::{Rpn, TokenKind, TokenRef, TokenTypes};
+use crate::parsers::math_parser::tokens::{Rpn, TokenKind, TokenTypes};
 use crate::parsers::math_parser::MathParser;
 use crate::settings::MathSettings;
 use crate::source_span::{SourceOrigin, SourceSpan as InternalSourceSpan};
