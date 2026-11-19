@@ -27,6 +27,7 @@
 
 pub mod ast;
 pub mod ast_inspection;
+pub use ast::{AstDiagnostic, AstInspection, AstNode, AstNodeOrigin, DocumentNodeKind, SourceSpan};
 pub mod base_types;
 pub mod calcpad_error;
 pub mod calculator;
