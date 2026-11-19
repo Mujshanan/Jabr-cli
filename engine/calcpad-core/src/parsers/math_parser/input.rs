@@ -14,6 +14,7 @@ use crate::exceptions;
 use crate::extension_methods::{is_letter as char_is_letter, trim};
 use crate::math_parser_exception::{CResult, MathParserException};
 use crate::parsers::units_parser;
+use crate::source_span::{SourceOrigin, SourceSpan};
 use crate::validator;
 
 /// `TextSpan` over a char array.
@@ -36,6 +37,26 @@ impl Span {
     }
     fn get(&self, ex: &[char]) -> String {
         ex[self.start..self.end].iter().collect()
+    }
+}
+
+fn set_source_span(token: &TokenRef, source: &str, start_char: usize, end_char: usize) {
+    if let Some(span) = SourceSpan::from_char_range(source, start_char, end_char) {
+        token.borrow_mut().source_origin = Some(SourceOrigin::Source(span));
+    }
+}
+
+fn set_derived_span(token: &TokenRef, spans: Vec<SourceSpan>) {
+    if !spans.is_empty() {
+        token.borrow_mut().source_origin = Some(SourceOrigin::Derived(spans));
+    }
+}
+
+fn token_source_spans(token: &TokenRef) -> Vec<SourceSpan> {
+    match &token.borrow().source_origin {
+        Some(SourceOrigin::Source(span)) => vec![*span],
+        Some(SourceOrigin::Derived(spans)) => spans.clone(),
+        Some(SourceOrigin::Synthetic { .. }) | None => Vec::new(),
     }
 }
 
@@ -101,6 +122,8 @@ impl MathParser {
         let mut token_literal = Span::default();
         let mut units_literal = Span::default();
         let mut text_span = Span::default();
+        let mut solver_start = 0usize;
+        let mut input_start = None;
         self.assignment_index.set(0);
         let mut t: Option<TokenRef> = None;
         let n = self.get_target_units(&ex)?;
@@ -125,6 +148,7 @@ impl MathParser {
                         return Err(exceptions::InvalidMacro(&token_literal.get(&ex)));
                     }
                     text_span.reset(i);
+                    solver_start = i;
                     is_solver = true;
                 }
                 if is_solver {
@@ -150,6 +174,7 @@ impl MathParser {
                                 let mut tok = Token::new("", TokenTypes::Solver);
                                 tok.index = index as i64;
                                 let tok = tok.into_ref();
+                                set_source_span(&tok, expression, solver_start, i + 1);
                                 tokens.push(tok.clone());
                                 t = Some(tok);
                                 st = SolverTypes::None;
@@ -188,6 +213,10 @@ impl MathParser {
                                 tm.set_value(Value::Real(RealValue::num(v)));
                             }
                         }
+                        if let (Some(tok), Some(start)) = (&t, input_start) {
+                            set_source_span(tok, expression, start, i + 1);
+                        }
+                        input_start = None;
                         token_literal.reset(i);
                         is_input = false;
                         tt = TokenTypes::Input;
@@ -246,6 +275,7 @@ impl MathParser {
                         };
                         let ttype = tok.ttype;
                         let tok = tok.into_ref();
+                        set_source_span(&tok, expression, token_literal.start, i);
                         tokens.push(tok.clone());
                         t = Some(tok);
                         token_literal.reset(i);
@@ -254,7 +284,11 @@ impl MathParser {
                             TokenTypes::Matrix => TokenTypes::MatrixIndex,
                             _ => TokenTypes::ArrayIndex,
                         };
-                        tokens.push(Token::new(s, tt).into_ref());
+                        let index_token = Token::new(s, tt).into_ref();
+                        if let Some(span) = token_source_spans(&tokens[tokens.len() - 1]).first().copied() {
+                            set_derived_span(&index_token, vec![span]);
+                        }
+                        tokens.push(index_token);
                     } else {
                         token_literal.expand();
                     }
@@ -266,6 +300,7 @@ impl MathParser {
                         tt = TokenTypes::Constant;
                     } else {
                         let tok = make_imaginary_value_token(&token_literal.get(&ex))?.into_ref();
+                        set_source_span(&tok, expression, token_literal.start, i + 1);
                         tokens.push(tok.clone());
                         t = Some(tok);
                         token_literal.reset(i);
@@ -292,20 +327,27 @@ impl MathParser {
                             let s = units_literal.get(&ex);
                             let force = Unit::exists(&s) || !tokens.is_empty();
                             let tok = self.make_unit_token(&s, force)?.into_ref();
+                            set_source_span(&tok, expression, units_literal.start, i);
                             tokens.push(tok.clone());
                             t = Some(tok);
                             token_literal.reset(i);
                             units_literal.reset(i);
                         } else {
                             let tok = make_real_value_token(&token_literal.get(&ex))?.into_ref();
+                            set_source_span(&tok, expression, token_literal.start, i);
                             tokens.push(tok.clone());
                             t = Some(tok);
                             token_literal.reset(i);
                             if !units_literal.is_empty() {
                                 let s = units_literal.get(&ex);
-                                tokens.push(Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref());
-                                let tok = self.make_unit_token(&s, true)?.into_ref();
-                                tokens.push(tok.clone());
+                                let unit_tok = self.make_unit_token(&s, true)?.into_ref();
+                                set_source_span(&unit_tok, expression, units_literal.start, i);
+                                let multiply = Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref();
+                                let mut origins = token_source_spans(&tokens[tokens.len() - 1]);
+                                origins.extend(token_source_spans(&unit_tok));
+                                set_derived_span(&multiply, origins);
+                                tokens.push(multiply);
+                                tokens.push(unit_tok.clone());
                                 t = Some(tok);
                                 units_literal.reset(i);
                             }
@@ -334,28 +376,46 @@ impl MathParser {
                                     return Err(exceptions::ComplexVectorsAndMatricesNotSupported());
                                 }
                             }
-                            t = Some(tok.into_ref());
+                            let tok = tok.into_ref();
+                            set_source_span(&tok, expression, token_literal.start, i);
+                            t = Some(tok);
                         } else {
                             let prev_is_input_or_const = t.as_ref().is_some_and(|x| {
                                 let x = x.borrow();
                                 x.ttype == TokenTypes::Input || x.ttype == TokenTypes::Constant
                             });
                             if prev_is_input_or_const {
-                                tokens.push(Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref());
+                                let multiply = Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref();
+                                let mut origins = t.as_ref().map(token_source_spans).unwrap_or_default();
+                                if let Some(span) = SourceSpan::from_char_range(expression, token_literal.start, i) { origins.push(span); }
+                                set_derived_span(&multiply, origins);
+                                tokens.push(multiply);
                                 if !token_literal.is_empty() {
-                                    t = Some(self.make_unit_token(&s, true)?.into_ref());
+                                    let unit_tok = self.make_unit_token(&s, true)?.into_ref();
+                                    set_source_span(&unit_tok, expression, token_literal.start, i);
+                                    t = Some(unit_tok);
                                 }
                             } else if s.chars().next().is_some_and(validator::is_unit_char) {
-                                t = Some(self.make_unit_token(&s, true)?.into_ref());
+                                let unit_tok = self.make_unit_token(&s, true)?.into_ref();
+                                set_source_span(&unit_tok, expression, token_literal.start, i);
+                                t = Some(unit_tok);
                             } else {
-                                t = Some(Token::variable(s.clone(), None).into_ref());
+                                let variable_tok = Token::variable(s.clone(), None).into_ref();
+                                set_source_span(&variable_tok, expression, token_literal.start, i);
+                                t = Some(variable_tok);
                             }
                         }
                         let tok = t.clone().unwrap();
+                        if tok.borrow().source_origin.is_none() {
+                            set_source_span(&tok, expression, token_literal.start, i);
+                        }
                         tokens.push(tok.clone());
                         if tok.borrow().ttype == TokenTypes::Array {
                             let content = tok.borrow().content.clone();
-                            tokens.push(Token::new(content, TokenTypes::ArrayIndex).into_ref());
+                            let index_token = Token::new(content, TokenTypes::ArrayIndex).into_ref();
+                            let origins = token_source_spans(&tok);
+                            set_derived_span(&index_token, origins);
+                            tokens.push(index_token);
                         }
                         token_literal.reset(i);
                     }
@@ -395,6 +455,7 @@ impl MathParser {
                         }
                     } else if tt == TokenTypes::Input {
                         self.has_input_fields.set(true);
+                        input_start = Some(i);
                         let mut tok = Token::value(Value::Real(RealValue::ZERO));
                         tok.index = self.line.get() as i64;
                         tok.ttype = TokenTypes::Input;
@@ -436,6 +497,7 @@ impl MathParser {
                         new_tok = Token::new(c.to_string(), tt);
                     }
                     let tok = new_tok.into_ref();
+                    set_source_span(&tok, expression, i, i + 1);
                     tokens.push(tok.clone());
                     t = Some(tok);
                 }
@@ -841,6 +903,7 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
     let mut stack: Vec<TokenRef> = Vec::with_capacity(20);
     let mut vector_stack = [0i64; 64];
     let mut matrix_stack = [0i64; 64];
+    let mut vector_open_spans: [Option<SourceSpan>; 64] = [None; 64];
     let mut function_stack = [0i64; 64];
     let mut tovs = 0usize;
     let mut tofs = 0usize;
@@ -917,6 +980,7 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
             }
             TokenTypes::SquareBracketLeft => {
                 tovs += 1;
+                vector_open_spans[tovs] = tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span);
                 if tovs < vector_stack.len() {
                     vector_stack[tovs] = 1;
                     matrix_stack[tovs] = 1;
@@ -940,6 +1004,9 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
                             vt.kind = TokenKind::Vector(None);
                             vt.index = vector_stack[tovs];
                             let vt = vt.into_ref();
+                            if let (Some(open), Some(close)) = (vector_open_spans[tovs], tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span)) {
+                                set_derived_span(&vt, vec![open.merge(close)]);
+                            }
                             output.push(vt.clone());
                             if tt == TokenTypes::SquareBracketRight {
                                 stack.pop();
@@ -947,7 +1014,11 @@ pub fn get_rpn(input: &[TokenRef]) -> Vec<TokenRef> {
                                     let mut mt = Token::new("", TokenTypes::Matrix);
                                     mt.kind = TokenKind::Matrix(None);
                                     mt.index = matrix_stack[tovs] * crate::vector::MAX_LENGTH;
-                                    output.push(mt.into_ref());
+                                    let mt = mt.into_ref();
+                                    if let (Some(open), Some(close)) = (vector_open_spans[tovs], tr.borrow().source_origin.as_ref().and_then(SourceOrigin::primary_span)) {
+                                        set_derived_span(&mt, vec![open.merge(close)]);
+                                    }
+                                    output.push(mt);
                                     vt.borrow_mut().ttype = TokenTypes::RowDivisor;
                                 }
                             } else {
