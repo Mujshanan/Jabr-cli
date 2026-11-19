@@ -348,7 +348,7 @@ impl MathParser {
                                 set_derived_span(&multiply, origins);
                                 tokens.push(multiply);
                                 tokens.push(unit_tok.clone());
-                                t = Some(tok);
+                                t = Some(unit_tok);
                                 units_literal.reset(i);
                             }
                         }
