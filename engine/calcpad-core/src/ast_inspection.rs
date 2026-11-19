@@ -445,6 +445,16 @@ mod tests {
     }
 
     #[test]
+    fn inspection_does_not_apply_assignment_or_evaluate_the_rhs() {
+        let parser = MathParser::new(Rc::new(RefCell::new(MathSettings::default())));
+        parser.parse("x = 2 + 3", true).expect("parse only");
+        let variable = parser.variables.borrow().get("x").cloned().expect("assignment target");
+        assert!(variable.value().is_none(), "inspection parsing must not assign a value");
+        let rpn = parser.rpn.borrow().clone().expect("parser RPN");
+        assert!(!rpn.is_empty());
+    }
+
+    #[test]
     fn function_calls_retain_name_and_argument_order() {
         let result = inspect_expression("sin(2)");
         let root = result.ast.expect("AST");
