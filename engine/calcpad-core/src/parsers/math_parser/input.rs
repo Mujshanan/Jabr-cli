@@ -488,7 +488,7 @@ impl MathParser {
                                         }
                                         let v = token.borrow().variable_ref().unwrap();
                                         if v.is_read_only.get() {
-                                            return Err(source_error(exceptions::CannotModifyConstant(&token.borrow().content), expression, token_source_spans(&token).first().map(|s| s.start_byte).unwrap_or(0), token_source_spans(&token).first().map(|s| s.end_byte).unwrap_or(0)));
+                                            return Err(exceptions::CannotModifyConstant(&token.borrow().content).with_source_span(token_source_spans(&token).first().copied()));
                                         }
                                         v.is_read_only.set(self.is_const.get());
                                     }
