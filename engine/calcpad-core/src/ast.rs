@@ -26,7 +26,11 @@ impl DocumentNodeKind {
 }
 
 /// Half-open UTF-8 byte range in the exact source string.
-/// Line and column values are zero-based; columns are UTF-8 byte columns.
+///
+/// Line and column values are zero-based; columns are UTF-8 byte columns (not
+/// Unicode-scalar columns). This differs from Kernel 0.1 Location, which uses
+/// one-based lines and one-based Unicode-scalar columns. Convert explicitly at
+/// the Kernel/UI boundary; never copy these coordinates directly into Location.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceSpan {
     pub start_byte: usize,

@@ -13,7 +13,7 @@ use crate::ast::{
     AstDiagnostic, AstInspection, AstNode, AstNodeOrigin, DocumentNodeKind, SourceSpan,
 };
 use crate::calculator::NEG_STR;
-use crate::parsers::math_parser::tokens::{Rpn, TokenKind, TokenTypes};
+use crate::parsers::math_parser::tokens::{Rpn, TokenKind, TokenRef, TokenTypes};
 use crate::parsers::math_parser::MathParser;
 use crate::settings::MathSettings;
 use crate::source_span::{SourceOrigin, SourceSpan as InternalSourceSpan};
@@ -24,6 +24,20 @@ use crate::source_span::{SourceOrigin, SourceSpan as InternalSourceSpan};
 /// Worksheet-level directives and multi-line block assembly are intentionally handled
 /// by a later block-analysis layer.
 pub fn inspect_expression(source: &str) -> AstInspection {
+    if source.trim().is_empty() {
+        return AstInspection {
+            source: source.to_string(),
+            document_node: DocumentNodeKind::Math,
+            ast: None,
+            diagnostics: vec![AstDiagnostic {
+                code: Some("EMPTY_EXPRESSION".into()),
+                message: "The expression source is empty or contains only whitespace.".into(),
+                span: None,
+            }],
+            is_partial: false,
+        };
+    }
+
     let parser = MathParser::new(Rc::new(RefCell::new(MathSettings::default())));
     match parser.parse(source, true) {
         Err(error) => AstInspection {
@@ -89,19 +103,12 @@ fn lower_rpn(parser: &MathParser, rpn: &Rpn, source: &str) -> Result<AstNode, St
     let mut next_id = 0usize;
 
     for token_ref in rpn.iter() {
-        let (ttype, content, index, kind, origin, parameter_count, is_function_token, argument_count) = {
-            let token = token_ref.borrow();
-            (
-                token.ttype,
-                token.content.clone(),
-                token.index,
-                token.kind.clone(),
-                token.source_origin.clone(),
-                token.parameter_count(),
-                token.is_function_token(),
-                token.argument_map().map(|map| map.len()),
-            )
-        };
+        let token = token_metadata(token_ref);
+        let ttype = token.ttype;
+        let content = token.content.clone();
+        let index = token.index;
+        let kind = token.kind.clone();
+        let origin = token.origin.clone();
 
         let mut node = match ttype {
             TokenTypes::Constant => {
@@ -132,7 +139,11 @@ fn lower_rpn(parser: &MathParser, rpn: &Rpn, source: &str) -> Result<AstNode, St
             TokenTypes::Vector | TokenTypes::RowDivisor
                 if matches!(&kind, TokenKind::Vector(_)) =>
             {
-                let count = index.max(0) as usize;
+                // Calcpad emits each vector row's elements left-to-right, then a
+                // Vector/RowDivisor marker whose index is the exact element count.
+                let count = usize::try_from(index).map_err(|_| {
+                    format!("The parser emitted an invalid vector element count: {index}.")
+                })?;
                 let children = pop_children(&mut stack, count)?;
                 let mut node = new_node(
                     &mut next_id,
@@ -145,7 +156,15 @@ fn lower_rpn(parser: &MathParser, rpn: &Rpn, source: &str) -> Result<AstNode, St
                 node
             }
             TokenTypes::Matrix if matches!(&kind, TokenKind::Matrix(_)) => {
-                let count = (index / crate::vector::MAX_LENGTH) as usize;
+                // A matrix marker follows all row markers. Its index is
+                // row_count * MAX_LENGTH, so the stack contains row nodes here.
+                let row_capacity = i64::try_from(crate::vector::MAX_LENGTH)
+                    .map_err(|_| "The parser matrix row capacity is not representable.".to_string())?;
+                if index < 0 || index % row_capacity != 0 {
+                    return Err(format!("The parser emitted an invalid matrix row count marker: {index}."));
+                }
+                let count = usize::try_from(index / row_capacity)
+                    .map_err(|_| format!("The parser emitted an invalid matrix row count: {index}."))?;
                 let children = pop_children(&mut stack, count)?;
                 let mut node = new_node(&mut next_id, "matrix_literal", origin, source, &line_starts);
                 node.children = children;
@@ -212,9 +231,9 @@ fn lower_rpn(parser: &MathParser, rpn: &Rpn, source: &str) -> Result<AstNode, St
                     parser,
                     ttype,
                     index,
-                    parameter_count,
-                    is_function_token,
-                    argument_count,
+                    token.parameter_count,
+                    token.is_function_token,
+                    token.argument_count,
                 ).ok_or_else(|| format!("The parser emitted a function token with unknown arity: {content}"))?;
                 let children = pop_children(&mut stack, arity)?;
                 let mut node = new_node(&mut next_id, "function_call", origin, source, &line_starts);
@@ -238,6 +257,33 @@ fn lower_rpn(parser: &MathParser, rpn: &Rpn, source: &str) -> Result<AstNode, St
         return Err(format!("The parser produced {} AST roots; exactly one was expected.", stack.len()));
     }
     Ok(stack.pop().expect("one AST root was checked"))
+}
+
+#[derive(Clone)]
+struct TokenMetadata {
+    ttype: TokenTypes,
+    content: String,
+    index: i64,
+    kind: TokenKind,
+    origin: Option<SourceOrigin>,
+    parameter_count: i32,
+    is_function_token: bool,
+    argument_count: Option<usize>,
+}
+
+/// Copy only metadata needed by AST lowering and keep parser RefCell borrows short.
+fn token_metadata(token_ref: &TokenRef) -> TokenMetadata {
+    let token = token_ref.borrow();
+    TokenMetadata {
+        ttype: token.ttype,
+        content: token.content.clone(),
+        index: token.index,
+        kind: token.kind.clone(),
+        origin: token.source_origin.clone(),
+        parameter_count: token.parameter_count(),
+        is_function_token: token.is_function_token(),
+        argument_count: token.argument_map().map(|map| map.len()),
+    }
 }
 
 fn function_arity(
@@ -385,7 +431,6 @@ fn operator_name(content: &str) -> &'static str {
         "\u{2228}" => "or",
         "\u{2295}" => "xor",
         "^" => "power",
-        "=" | "\u{2190}" => "assign",
         _ => "operator",
     }
 }
@@ -445,6 +490,126 @@ mod tests {
         assert!(variable.value().is_none(), "inspection parsing must not assign a value");
         let rpn = parser.rpn.borrow().clone().expect("parser RPN");
         assert!(!rpn.is_empty());
+    }
+
+    #[test]
+    fn multiline_spans_use_zero_based_lines_and_utf8_byte_columns() {
+        let source = "a =\\n  1 + 2";
+        let result = inspect_expression(source);
+        let root = result.ast.expect("AST");
+        let rhs = &root.children[1];
+        let first = rhs.children[0].span.as_ref().expect("first literal span");
+        let second = rhs.children[1].span.as_ref().expect("second literal span");
+        assert_eq!((first.start_line, first.start_column_byte), (1, 2));
+        assert_eq!((first.end_line, first.end_column_byte), (1, 3));
+        assert_eq!((second.start_line, second.start_column_byte), (1, 6));
+        assert_eq!((second.end_line, second.end_column_byte), (1, 7));
+        assert_eq!(source.get(first.start_byte..first.end_byte), Some("1"));
+        assert_eq!(source.get(second.start_byte..second.end_byte), Some("2"));
+    }
+
+    #[test]
+    fn empty_and_whitespace_only_sources_return_empty_expression_diagnostic() {
+        for source in ["", "   ", "\\n\\t  "] {
+            let result = inspect_expression(source);
+            assert!(result.ast.is_none());
+            assert_eq!(result.diagnostics[0].code.as_deref(), Some("EMPTY_EXPRESSION"));
+        }
+    }
+
+    #[test]
+    fn function_definitions_are_not_misreported_as_expression_trees() {
+        let result = inspect_expression("f(x)=x");
+        assert!(result.ast.is_none());
+        assert_eq!(result.diagnostics[0].code.as_deref(), Some("NON_EXPRESSION_PARSE"));
+    }
+
+    #[test]
+    fn vector_and_matrix_literals_preserve_element_and_row_order() {
+        let vector = inspect_expression("[1,2,3]");
+        let vector = vector.ast.expect("vector AST");
+        assert_eq!(vector.kind, "vector_literal");
+        assert_eq!(
+            vector.children.iter().map(|n| n.attributes["literal"].as_str().unwrap()).collect::<Vec<_>>(),
+            vec!["1", "2", "3"]
+        );
+
+        let matrix = inspect_expression("[1,2|3,4]");
+        let matrix = matrix.ast.expect("matrix AST");
+        assert_eq!(matrix.kind, "matrix_literal");
+        assert_eq!(matrix.children.len(), 2);
+        assert_eq!(matrix.children[0].kind, "vector_row");
+        assert_eq!(matrix.children[1].kind, "vector_row");
+        assert_eq!(
+            matrix.children[0].children.iter().map(|n| n.attributes["literal"].as_str().unwrap()).collect::<Vec<_>>(),
+            vec!["1", "2"]
+        );
+        assert_eq!(
+            matrix.children[1].children.iter().map(|n| n.attributes["literal"].as_str().unwrap()).collect::<Vec<_>>(),
+            vec!["3", "4"]
+        );
+    }
+
+    #[test]
+    fn arrow_assignment_keeps_target_before_rhs() {
+        let result = inspect_expression("x \\u{2190} 2 + 3");
+        let root = result.ast.expect("AST");
+        assert_eq!(root.kind, "assignment");
+        assert_eq!(root.children[0].attributes["role"], "assignment_target");
+        assert_eq!(root.children[0].attributes["name"], "x");
+        assert_eq!(root.children[1].kind, "binary_expression");
+    }
+
+    #[test]
+    fn lowering_rejects_underflow_and_multiple_rpn_roots() {
+        use crate::parsers::math_parser::tokens::Token;
+
+        let parser = MathParser::new(Rc::new(RefCell::new(MathSettings::default())));
+        let underflow = Rc::new(vec![Token::new("+", TokenTypes::Operator).into_ref()]);
+        let error = lower_rpn(&parser, &underflow, "+").expect_err("underflow must fail");
+        assert!(error.contains("stack underflow"));
+
+        let multiple = Rc::new(vec![
+            Token::new("1", TokenTypes::Constant).into_ref(),
+            Token::new("2", TokenTypes::Constant).into_ref(),
+        ]);
+        let error = lower_rpn(&parser, &multiple, "1 2").expect_err("multiple roots must fail");
+        assert!(error.contains("2 AST roots"));
+    }
+
+    #[test]
+    fn multi_argument_function_children_retain_left_to_right_order() {
+        use crate::parsers::math_parser::tokens::Token;
+
+        let parser = MathParser::new(Rc::new(RefCell::new(MathSettings::default())));
+        let mut function = Token::function("f");
+        function.set_parameter_count(3);
+        let rpn = Rc::new(vec![
+            Token::new("1", TokenTypes::Constant).into_ref(),
+            Token::new("2", TokenTypes::Constant).into_ref(),
+            Token::new("3", TokenTypes::Constant).into_ref(),
+            function.into_ref(),
+        ]);
+        let root = lower_rpn(&parser, &rpn, "1 2 3 f").expect("function AST");
+        assert_eq!(root.kind, "function_call");
+        assert_eq!(
+            root.children.iter().map(|n| n.attributes["literal"].as_str().unwrap()).collect::<Vec<_>>(),
+            vec!["1", "2", "3"]
+        );
+    }
+
+    #[test]
+    fn custom_function_arity_lookup_rejects_invalid_indices_without_panicking() {
+        use crate::parsers::math_parser::custom_function::CustomFunction;
+
+        let parser = MathParser::new(Rc::new(RefCell::new(MathSettings::default())));
+        assert_eq!(function_arity(&parser, TokenTypes::CustomFunction, -1, 0, false, None), None);
+        assert_eq!(function_arity(&parser, TokenTypes::CustomFunction, 999, 0, false, None), None);
+
+        let function = CustomFunction::new(false);
+        function.add_parameters(&["a".into(), "b".into()]);
+        let index = parser.functions.borrow_mut().add("f", function) as i64;
+        assert_eq!(function_arity(&parser, TokenTypes::CustomFunction, index, 0, false, None), Some(2));
     }
 
     #[test]

@@ -32,9 +32,20 @@
 - [x] Add parse-only RPN-to-AST lowering without calling the evaluation compiler.
 - [x] Add a public Rust expression-inspection entry point.
 - [x] Add focused native unit tests for syntax preservation, assignment, function calls, errors, and UTF-8 spans.
+- [x] Audit RPN operand ordering for operators, assignments, functions, vector rows, and matrices against Calcpad get_rpn.
+- [x] Harden vector/matrix arity markers and isolate parser-token metadata extraction.
+- [x] Add regression tests for multiline byte coordinates, empty input, function definitions, collection order, assignment arrows, malformed RPN, multi-argument functions, and invalid custom-function indices.
 - [ ] Run cargo fmt, focused AST tests, full crate tests, Clippy, and supported target builds.
-- [ ] Audit all RPN token variants and add fixtures for units, vector/matrix literals, indexing, custom functions, and control/solver constructs.
+- [ ] Complete the audit and add fixtures for units, indexing, and control/solver constructs.
 - [ ] Complete M1 source-segment mapping before exposing worksheet-block AST with original block-global spans.
+
+## RPN lowering audit notes
+
+Calcpad emits ordinary operands in source order before the operator/function token. Assignment expressions therefore place the LHS before the RHS, and split_off preserves that order. Vector literal markers follow their row elements and carry the element count in index. Each matrix row is emitted as a row marker; the final matrix marker carries row_count * MAX_LENGTH, so lowering divides by MAX_LENGTH to pop the row nodes. The inspector validates that matrix marker before converting it to a row count.
+
+Container::get rejects negative custom-function indices and uses checked vector access, so the inspector retains this lookup and adds invalid-index regression tests rather than duplicating bounds checks.
+
+The public Math SourceSpan uses zero-based line numbers and zero-based UTF-8 byte columns. This differs from Kernel 0.1 Location (one-based lines and Unicode-scalar columns); adapters must convert deliberately.
 
 ## Known limitations
 
