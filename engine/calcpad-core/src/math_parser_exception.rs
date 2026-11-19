@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::fmt;
 
 use crate::netfmt::fmt as net_fmt;
+use crate::source_span::SourceSpan;
 
 /// Error raised by the math engine. `message` is the user visible text.
 #[derive(Clone, Debug, PartialEq)]
@@ -17,6 +18,8 @@ pub struct MathParserException {
     pub code: Option<&'static str>,
     /// The arguments the text was made with, in the order of the template's `{0}`, `{1}`.
     pub args: Vec<String>,
+    /// Original-source location when the parser can identify the failing construct.
+    pub(crate) source_span: Option<SourceSpan>,
 }
 
 impl MathParserException {
@@ -26,6 +29,7 @@ impl MathParserException {
             unexpected: false,
             code: None,
             args: Vec::new(),
+            source_span: None,
         }
     }
 
@@ -43,7 +47,14 @@ impl MathParserException {
             unexpected: false,
             code: Some(code),
             args: args.iter().map(|a| a.to_string()).collect(),
+            source_span: None,
         }
+    }
+
+    /// Attach an original-source span without changing the public error message.
+    pub(crate) fn with_source_span(mut self, span: Option<SourceSpan>) -> Self {
+        self.source_span = span;
+        self
     }
 
     /// A non MathParserException failure (.NET runtime exception) with its message.
