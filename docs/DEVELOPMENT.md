@@ -236,3 +236,18 @@ The audited current tree, ownership boundaries, target package layout, and safe 
 
 See [PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md](api/PUBLIC-RUST-API-AND-KERNEL-BOUNDARY.md) for the current Jabr-owned source-evaluation facade and the generic Kernel/Engine ownership boundary. The facade is additive over the vendored Calcpad engine. It does not yet expose variable snapshots, structured Math values, or a browser wire protocol.
 
+
+
+## 10. Jabr-Math block-analysis development
+
+The authoritative five-milestone sequence for the Calcpad-backed block-analysis API is maintained in [JABR-MATH-DEVELOPMENT-PLAN.md](JABR-MATH-DEVELOPMENT-PLAN.md):
+
+1. **M1 — Source-span preservation:** retain exact UTF-8 byte provenance through tokenization, parser transformations, RPN conversion, and parser/compiler diagnostics.
+2. **M2 — AST inspection:** lower the real Calcpad parser/compiler tree into Jabr-owned DTOs.
+3. **M3 — Name analysis:** derive ordered, occurrence-level definitions and references from the AST.
+4. **M4 — Public facade:** expose a stable parse-only block-analysis contract with source hash/length and structured diagnostics.
+5. **M5 — Release:** validate compatibility, publish the contract, and prepare the Engine integration handoff.
+
+Calcpad remains the authoritative worksheet parser/language engine. Mathlex is not a second parser for worksheet source. The active implementation branch is [feat/block-analysis-api](https://github.com/Mujshanan/Jabr-math/tree/feat/block-analysis-api).
+
+M1 is in progress. Its current implementation adds UTF-8 span/provenance primitives, parser-token provenance, RPN collection-node origins, and internal source locations on tokenizer/compiler errors. Focused tests have been added, but Rust verification is still pending because this editing environment has no Rust toolchain. Do not treat M1 as complete until the Rust suite, formatting, Clippy, and build checks have run successfully.
