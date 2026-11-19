@@ -111,8 +111,10 @@ The public contract must be versioned and independent of Calcpad internal types 
 
 ## Current M1 implementation notes
 
-- engine/calcpad-core/src/ast.rs is an existing DTO scaffold; it is not yet populated from the parser.
-- engine/calcpad-core/src/source_span.rs now contains internal UTF-8 span/provenance primitives and focused unit tests.
-- MathParser tokens now have an internal provenance field.
-- MathParser::get_input and RPN vector/matrix construction have initial source-provenance instrumentation.
-- Remaining M1 work includes auditing every token construction path, preserving all generated-token origins, attaching parser/compiler error spans, and running the Rust test suite. Do not mark M1 complete until these checks are verified.
+- engine/calcpad-core/src/ast.rs remains an existing DTO scaffold; M1 does not populate or expose it.
+- engine/calcpad-core/src/source_span.rs contains UTF-8 byte-range validation, character-boundary mapping, a precomputed SourceMap for O(1) character-to-byte lookup, and SourceOrigin variants for direct, derived, and synthetic provenance.
+- MathParser tokens carry internal provenance. Tokenizer instrumentation covers identifiers, literals, units, operators, input fields, solver blocks, and array references.
+- Implicit multiplication records both operand origins. RPN vector/matrix nodes retain their opening and closing delimiter origins; operator ordering and RPN token movement preserve provenance by retaining the original token references.
+- MathParserException carries an internal optional source span. Tokenizer failures attach source ranges where the failing construct is known, and compiler failures inherit the current token's origin.
+- Focused tests were added for Unicode character-to-byte mapping, empty/end spans, invalid ranges, token spans, RPN reordering, and an invalid-character diagnostic.
+- **Verification is currently blocked:** this session has no Rust toolchain, cannot reach GitHub from the container, and the GitHub commit-workflow lookup returned no runs. The Rust tests, formatting, Clippy, and build have not been executed. Do not mark M1 complete until they run successfully and the remaining token/error paths are audited.
