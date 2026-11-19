@@ -130,7 +130,7 @@ impl MathParser {
         let mut input_start = None;
         self.assignment_index.set(0);
         let mut t: Option<TokenRef> = None;
-        let n = self.get_target_units(&ex)?;
+        let n = self.get_target_units(&ex).map_err(|e| source_error(e, expression, 0, expression.chars().count()))?;
         let mut i = 0usize;
         while i <= n {
             let c = if i == n { ' ' } else { ex[i] };
@@ -174,7 +174,7 @@ impl MathParser {
                             bracket_counter -= 1;
                             if bracket_counter == 0 {
                                 let script = text_span.get(&ex);
-                                let index = self.add_solver(&script, st)?;
+                                let index = self.add_solver(&script, st).map_err(|e| source_error(e, expression, solver_start, i + 1))?;
                                 let mut tok = Token::new("", TokenTypes::Solver);
                                 tok.index = index as i64;
                                 let tok = tok.into_ref();
@@ -250,7 +250,7 @@ impl MathParser {
             }
 
             if tt == TokenTypes::Error {
-                return Err(exceptions::InvalidSymbol(c));
+                return Err(source_error(exceptions::InvalidSymbol(c), expression, i, i + 1));
             }
 
             if tt == TokenTypes::Constant && units_literal.is_empty()
@@ -377,7 +377,7 @@ impl MathParser {
                                     _ => false,
                                 };
                                 if bad {
-                                    return Err(exceptions::ComplexVectorsAndMatricesNotSupported());
+                                    return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), expression, i, i + 1));
                                 }
                             }
                             let tok = tok.into_ref();
@@ -395,7 +395,7 @@ impl MathParser {
                                 set_derived_span(&multiply, origins);
                                 tokens.push(multiply);
                                 if !token_literal.is_empty() {
-                                    let unit_tok = self.make_unit_token(&s, true)?.into_ref();
+                                    let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end))?.into_ref();
                                     set_source_span(&unit_tok, expression, token_literal.start, i);
                                     t = Some(unit_tok);
                                 }
@@ -488,7 +488,7 @@ impl MathParser {
                                         }
                                         let v = token.borrow().variable_ref().unwrap();
                                         if v.is_read_only.get() {
-                                            return Err(exceptions::CannotModifyConstant(&token.borrow().content));
+                                            return Err(source_error(exceptions::CannotModifyConstant(&token.borrow().content), expression, token_source_spans(&token).first().map(|s| s.start_byte).unwrap_or(0), token_source_spans(&token).first().map(|s| s.end_byte).unwrap_or(0)));
                                         }
                                         v.is_read_only.set(self.is_const.get());
                                     }
@@ -518,7 +518,7 @@ impl MathParser {
         if st == SolverTypes::None {
             return Err(source_error(exceptions::MissingLeftSolverBracket(), expression, solver_start, ex.len()));
         }
-        Err(exceptions::MissingRightSolverBracket())
+        Err(source_error(exceptions::MissingRightSolverBracket(), expression, solver_start, ex.len()))
     }
 
     /// `GetTargetUnits`: returns the index where the expression ends.
