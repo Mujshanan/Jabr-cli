@@ -267,7 +267,7 @@ impl MathParser {
                     };
                     if c == '.' && tt == TokenTypes::Variable {
                         if is_complex {
-                            return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), &source_map, i, i + 1));
+                            return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), &source_map, token_literal.start, i + 1));
                         }
                         let s = token_literal.get(&ex);
                         let tok = match self.make_vector_or_matrix_token(&s) {
