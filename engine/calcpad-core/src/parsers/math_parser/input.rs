@@ -40,6 +40,10 @@ impl Span {
     }
 }
 
+fn source_error(error: MathParserException, source: &str, start_char: usize, end_char: usize) -> MathParserException {
+    error.with_source_span(SourceSpan::from_char_range(source, start_char, end_char))
+}
+
 fn set_source_span(token: &TokenRef, source: &str, start_char: usize, end_char: usize) {
     if let Some(span) = SourceSpan::from_char_range(source, start_char, end_char) {
         token.borrow_mut().source_origin = Some(SourceOrigin::Source(span));
@@ -145,7 +149,7 @@ impl MathParser {
             if !is_input {
                 if tt == TokenTypes::Solver && !is_solver {
                     if !token_literal.is_empty() {
-                        return Err(exceptions::InvalidMacro(&token_literal.get(&ex)));
+                        return Err(source_error(exceptions::InvalidMacro(&token_literal.get(&ex)), expression, token_literal.start, token_literal.end));
                     }
                     text_span.reset(i);
                     solver_start = i;
@@ -158,7 +162,7 @@ impl MathParser {
                                 let s = text_span.get(&ex);
                                 st = get_solver_type(&s);
                                 if st == SolverTypes::Error {
-                                    return Err(exceptions::InvalidSolver(&s));
+                                    return Err(source_error(exceptions::InvalidSolver(&s), expression, text_span.start, text_span.end));
                                 }
                                 text_span.reset(i + 1);
                             } else {
@@ -205,10 +209,10 @@ impl MathParser {
                             tm.content = content.clone();
                             if self.is_enabled.get() {
                                 let v = parse_double_invariant(&content).ok_or_else(|| {
-                                    MathParserException::unexpected(format!(
+                                    source_error(MathParserException::unexpected(format!(
                                         "The input string '{}' was not in a correct format.",
                                         content
-                                    ))
+                                    )), expression, input_start.unwrap_or(token_literal.start), i + 1)
                                 })?;
                                 tm.set_value(Value::Real(RealValue::num(v)));
                             }
@@ -234,7 +238,7 @@ impl MathParser {
                             pt = TokenTypes::Unit;
                         }
                     } else if c != ' ' || !token_literal.is_empty() {
-                        return Err(exceptions::InvalidSymbol(c));
+                        return Err(source_error(exceptions::InvalidSymbol(c), expression, i, i + 1));
                     }
                     handled = true;
                 }
@@ -262,10 +266,10 @@ impl MathParser {
                     };
                     if c == '.' && tt == TokenTypes::Variable {
                         if is_complex {
-                            return Err(exceptions::ComplexVectorsAndMatricesNotSupported());
+                            return Err(source_error(exceptions::ComplexVectorsAndMatricesNotSupported(), expression, i, i + 1));
                         }
                         let s = token_literal.get(&ex);
-                        let tok = match self.make_vector_or_matrix_token(&s) {
+                        let tok = match self.make_vector_or_matrix_token(&s).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end)) {
                             Some(t) => t,
                             None => {
                                 let mut t = Token::variable(s.clone(), None);
@@ -299,7 +303,7 @@ impl MathParser {
                         units_literal.expand();
                         tt = TokenTypes::Constant;
                     } else {
-                        let tok = make_imaginary_value_token(&token_literal.get(&ex))?.into_ref();
+                        let tok = make_imaginary_value_token(&token_literal.get(&ex)).map_err(|e| source_error(e, expression, token_literal.start, i + 1))?.into_ref();
                         set_source_span(&tok, expression, token_literal.start, i + 1);
                         tokens.push(tok.clone());
                         t = Some(tok);
@@ -313,7 +317,7 @@ impl MathParser {
                     tt = TokenTypes::Constant;
                 } else {
                     if tt == TokenTypes::Unit && !validator::is_var_starting_char(c) {
-                        return Err(exceptions::InvalidCharacter(c));
+                        return Err(source_error(exceptions::InvalidCharacter(c), expression, i, i + 1));
                     }
                     if tt != pt {
                         token_literal.reset(i);
@@ -326,21 +330,21 @@ impl MathParser {
                         if token_literal.get(&ex) == "." && !units_literal.is_empty() {
                             let s = units_literal.get(&ex);
                             let force = Unit::exists(&s) || !tokens.is_empty();
-                            let tok = self.make_unit_token(&s, force)?.into_ref();
+                            let tok = self.make_unit_token(&s, force).map_err(|e| source_error(e, expression, units_literal.start, units_literal.end))?.into_ref();
                             set_source_span(&tok, expression, units_literal.start, units_literal.end);
                             tokens.push(tok.clone());
                             t = Some(tok);
                             token_literal.reset(i);
                             units_literal.reset(i);
                         } else {
-                            let tok = make_real_value_token(&token_literal.get(&ex))?.into_ref();
+                            let tok = make_real_value_token(&token_literal.get(&ex)).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end))?.into_ref();
                             set_source_span(&tok, expression, token_literal.start, token_literal.end);
                             tokens.push(tok.clone());
                             t = Some(tok);
                             token_literal.reset(i);
                             if !units_literal.is_empty() {
                                 let s = units_literal.get(&ex);
-                                let unit_tok = self.make_unit_token(&s, true)?.into_ref();
+                                let unit_tok = self.make_unit_token(&s, true).map_err(|e| source_error(e, expression, units_literal.start, units_literal.end))?.into_ref();
                                 set_source_span(&unit_tok, expression, units_literal.start, units_literal.end);
                                 let multiply = Token::with_order("*", TokenTypes::Operator, UNIT_MULT_ORDER).into_ref();
                                 let mut origins = token_source_spans(&tokens[tokens.len() - 1]);
@@ -356,7 +360,7 @@ impl MathParser {
                         let s = token_literal.get(&ex);
                         if tt == TokenTypes::BracketLeft {
                             let must_exist = self.is_calculation.get() && !tokens.is_empty();
-                            let tok = self.make_function_token(&s, must_exist)?;
+                            let tok = self.make_function_token(&s, must_exist).map_err(|e| source_error(e, expression, token_literal.start, token_literal.end))?;
                             if is_complex {
                                 use TokenTypes::*;
                                 let ends_units = tok.content.to_lowercase().ends_with("units");
@@ -451,7 +455,7 @@ impl MathParser {
                             tok.index = calculator::FACT_FUNCTION_INDEX;
                             new_tok = tok;
                         } else {
-                            return Err(exceptions::MissingOperand());
+                            return Err(source_error(exceptions::MissingOperand(), expression, i, i + 1));
                         }
                     } else if tt == TokenTypes::Input {
                         self.has_input_fields.set(true);
@@ -470,7 +474,7 @@ impl MathParser {
                         if tt == TokenTypes::Operator {
                             if (c == '=' || c == '\u{2190}') && paren_depth == 0 {
                                 if !allow_assignment || self.assignment_index.get() > 0 {
-                                    return Err(exceptions::ImproperAssignment());
+                                    return Err(source_error(exceptions::ImproperAssignment(), expression, i, i + 1));
                                 }
                                 let count = tokens.len();
                                 if count == 1 {
@@ -512,7 +516,7 @@ impl MathParser {
             return Ok(tokens);
         }
         if st == SolverTypes::None {
-            return Err(exceptions::MissingLeftSolverBracket());
+            return Err(source_error(exceptions::MissingLeftSolverBracket(), expression, solver_start, ex.len()));
         }
         Err(exceptions::MissingRightSolverBracket())
     }
