@@ -94,7 +94,7 @@ pub struct Token {
     pub order: i8,
     pub kind: TokenKind,
     /// Original-source provenance; RPN reordering keeps the same token allocation.
-    pub source_origin: Option<SourceOrigin>,
+    pub(crate) source_origin: Option<SourceOrigin>,
 }
 
 pub type TokenRef = Rc<RefCell<Token>>;
