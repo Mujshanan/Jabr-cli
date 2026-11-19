@@ -394,13 +394,6 @@ fn operator_name(content: &str) -> &'static str {
 mod tests {
     use super::*;
 
-    fn find_node<'a>(node: &'a AstNode, kind: &str) -> Option<&'a AstNode> {
-        if node.kind == kind {
-            return Some(node);
-        }
-        node.children.iter().find_map(|child| find_node(child, kind))
-    }
-
     #[test]
     fn preserves_operator_tree_instead_of_constant_folding() {
         let result = inspect_expression("2 + 3 * 4");
